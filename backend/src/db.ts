@@ -10,7 +10,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // Validación de seguridad
 if (!supabaseUrl || !supabaseServiceKey) {
 	throw new Error(
-		"Faltan las variables de entorno SUPABASE_URL o SUPABASE_ANON_KEY",
+		"Faltan las variables de entorno SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY",
 	);
 }
 
