@@ -48,3 +48,17 @@ Una plataforma robusta diseñada para que emprendedores puedan gestionar sus cat
 │   │   ├── services/   # Cliente API (Axios configurado con FormData)
 │   │   ├── hooks/      # Lógica de estado y llamadas a la API
 │   │   └── pages/      # Vistas principales del dashboard y catálogo
+
+## 🚀 Instalación y Configuración
+
+Sigue estos pasos para levantar el entorno de desarrollo local.
+
+### 1. Requisitos Previos
+*   **Node.js** (v18 o superior)
+*   **npm** o **yarn**
+*   Una cuenta en **Supabase** con un proyecto creado.
+
+### 2. Clonar el Repositorio
+```bash
+git clone [https://github.com/tu-usuario/tu-repositorio.git](https://github.com/tu-usuario/tu-repositorio.git)
+cd tu-repositorio
