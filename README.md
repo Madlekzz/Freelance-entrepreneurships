@@ -59,7 +59,7 @@ Sigue estos pasos para levantar el entorno de desarrollo local.
 ### 1. Requisitos Previos
 
 - Node.js (v18 o superior)
-- npm o yarn
+- pnpm
 - Una cuenta en [Supabase](https://supabase.com) con un proyecto activo
 
 ### 2. Clonar el Repositorio
@@ -75,7 +75,7 @@ Entra en la carpeta del servidor e instala las dependencias:
 
 ```bash
 cd backend
-npm install
+pnpm install
 ```
 
 Crea un archivo `.env` en la raíz de `backend/`:
@@ -83,7 +83,6 @@ Crea un archivo `.env` en la raíz de `backend/`:
 ```env
 PORT=3000
 SUPABASE_URL=tu_url_de_supabase
-SUPABASE_ANON_KEY=tu_anon_key
 SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
 ```
 
@@ -93,7 +92,7 @@ Entra en la carpeta del cliente e instala las dependencias:
 
 ```bash
 cd ../frontend
-npm install
+pnpm install
 ```
 
 Crea un archivo `.env` en la raíz de `frontend/`:
