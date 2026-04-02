@@ -15,7 +15,21 @@ if (!supabaseUrl || !supabaseServiceKey) {
 }
 
 // Crear el cliente de Supabase
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+	auth: {
+		autoRefreshToken: false,
+		persistSession: false,
+		detectSessionInUrl: false,
+	},
+	global: {
+		headers: {
+			Authorization: `Bearer ${supabaseServiceKey}`,
+		},
+	},
+});
+
+// CLIENTE AUTH: Solo para el middleware de validación
+export const supabaseAuth = createClient(supabaseUrl, supabaseServiceKey, {
 	auth: {
 		autoRefreshToken: false,
 		persistSession: false,

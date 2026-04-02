@@ -1,15 +1,16 @@
 import { Router } from "express";
 import {
+  createProduct,
+  deleteProduct,
   getActiveProducts,
   getAllProducts,
-  getProductsByEntrepreneurship,
   getProductById,
-  createProduct,
+  getProductsByEntrepreneurship,
   updateProduct,
-  deleteProduct,
 } from "../controllers/ProductController.ts";
 import { authenticate } from "../middleware/auth.ts";
 import { authorize } from "../middleware/role.ts";
+import upload from "../middleware/upload.ts";
 
 const productRouter: Router = Router();
 
@@ -20,10 +21,23 @@ productRouter.get("/public", getActiveProducts);
 productRouter.use(authenticate);
 
 productRouter.get("/", authorize("ADMIN", "IT"), getAllProducts);
-productRouter.get("/entrepreneurship/:entrepreneurship_id", getProductsByEntrepreneurship);
+productRouter.get(
+  "/entrepreneurship/:entrepreneurship_id",
+  getProductsByEntrepreneurship,
+);
 productRouter.get("/:id", getProductById);
-productRouter.post("/", authorize("PROVEEDOR", "IT"), createProduct);
-productRouter.put("/:id", authorize("ADMIN", "IT", "PROVEEDOR"), updateProduct);
+productRouter.post(
+  "/",
+  authorize("PROVEEDOR", "IT"),
+  upload.single("image"),
+  createProduct,
+);
+productRouter.put(
+  "/:id",
+  authorize("ADMIN", "IT", "PROVEEDOR"),
+  upload.single("image"),
+  updateProduct,
+);
 productRouter.delete("/:id", authorize("IT"), deleteProduct);
 
 export default productRouter;

@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { supabase } from "../db.ts";
+import { supabaseAuth } from "../db.ts";
 import type { User } from "@supabase/supabase-js";
 
 declare global {
@@ -29,7 +29,7 @@ export async function authenticate(
 		const {
 			data: { user },
 			error,
-		} = await supabase.auth.getUser(token);
+		} = await supabaseAuth.auth.getUser(token);
 
 		if (error || !user) {
 			return res.status(401).json({ error: "Token inválido o expirado" });

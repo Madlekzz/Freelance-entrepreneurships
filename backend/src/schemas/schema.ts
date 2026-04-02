@@ -1,6 +1,6 @@
 import z from "zod";
 
-export type UserRole = "IT" | "ADMIN" | "PROVEEDOR";
+export type UserRole = "IT" | "ADMIN" | "PROVEEDOR" | "CONSUMIDOR";
 export type RequestStatus = "PENDIENTE" | "APROBADO" | "RECHAZADO";
 
 export interface Consumer {
@@ -49,7 +49,7 @@ export interface Signup_request {
 export interface User {
 	id: string;
 	name: string;
-	role: UserRole;
+	role: UserRole[];
 	email: string;
 	is_approved: boolean;
 }

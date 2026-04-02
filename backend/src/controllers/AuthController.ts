@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { supabase } from "../db.ts";
+import { supabaseAdmin } from "../db.ts";
 
 export async function SignupRequest(req: Request, res: Response) {
 	try {
@@ -12,7 +12,7 @@ export async function SignupRequest(req: Request, res: Response) {
 
 		const rolesArray = Array.isArray(role) ? role : [role];
 
-		const { data, error } = await supabase
+		const { data, error } = await supabaseAdmin
 			.from("signup_request")
 			.insert([{ email, user_name, entrepreneurship_name, role: rolesArray }]);
 
@@ -23,13 +23,33 @@ export async function SignupRequest(req: Request, res: Response) {
 	}
 }
 
+export async function GetPendingRequests(req: Request, res: Response) {
+	try {
+		// Consultamos la tabla filtrando por el estado que consideres "pendiente"
+		// Si no tienes una columna de status, puedes quitar el .eq()
+		const { data, error } = await supabaseAdmin
+			.from("signup_request")
+			.select("*")
+			.eq("status", "PENDIENTE") // Ajusta el string según tu base de datos
+			.order("created_at", { ascending: false });
+
+		if (error) {
+			return res.status(400).json({ error: error.message });
+		}
+
+		return res.status(200).json(data);
+	} catch (error) {
+		console.error("Error fetching pending requests:", error);
+		return res.status(500).json({ error: "Internal server error" });
+	}
+}
+
 export async function ApproveSignup(req: Request, res: Response) {
 	const { requestId } = req.params; // El ID de la tabla signup_request
 
-	console.log(requestId)
 	try {
 		// 1. Obtener los datos de la solicitud
-		const { data: request, error: fetchError } = await supabase
+		const { data: request, error: fetchError } = await supabaseAdmin
 			.from("signup_request")
 			.select("*")
 			.eq("id", requestId)
@@ -43,8 +63,8 @@ export async function ApproveSignup(req: Request, res: Response) {
 			? request.role
 			: [request.role];
 		const { data: authUser, error: authError } =
-			await supabase.auth.admin.inviteUserByEmail(request.email, {
-				redirectTo: 'http://localhost:5173/reset-password',
+			await supabaseAdmin.auth.admin.inviteUserByEmail(request.email, {
+				redirectTo: "http://localhost:5173/reset-password",
 				data: {
 					name: request.user_name,
 					entrepreneurship_name: request.entrepreneurship_name,
@@ -55,7 +75,7 @@ export async function ApproveSignup(req: Request, res: Response) {
 		if (authError) return res.status(400).json({ error: authError.message });
 
 		// 3. Marcar la solicitud como aprobada
-		await supabase
+		await supabaseAdmin
 			.from("signup_request")
 			.update({ status: "APROBADO" }) // Asegúrate de tener este ENUM o columna
 			.eq("id", requestId);
@@ -64,6 +84,32 @@ export async function ApproveSignup(req: Request, res: Response) {
 			message: "Proveedor aprobado y correo de invitación enviado",
 			user: authUser.user,
 		});
+	} catch (error) {
+		res.status(500).json({ error: "Error interno del servidor" });
+	}
+}
+
+export async function RejectSignup(req: Request, res: Response) {
+	const { requestId } = req.params;
+
+	try {
+		// Actualizamos el estado a RECHAZADO (o el valor exacto de tu ENUM)
+		const { data, error } = await supabaseAdmin
+			.from("signup_request")
+			.update({ status: "RECHAZADO" }) // Asegúrate de que coincida con tu tipo ENUM
+			.eq("id", requestId)
+			.select()
+			.single();
+
+		if (error) {
+			return res.status(400).json({ error: error.message });
+		}
+
+		if (!data) {
+			return res.status(404).json({ error: "Solicitud no encontrada" });
+		}
+
+		res.status(200).json({ message: "Solicitud rechazada correctamente" });
 	} catch (error) {
 		res.status(500).json({ error: "Error interno del servidor" });
 	}
@@ -81,7 +127,7 @@ export async function Login(req: Request, res: Response) {
 		}
 
 		// 2. Intentar inicio de sesión en Supabase Auth
-		const { data, error } = await supabase.auth.signInWithPassword({
+		const { data, error } = await supabaseAdmin.auth.signInWithPassword({
 			email,
 			password,
 		});

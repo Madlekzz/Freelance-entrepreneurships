@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
-import { supabase } from "../db.ts";
+import { supabaseAdmin } from "../db.ts";
 
 // [PÚBLICO] Obtener todos los emprendimientos activos (para el catálogo)
-export async function getActiveEntrepreneurships(req: Request, res: Response) {
-  const { data, error } = await supabase
+export async function getActiveEntrepreneurships(_req: Request, res: Response) {
+  const { data, error } = await supabaseAdmin
     .from("entrepreneurships")
     .select("*, users(id, name, email)")
     .eq("is_active", true);
@@ -13,8 +13,8 @@ export async function getActiveEntrepreneurships(req: Request, res: Response) {
 }
 
 // [ADMIN/IT] Obtener todos los emprendimientos
-export async function getAllEntrepreneurships(req: Request, res: Response) {
-  const { data, error } = await supabase
+export async function getAllEntrepreneurships(_req: Request, res: Response) {
+  const { data, error } = await supabaseAdmin
     .from("entrepreneurships")
     .select("*, users(id, name, email)");
 
@@ -26,14 +26,54 @@ export async function getAllEntrepreneurships(req: Request, res: Response) {
 export async function getEntrepreneurshipById(req: Request, res: Response) {
   const { id } = req.params;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("entrepreneurships")
     .select("*, users(id, name, email)")
     .eq("id", id)
     .single();
 
-  if (error) return res.status(404).json({ error: "Emprendimiento no encontrado" });
+  if (error)
+    return res.status(404).json({ error: "Emprendimiento no encontrado" });
   res.status(200).json(data);
+}
+
+// [PROVEEDOR] Obtener solo los emprendimientos del usuario autenticado
+export async function getMyEntrepreneurships(req: Request, res: Response) {
+  const owner_id = req.user?.id; // Extraído del token por tu middleware
+
+  if (!owner_id) {
+    return res.status(401).json({ error: "Usuario no autenticado" });
+  }
+
+  try {
+    // Traemos los emprendimientos y contamos sus productos de forma relacional
+    const { data, error } = await supabaseAdmin
+      .from("entrepreneurships")
+      .select(
+        `
+        *,
+        products(count)
+      `,
+      )
+      .eq("owner_id", owner_id)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    // Formateamos la respuesta para que el count sea más fácil de leer en el front
+    const formattedData = data.map((item) => ({
+      ...item,
+      product_count: item.products?.[0]?.count || 0,
+    }));
+
+    res.status(200).json(formattedData);
+  } catch (error: unknown) {
+    let message = "";
+    if (error instanceof Error) {
+      message = error.message;
+    }
+    res.status(400).json({ error: message });
+  }
 }
 
 // [PROVEEDOR] Crear un emprendimiento — el owner_id se toma del token
@@ -45,7 +85,7 @@ export async function createEntrepreneurship(req: Request, res: Response) {
     return res.status(400).json({ error: "El campo 'name' es obligatorio" });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("entrepreneurships")
     .insert({ name, owner_id, is_active: true })
     .select()
@@ -62,7 +102,7 @@ export async function updateEntrepreneurship(req: Request, res: Response) {
   const requestingUser = req.user;
 
   // Siempre verificamos que el emprendimiento exista
-  const { data: entrepreneurship } = await supabase
+  const { data: entrepreneurship } = await supabaseAdmin
     .from("entrepreneurships")
     .select("owner_id")
     .eq("id", id)
@@ -73,12 +113,16 @@ export async function updateEntrepreneurship(req: Request, res: Response) {
   }
 
   // El Proveedor solo puede editar los suyos — Admin e IT pueden editar cualquiera
-  if (requestingUser?.user_metadata.role.includes("PROVEEDOR") && entrepreneurship.owner_id !== requestingUser.id) {
-    return res.status(403).json({ error: "No tienes permiso para editar este emprendimiento" });
+  if (
+    requestingUser?.user_metadata.roles.includes("PROVEEDOR") &&
+    entrepreneurship.owner_id !== requestingUser.id
+  ) {
+    return res
+      .status(403)
+      .json({ error: "No tienes permiso para editar este emprendimiento" });
   }
 
-
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("entrepreneurships")
     .update(updates)
     .eq("id", id)
@@ -86,7 +130,9 @@ export async function updateEntrepreneurship(req: Request, res: Response) {
     .single();
 
   if (error) return res.status(400).json({ error: error.message });
-  res.status(200).json({ message: "Emprendimiento actualizado correctamente", data });
+  res
+    .status(200)
+    .json({ message: "Emprendimiento actualizado correctamente", data });
 }
 
 // [IT] Eliminar un emprendimiento
@@ -94,11 +140,13 @@ export async function deleteEntrepreneurship(req: Request, res: Response) {
   const { id } = req.params;
 
   if (!id || typeof id !== "string") {
-    return res.status(400).json({ error: "ID de emprendimiento inválido o ausente" });
+    return res
+      .status(400)
+      .json({ error: "ID de emprendimiento inválido o ausente" });
   }
 
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("entrepreneurships")
       .delete()
       .eq("id", id);
@@ -106,6 +154,6 @@ export async function deleteEntrepreneurship(req: Request, res: Response) {
     if (error) return res.status(400).json({ error: error.message });
     res.status(200).json({ message: "Emprendimiento eliminado correctamente" });
   } catch (error) {
-    res.status(500).json({ error: "Error interno" });
+    res.status(500).json({ error: "Error eliminando el emprendimiento." });
   }
 }
