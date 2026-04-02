@@ -7,15 +7,15 @@ Una plataforma robusta diseñada para que emprendedores puedan gestionar sus cat
 ## 🛠️ Tecnologías Principales
 
 **Frontend:**
-*   **React + TypeScript**: Interfaz de usuario reactiva y tipado fuerte.
-*   **Ant Design**: Componentes de UI profesionales y sistema de formularios.
-*   **Lucide React**: Biblioteca de iconos moderna.
-*   **Tailwind CSS**: Estilizado moderno, responsivo y basado en utilidades.
+- **React + TypeScript**: Interfaz de usuario reactiva y tipado fuerte.
+- **Ant Design**: Componentes de UI profesionales y sistema de formularios.
+- **Lucide React**: Biblioteca de iconos moderna.
+- **Tailwind CSS**: Estilizado moderno, responsivo y basado en utilidades.
 
 **Backend:**
-*   **Node.js + Express**: Servidor de API REST eficiente.
-*   **Supabase (PostgreSQL + Auth + Storage)**: Base de datos relacional, manejo de sesiones de usuario y almacenamiento de archivos binarios.
-*   **Multer**: Middleware para el procesamiento de datos `multipart/form-data` y carga de archivos.
+- **Node.js + Express**: Servidor de API REST eficiente.
+- **Supabase (PostgreSQL + Auth + Storage)**: Base de datos relacional, manejo de sesiones de usuario y almacenamiento de archivos binarios.
+- **Multer**: Middleware para el procesamiento de datos `multipart/form-data` y carga de archivos.
 
 ---
 
@@ -48,17 +48,81 @@ Una plataforma robusta diseñada para que emprendedores puedan gestionar sus cat
 │   │   ├── services/   # Cliente API (Axios configurado con FormData)
 │   │   ├── hooks/      # Lógica de estado y llamadas a la API
 │   │   └── pages/      # Vistas principales del dashboard y catálogo
+```
+
+---
 
 ## 🚀 Instalación y Configuración
 
 Sigue estos pasos para levantar el entorno de desarrollo local.
 
 ### 1. Requisitos Previos
-*   **Node.js** (v18 o superior)
-*   **npm** o **yarn**
-*   Una cuenta en **Supabase** con un proyecto creado.
+
+- Node.js (v18 o superior)
+- npm o yarn
+- Una cuenta en [Supabase](https://supabase.com) con un proyecto activo
 
 ### 2. Clonar el Repositorio
+
 ```bash
-git clone [https://github.com/tu-usuario/tu-repositorio.git](https://github.com/tu-usuario/tu-repositorio.git)
+git clone https://github.com/tu-usuario/tu-repositorio.git
 cd tu-repositorio
+```
+
+### 3. Configuración del Backend
+
+Entra en la carpeta del servidor e instala las dependencias:
+
+```bash
+cd backend
+npm install
+```
+
+Crea un archivo `.env` en la raíz de `backend/`:
+
+```env
+PORT=3000
+SUPABASE_URL=tu_url_de_supabase
+SUPABASE_ANON_KEY=tu_anon_key
+SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
+```
+
+### 4. Configuración del Frontend
+
+Entra en la carpeta del cliente e instala las dependencias:
+
+```bash
+cd ../frontend
+npm install
+```
+
+Crea un archivo `.env` en la raíz de `frontend/`:
+
+```env
+VITE_API_URL=http://localhost:3000
+VITE_SUPABASE_URL=tu_url_de_supabase
+VITE_SUPABASE_ANON_KEY=tu_anon_key
+```
+
+### 5. Configuración de Supabase Storage
+
+Para que la subida de imágenes funcione correctamente:
+
+1. Ve al panel de **Storage** en tu dashboard de Supabase.
+2. Crea un nuevo bucket llamado `product-images`.
+3. Configura el bucket como **Public**.
+4. Añade una **Policy (RLS)** para permitir `INSERT` y `UPDATE` a usuarios autenticados.
+
+### 6. Ejecución
+
+Inicia ambos servicios simultáneamente (en terminales separadas):
+
+```bash
+# Terminal 1 — Backend
+cd backend && npm run dev
+
+# Terminal 2 — Frontend
+cd frontend && npm run dev
+```
+
+Desarrollado con ❤️ para impulsar el ecosistema de emprendimiento local.
