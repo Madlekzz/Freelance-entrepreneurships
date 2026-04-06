@@ -7,10 +7,10 @@ import {
   getProductById,
   getProductsByEntrepreneurship,
   updateProduct,
-} from "../controllers/ProductController.ts";
-import { authenticate } from "../middleware/auth.ts";
-import { authorize } from "../middleware/role.ts";
-import upload from "../middleware/upload.ts";
+} from "../controllers/ProductController.js";
+import { authenticate } from "../middleware/auth.js";
+import { authorize } from "../middleware/role.js";
+import upload from "../middleware/upload.js";
 
 const productRouter: Router = Router();
 

@@ -1,13 +1,13 @@
 import { Router } from "express";
 import {
-	ApproveSignup,
-	GetPendingRequests,
-	Login,
-	RejectSignup,
-	SignupRequest,
-} from "../controllers/AuthController.ts";
-import { authenticate } from "../middleware/auth.ts";
-import { authorize } from "../middleware/role.ts";
+  ApproveSignup,
+  GetPendingRequests,
+  Login,
+  RejectSignup,
+  SignupRequest,
+} from "../controllers/AuthController.js";
+import { authenticate } from "../middleware/auth.js";
+import { authorize } from "../middleware/role.js";
 
 const authRouter: Router = Router();
 

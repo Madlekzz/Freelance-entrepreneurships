@@ -7,9 +7,9 @@ import {
   getEntrepreneurshipById,
   getMyEntrepreneurships,
   updateEntrepreneurship,
-} from "../controllers/EntrepreneurshipController.ts";
-import { authenticate } from "../middleware/auth.ts";
-import { authorize } from "../middleware/role.ts";
+} from "../controllers/EntrepreneurshipController.js";
+import { authenticate } from "../middleware/auth.js";
+import { authorize } from "../middleware/role.js";
 
 const entrepreneurshipRouter: Router = Router();
 

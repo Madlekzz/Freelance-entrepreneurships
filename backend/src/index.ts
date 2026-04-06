@@ -1,11 +1,11 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import authRouter from "./routes/authRoutes.ts";
-import entrepreneurshipRouter from "./routes/entrepreneurshipRoutes.ts";
-import productRouter from "./routes/productRoutes.ts";
-import saleRouter from "./routes/saleRoutes.ts";
-import userRouter from "./routes/userRoutes.ts";
+import authRouter from "./routes/authRoutes.js";
+import entrepreneurshipRouter from "./routes/entrepreneurshipRoutes.js";
+import productRouter from "./routes/productRoutes.js";
+import saleRouter from "./routes/saleRoutes.js";
+import userRouter from "./routes/userRoutes.js";
 
 dotenv.config();
 

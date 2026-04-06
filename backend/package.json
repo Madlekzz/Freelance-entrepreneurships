@@ -5,6 +5,7 @@
   "main": "index.ts",
   "scripts": {
     "dev": "nodemon --exec node src/index.ts",
+    "pre-build": "rm -rf dist",
     "build": "tsc",
     "format": "biome format --write .",
     "lint": "biome lint .",

@@ -7,9 +7,9 @@ import {
   getSalesByConsumer,
   getSalesByEntrepreneurship,
   updatePayrollStatus,
-} from "../controllers/SaleController.ts";
-import { authenticate } from "../middleware/auth.ts";
-import { authorize } from "../middleware/role.ts";
+} from "../controllers/SaleController.js";
+import { authenticate } from "../middleware/auth.js";
+import { authorize } from "../middleware/role.js";
 
 const saleRouter: Router = Router();
 

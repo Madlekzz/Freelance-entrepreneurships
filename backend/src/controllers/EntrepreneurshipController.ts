@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { supabaseAdmin } from "../db.ts";
+import { supabaseAdmin } from "../db.js";
 
 // [PÚBLICO] Obtener todos los emprendimientos activos (para el catálogo)
 export async function getActiveEntrepreneurships(_req: Request, res: Response) {

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "../db.ts";
+import { supabaseAdmin } from "../db.js";
 
 export const uploadProductImage = async (
   file: Express.Multer.File,

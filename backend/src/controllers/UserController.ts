@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { supabaseAdmin } from "../db.ts";
+import { supabaseAdmin } from "../db.js";
 
 export async function createSystemUser(req: Request, res: Response) {
   const { email, name, roles, departamento } = req.body;

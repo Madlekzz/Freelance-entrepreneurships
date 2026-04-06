@@ -1,13 +1,10 @@
 import type { Request, Response } from "express";
-import { supabaseAdmin } from "../db.ts";
+import { supabaseAdmin } from "../db.js";
 import {
   consumerPurchaseTemplate,
   entrepreneurSaleTemplate,
-} from "../schemas/slackTemplates.ts";
-import {
-  type SlackMessageContent,
-  sendSlackNotification,
-} from "../services/slackService.ts";
+} from "../schemas/slackTemplates.js";
+import { sendSlackNotification } from "../services/slackService.js";
 
 // [ADMIN] Obtener todas las ventas
 export async function getAllSales(req: Request, res: Response) {

@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
-import { supabaseAdmin } from "../db.ts";
-import { uploadProductImage } from "../services/uploadImageService.ts";
+import { supabaseAdmin } from "../db.js";
+import { uploadProductImage } from "../services/uploadImageService.js";
 
 // [PÚBLICO] Obtener todos los productos activos de emprendimientos activos
 export async function getActiveProducts(req: Request, res: Response) {
