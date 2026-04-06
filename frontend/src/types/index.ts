@@ -114,7 +114,7 @@ export interface SidebarUser {
   role: string;
 }
 
-export interface LoginForm {
+export interface LoginFormType {
   email: string;
   password: string;
 }
