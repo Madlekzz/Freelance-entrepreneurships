@@ -69,7 +69,7 @@ export async function ApproveSignup(req: Request, res: Response) {
         data: {
           name: request.user_name,
           entrepreneurship_name: request.entrepreneurship_name,
-          role: rolesArray,
+          roles: rolesArray,
         },
       });
 
