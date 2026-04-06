@@ -64,7 +64,8 @@ export async function ApproveSignup(req: Request, res: Response) {
       : [request.role];
     const { data: authUser, error: authError } =
       await supabaseAdmin.auth.admin.inviteUserByEmail(request.email, {
-        redirectTo: "http://localhost:5173/reset-password",
+        redirectTo:
+          "https://freelance-entrepreneurships-fronten.vercel.app/reset-password",
         data: {
           name: request.user_name,
           entrepreneurship_name: request.entrepreneurship_name,
