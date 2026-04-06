@@ -38,7 +38,6 @@ export const useSignupRequests = () => {
     try {
       await approveAccessRequest(id);
       const successMsg = "Solicitud aprobada con éxito";
-      message.success(successMsg);
       toast.success(successMsg);
       setRequests((prev) => prev.filter((req) => req.id !== id));
     } catch (error) {
