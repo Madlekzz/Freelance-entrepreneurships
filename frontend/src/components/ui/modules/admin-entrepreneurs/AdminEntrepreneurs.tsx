@@ -15,6 +15,7 @@ import {
   useAdminData,
 } from "../../../../hooks/useAdminData";
 import type { GlobalSale } from "../../../../services/saleService";
+import { AdminConsumersSkeleton } from "../admin-consumers/AdminConsumersSkeleton";
 
 export default function AdminEntrepreneurs() {
   const { entrepreneursSummary, sales, loading, processing, processPayroll } =
@@ -38,14 +39,7 @@ export default function AdminEntrepreneurs() {
   }, [sales, selectedEntId]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <Loader2 className="animate-spin text-primary" size={40} />
-        <p className="text-gray-500 animate-pulse">
-          Cargando datos de emprendimientos...
-        </p>
-      </div>
-    );
+    return <AdminConsumersSkeleton />;
   }
 
   return (

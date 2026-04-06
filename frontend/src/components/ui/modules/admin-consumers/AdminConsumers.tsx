@@ -16,6 +16,7 @@ import {
   useAdminData,
 } from "../../../../hooks/useAdminData";
 import type { GlobalSale } from "../../../../services/saleService";
+import { AdminConsumersSkeleton } from "./AdminConsumersSkeleton";
 
 export default function AdminConsumers() {
   const { consumersSummary, sales, loading, processing, processPayroll } =
@@ -39,14 +40,7 @@ export default function AdminConsumers() {
   }, [sales, selectedUserEmail]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <Loader2 className="animate-spin text-primary" size={40} />
-        <p className="text-gray-500 animate-pulse">
-          Cargando datos de empleados...
-        </p>
-      </div>
-    );
+    return <AdminConsumersSkeleton />;
   }
 
   return (
@@ -82,7 +76,7 @@ export default function AdminConsumers() {
           ) : (
             <ArrowLeft size={18} />
           )}
-          {view === "summary" ? "Ver Compras" : "Volver al Resumen"}
+          {view === "summary" ? "Ver detalles" : "Volver al Resumen"}
         </button>
       </div>
 
