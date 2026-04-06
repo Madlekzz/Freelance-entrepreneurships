@@ -17,6 +17,7 @@ import SystemUsers from "./components/ui/modules/system-users/SystemUsers";
 import CatalogPage from "./pages/CatalogPage";
 // Layouts
 import DashboardPage from "./pages/DashboardPage"; // Este actuará como el Layout General
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
@@ -28,6 +29,7 @@ function App() {
           {/* ─── RUTAS PÚBLICAS ─── */}
           <Route path="/" element={<CatalogPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* ─── RUTAS PROTEGIDAS ─── */}

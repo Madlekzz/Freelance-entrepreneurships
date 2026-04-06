@@ -1,21 +1,21 @@
 import axios from "axios";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../../config/supabaseClient";
 import { loginUser } from "../../../services/authService";
-import type { LoginForm } from "../../../types";
+import type { LoginFormType } from "../../../types";
 
 export default function LoginForm() {
   const navigate = useNavigate();
 
-  const [form, setForm] = useState<LoginForm>({ email: "", password: "" });
+  const [form, setForm] = useState<LoginFormType>({ email: "", password: "" });
   const [showPassword, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const set =
-    (key: keyof LoginForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    (key: keyof LoginFormType) => (e: React.ChangeEvent<HTMLInputElement>) => {
       setError(null);
       setForm((f) => ({ ...f, [key]: e.target.value }));
     };
@@ -99,7 +99,10 @@ export default function LoginForm() {
 
       <div className="flex flex-col gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-600 mb-1.5"
+          >
             Correo electrónico
           </label>
           <input
@@ -114,7 +117,10 @@ export default function LoginForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-600 mb-1.5"
+          >
             Contraseña
           </label>
           <div className="relative">
@@ -160,9 +166,12 @@ export default function LoginForm() {
       </button>
 
       <p className="text-center text-xs text-gray-400">
-        <span className="text-primary cursor-pointer hover:underline">
+        <Link
+          to={"/forgot-password"}
+          className="text-primary cursor-pointer hover:underline"
+        >
           ¿Olvidaste tu contraseña?
-        </span>
+        </Link>
       </p>
     </form>
   );
