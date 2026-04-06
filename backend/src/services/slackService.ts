@@ -1,25 +1,83 @@
-import { WebClient } from "@slack/web-api";
+import {
+  type Block,
+  type KnownBlock,
+  type WebAPIPlatformError,
+  WebClient,
+} from "@slack/web-api";
 
-const slack = new WebClient(process.env.SLACK_BOT_TOKEN);
+const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 
-export async function findSlackIdByName(
-	nombre: string,
-): Promise<string | null> {
-	const result = await slack.users.list();
+export type SlackMessageContent = (Block | KnownBlock)[];
 
-	if (!result.members) return null;
-
-	// Normaliza el nombre para comparación flexible
-	const query = nombre.toLowerCase().trim();
-
-	const match = result.members.find((user) => {
-		if (user.is_bot || user.deleted) return false;
-
-		const displayName = user.profile?.display_name?.toLowerCase() ?? "";
-		const realName = user.profile?.real_name?.toLowerCase() ?? "";
-
-		return displayName.includes(query) || realName.includes(query);
-	});
-
-	return match?.id ?? null;
+export interface SlackNotificationResponse {
+  success: boolean;
+  slackUserId: string | null;
+  error?: string;
 }
+
+/**
+ * Busca el ID de un usuario en Slack utilizando su correo electrónico.
+ */
+export const getSlackIdByEmail = async (
+  email: string,
+): Promise<string | null> => {
+  try {
+    const result = await slackClient.users.lookupByEmail({ email });
+    return result.user?.id || null;
+  } catch (error: unknown) {
+    // Verificamos si es un error específico de la plataforma Slack
+    const slackError = error as WebAPIPlatformError;
+
+    console.error(
+      `[SlackService] Error buscando email ${email}:`,
+      slackError.data?.error || slackError.message,
+    );
+    return null;
+  }
+};
+
+/**
+ * Envía una notificación de Slack.
+ * Retorna los datos necesarios para que el controlador realice el registro en DB.
+ */
+export const sendSlackNotification = async (
+  email: string,
+  content: SlackMessageContent,
+): Promise<SlackNotificationResponse> => {
+  const slackUserId = await getSlackIdByEmail(email);
+
+  if (!slackUserId) {
+    return {
+      success: false,
+      slackUserId: null,
+      error: `No se encontró un usuario de Slack vinculado al correo: ${email}`,
+    };
+  }
+
+  try {
+    await slackClient.chat.postMessage({
+      channel: slackUserId,
+      text: "Actualización de pedido", // Fallback para notificaciones push
+      blocks: content,
+    });
+
+    return {
+      success: true,
+      slackUserId,
+    };
+  } catch (error: unknown) {
+    // Aquí capturamos cualquier error (de red o de Slack)
+    const genericError = error as Error;
+
+    console.error(
+      `[SlackService] Fallo al enviar notificación a ${email}:`,
+      genericError.message,
+    );
+
+    return {
+      success: false,
+      slackUserId,
+      error: genericError.message,
+    };
+  }
+};

@@ -1,5 +1,13 @@
 import type { Request, Response } from "express";
 import { supabaseAdmin } from "../db.ts";
+import {
+  consumerPurchaseTemplate,
+  entrepreneurSaleTemplate,
+} from "../schemas/slackTemplates.ts";
+import {
+  type SlackMessageContent,
+  sendSlackNotification,
+} from "../services/slackService.ts";
 
 // [ADMIN] Obtener todas las ventas
 export async function getAllSales(req: Request, res: Response) {
@@ -160,15 +168,33 @@ export async function createSale(req: Request, res: Response) {
     let totalAmount = 0;
     const processedItems = [];
 
-    // 1. Validar todos los productos y calcular total
+    // 1. Validar todos los productos, traer info de los emprendedores y calcular total
     for (const item of items) {
-      const { data: product } = await supabaseAdmin
+      const { data: product, error: prodError } = await supabaseAdmin
         .from("products")
-        .select("id, price, current_stock, is_active")
+        .select(
+          `
+          id, 
+          name, 
+          price, 
+          current_stock, 
+          is_active,
+          entrepreneurship:entrepreneurship_id (
+            id,
+            name,
+            owner:owner_id (
+              id,
+              email,
+              name
+            )
+          )
+        `,
+        )
         .eq("id", item.product_id)
         .single();
 
       if (
+        prodError ||
         !product ||
         !product.is_active ||
         product.current_stock < item.quantity
@@ -182,6 +208,7 @@ export async function createSale(req: Request, res: Response) {
       totalAmount += subtotal;
 
       processedItems.push({
+        ...product,
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: product.price,
@@ -197,10 +224,20 @@ export async function createSale(req: Request, res: Response) {
         total: totalAmount,
         payroll_processed: false,
       })
-      .select()
+      .select(
+        `
+        id,
+        total,
+        consumer:consumer_id (
+          id,
+          email,
+          name
+        )
+      `,
+      )
       .single();
 
-    if (saleError) throw saleError;
+    if (saleError || !sale || !sale.id) throw saleError;
 
     // 3. Crear los detalles (sale_items)
     const itemsToInsert = processedItems.map((item) => ({
@@ -215,6 +252,78 @@ export async function createSale(req: Request, res: Response) {
       .insert(itemsToInsert);
 
     if (itemsError) throw itemsError;
+
+    // --- PROCESO DE NOTIFICACIONES ---
+
+    const consumerData = Array.isArray(sale.consumer)
+      ? sale.consumer[0]
+      : sale.consumer;
+    // A. Notificar al Consumidor
+    if (consumerData?.email) {
+      const consumerBlocks = consumerPurchaseTemplate(
+        consumerData.name,
+        sale.id,
+        sale.total,
+        processedItems,
+      );
+
+      const resSlack = await sendSlackNotification(
+        consumerData.email,
+        consumerBlocks,
+      );
+
+      await supabaseAdmin.from("notification_logs").insert({
+        sale_id: sale.id,
+        user_id: consumerData.id,
+        slack_user_id: resSlack.slackUserId,
+        message_type: "CUSTOMER_CONFIRMATION",
+        message: consumerBlocks,
+        status: resSlack.success ? "sent" : "error",
+        error_message: resSlack.error,
+      });
+    }
+
+    // B. Notificar a los Emprendedores (Agrupados por Owner)
+    const sellersGroup = new Map<
+      string,
+      { email: string; name: string; products: any[] }
+    >();
+
+    processedItems.forEach((item) => {
+      const owner = (item.entrepreneurship as any).owner;
+      if (!sellersGroup.has(owner.id)) {
+        sellersGroup.set(owner.id, {
+          email: owner.email,
+          name: owner.name,
+          products: [],
+        });
+      }
+      sellersGroup.get(owner.id)?.products.push(item);
+    });
+
+    for (const [ownerId, data] of sellersGroup.entries()) {
+      const sellerBlocks = entrepreneurSaleTemplate(
+        data.name,
+        sale.id,
+        data.products,
+        consumerData?.name,
+      );
+
+      const resSlackSeller = await sendSlackNotification(
+        data.email,
+        sellerBlocks,
+      );
+
+      await supabaseAdmin.from("notification_logs").insert({
+        sale_id: sale.id,
+        user_id: ownerId,
+        slack_user_id: resSlackSeller.slackUserId,
+        message_type: "ENTREPRENEUR_SALE",
+        message: sellerBlocks,
+        status: resSlackSeller.success ? "sent" : "error",
+        error_message: resSlackSeller.error,
+      });
+    }
 
     res.status(201).json(sale);
   } catch (error: any) {
