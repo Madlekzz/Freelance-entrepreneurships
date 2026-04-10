@@ -66,6 +66,9 @@ export interface GlobalSale {
         // Estructura anidada del JSON de /sales
         id: string;
         name: string;
+        users: {
+          name: string;
+        };
         owner_id: string;
       };
     };
