@@ -42,6 +42,10 @@ export function useAdminData(enabled: boolean = true) {
     new Date().getMonth(),
   );
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [idsToProcess, setIdsToProcess] = useState<string[]>([]);
+  const [modalConfig, setModalConfig] = useState({ title: "", message: "" });
+  const [selectedSales, setSelectedSales] = useState<string[]>([]);
 
   // Dentro de useAdminData.ts
   const fetchData = useCallback(
@@ -78,6 +82,24 @@ export function useAdminData(enabled: boolean = true) {
     fetchData();
   }, [fetchData]);
 
+  const openProcessPayroll = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+
+    setIdsToProcess(ids);
+    const isMultiple = ids.length > 1;
+
+    setModalConfig({
+      title: isMultiple
+        ? "Liquidar selección masiva"
+        : "Liquidar venta individual",
+      message: isMultiple
+        ? `¿Estás seguro de que deseas liquidar las ${ids.length} ventas seleccionadas? Esta acción no se puede deshacer.`
+        : "¿Estás seguro de que deseas liquidar esta venta? Se marcará como procesada en el sistema.",
+    });
+
+    setIsModalOpen(true);
+  }, []);
+
   const processPayroll = async (saleIds: string[]) => {
     if (saleIds.length === 0) return;
 
@@ -86,13 +108,24 @@ export function useAdminData(enabled: boolean = true) {
       await Promise.all(saleIds.map((id) => updatePayrollStatus(id)));
       toast.success("Registros actualizados correctamente");
       await fetchData(true);
+      setSelectedSales((prev) => prev.filter((id) => !saleIds.includes(id)));
+      setIsModalOpen(false);
     } catch (error: unknown) {
       console.error("Error al procesar nómina:", error);
       toast.error("Error al actualizar algunos registros");
     } finally {
       setProcessingIds((prev) => prev.filter((id) => !saleIds.includes(id)));
+      setIdsToProcess([]);
     }
   };
+
+  const toggleSaleSelection = useCallback((saleId: string) => {
+    setSelectedSales((prev) =>
+      prev.includes(saleId)
+        ? prev.filter((id) => id !== saleId)
+        : [...prev, saleId],
+    );
+  }, []);
 
   const isDateInCycle = useCallback(
     (date: Date, cycle: PayrollCycle | null, refMonth: number | null) => {
@@ -304,12 +337,16 @@ export function useAdminData(enabled: boolean = true) {
 
   return {
     sales: filteredSales,
+    selectedSales,
+    setSelectedSales,
+    toggleSaleSelection,
     fullEntrepreneursSummary,
     entrepreneursSummary: filteredEntrepreneursSummary,
     consumersSummary,
     loading,
     processingIds,
     processPayroll,
+    openProcessPayroll,
     refetch: fetchData,
     searchQuery,
     setSearchQuery,
@@ -321,5 +358,14 @@ export function useAdminData(enabled: boolean = true) {
     selectedMonth,
     sortOrder,
     setSortOrder,
+    modalProps: {
+      isOpen: isModalOpen,
+      onClose: () => !processingIds.length && setIsModalOpen(false),
+      onConfirm: () => processPayroll(idsToProcess),
+      title: modalConfig.title,
+      message: modalConfig.message,
+      isLoading: processingIds.length > 0,
+      confirmText: "Si, liquidar",
+    },
   };
 }

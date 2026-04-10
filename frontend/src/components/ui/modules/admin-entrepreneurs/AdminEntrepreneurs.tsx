@@ -21,6 +21,7 @@ import {
 } from "../../../../hooks/useAdminData";
 import type { GlobalSale } from "../../../../services/saleService";
 import { MONTHS, PAYROLL_CYCLES } from "../../../../utils/payrollUtils";
+import ConfirmationModal from "../../shared/ConfirmationModal";
 import FilterDropdown from "../../shared/FilterDropdown";
 import SearchInput from "../../shared/SearchInput";
 import { AdminConsumersSkeleton } from "../admin-consumers/AdminConsumersSkeleton";
@@ -32,7 +33,6 @@ export default function AdminEntrepreneurs() {
     sales,
     loading,
     processingIds,
-    processPayroll,
     searchQuery,
     setSearchQuery,
     statusFilter,
@@ -43,11 +43,15 @@ export default function AdminEntrepreneurs() {
     setSelectedMonth,
     sortOrder,
     setSortOrder,
+    openProcessPayroll,
+    modalProps,
+    selectedSales,
+    setSelectedSales,
+    toggleSaleSelection,
   } = useAdminData();
 
   const [view, setView] = useState<"summary" | "detailed">("summary");
   const [selectedEntId, setSelectedEntId] = useState<string | null>(null);
-  const [selectedSales, setSelectedSales] = useState<string[]>([]);
 
   const selectedEntrepreneur = useMemo(
     () => fullEntrepreneursSummary.find((e) => e.id === selectedEntId),
@@ -71,14 +75,6 @@ export default function AdminEntrepreneurs() {
       return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
     });
   }, [sales, selectedEntId, sortOrder]); // Se añade sortOrder a las dependencias
-
-  const toggleSaleSelection = (saleId: string) => {
-    setSelectedSales((prev) =>
-      prev.includes(saleId)
-        ? prev.filter((id) => id !== saleId)
-        : [...prev, saleId],
-    );
-  };
 
   const toggleAllVisible = () => {
     const pendingSalesIds = detailedSales
@@ -248,12 +244,9 @@ export default function AdminEntrepreneurs() {
           </span>
           <button
             type="button"
-            onClick={async () => {
-              await processPayroll(selectedSales);
-              setSelectedSales([]); // Limpiamos selección tras éxito
-            }}
-            disabled={processingIds.length > 0}
-            className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-all disabled:opacity-50"
+            onClick={() => openProcessPayroll(selectedSales)} // <--- USO AQUÍ
+            disabled={modalProps.isLoading}
+            className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-all disabled:opacity-50 cursor-pointer"
           >
             {processingIds.length > 0 ? (
               <Loader2 size={16} className="animate-spin" />
@@ -467,8 +460,8 @@ export default function AdminEntrepreneurs() {
                             {!sale.payroll_processed ? (
                               <button
                                 type="button"
-                                onClick={() => processPayroll([sale.id])}
-                                disabled={isSaleProcessing}
+                                onClick={() => openProcessPayroll([sale.id])} // <--- USO AQUÍ
+                                disabled={modalProps.isLoading}
                                 className="flex items-center gap-1.5 bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 transition-all disabled:opacity-50 cursor-pointer"
                                 title="Liquidar esta venta"
                               >
@@ -508,6 +501,7 @@ export default function AdminEntrepreneurs() {
           </div>
         </div>
       )}
+      <ConfirmationModal {...modalProps} type="info" />
     </div>
   );
 }
