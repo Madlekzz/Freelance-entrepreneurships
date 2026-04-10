@@ -8,6 +8,9 @@ export interface Entrepreneurship {
   description?: string; // Opcional ya que no venía en tu JSON de ejemplo
   is_active: boolean;
   created_at: string;
+  users: {
+    name: string;
+  };
   logo_url?: string;
   // El backend envía este objeto por la relación de Supabase
   products: {

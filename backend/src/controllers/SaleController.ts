@@ -21,7 +21,7 @@ export async function getAllSales(req: Request, res: Response) {
             quantity,
             unit_price,
             subtotal,
-            products(id, name, entrepreneurships(id, name, owner_id))
+            products(id, name, entrepreneurships(id, name, owner_id, users(name)))
         )
     `,
     )
