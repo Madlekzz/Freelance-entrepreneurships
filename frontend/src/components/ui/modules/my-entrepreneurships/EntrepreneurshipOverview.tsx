@@ -75,13 +75,13 @@ export default function EntrepreneurshipOverview() {
                 state: { openModal: true }, // Enviamos el estado aquí
               })
             }
-            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 cursor-pointer"
+            className="hidden md:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 cursor-pointer"
           >
             <Plus size={18} /> Nuevo Producto
           </button>
           <Link
             to="/"
-            className="flex items-center gap-2 bg-gray-50 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-all border border-gray-200"
+            className="hidden md:flex items-center gap-2 bg-gray-50 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-all border border-gray-200"
           >
             <LayoutGrid size={20} />
             <span className="font-medium">Ver Catálogo</span>

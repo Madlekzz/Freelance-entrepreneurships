@@ -22,7 +22,7 @@ export default function FilterDropdown({
   icon,
 }: FilterDropdownProps) {
   return (
-    <div className="relative min-w-45">
+    <div className="relative w-full">
       <Select
         value={value}
         onChange={onChange}

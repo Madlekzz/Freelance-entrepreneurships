@@ -169,40 +169,19 @@ export function useAdminData(enabled: boolean = true) {
   );
 
   // --- Resumen para la sección EMPRENDEDORES ---
-  // --- Resumen para la sección EMPRENDEDORES ---
   const { fullEntrepreneursSummary, filteredEntrepreneursSummary } =
     useMemo(() => {
       const map: Record<string, EntrepreneurSummary> = {};
+      const staticMap: Record<string, EntrepreneurSummary> = {}; // <--- NUEVO: Para nombres siempre visibles
 
-      // 1. Filtrado base por CICLO y ESTADO
-      const baseSales = sales.filter((sale) => {
-        const saleDate = new Date(sale.created_at);
-
-        const matchesStatus =
-          statusFilter === "all"
-            ? true
-            : statusFilter === "pending"
-              ? !sale.payroll_processed
-              : sale.payroll_processed;
-
-        const matchesCycle = isDateInCycle(
-          saleDate,
-          payrollCycle,
-          selectedMonth,
-        );
-
-        return matchesStatus && matchesCycle;
-      });
-
-      // 2. Agrupación por Emprendimiento
-      baseSales.forEach((s) => {
+      // 1. Agrupación estática (Para que el nombre no desaparezca nunca)
+      sales.forEach((s) => {
         const entrepreneurship = s.sale_items[0]?.products?.entrepreneurships;
         if (!entrepreneurship) return;
 
-        const entId = entrepreneurship.id;
-        if (!map[entId]) {
-          map[entId] = {
-            id: entId,
+        if (!staticMap[entrepreneurship.id]) {
+          staticMap[entrepreneurship.id] = {
+            id: entrepreneurship.id,
             name: entrepreneurship.name,
             ownerName: entrepreneurship.users.name,
             totalRevenue: 0,
@@ -210,6 +189,34 @@ export function useAdminData(enabled: boolean = true) {
             salesCount: 0,
             pendingIds: [],
           };
+        }
+      });
+
+      // 2. Filtrado base por CICLO y ESTADO (Lo que afecta a la tabla)
+      const baseSales = sales.filter((sale) => {
+        const saleDate = new Date(sale.created_at);
+        const matchesStatus =
+          statusFilter === "all"
+            ? true
+            : statusFilter === "pending"
+              ? !sale.payroll_processed
+              : sale.payroll_processed;
+        const matchesCycle = isDateInCycle(
+          saleDate,
+          payrollCycle,
+          selectedMonth,
+        );
+        return matchesStatus && matchesCycle;
+      });
+
+      // 3. Agrupación por Emprendimiento para resultados filtrados
+      baseSales.forEach((s) => {
+        const entrepreneurship = s.sale_items[0]?.products?.entrepreneurships;
+        if (!entrepreneurship) return;
+
+        const entId = entrepreneurship.id;
+        if (!map[entId]) {
+          map[entId] = { ...staticMap[entId] }; // Copiamos la base estática
         }
 
         map[entId].totalRevenue += s.total;
@@ -231,7 +238,8 @@ export function useAdminData(enabled: boolean = true) {
       );
 
       return {
-        fullEntrepreneursSummary: fullList,
+        // Retornamos staticMap para que el .find() en el componente siempre encuentre el objeto
+        fullEntrepreneursSummary: Object.values(staticMap),
         filteredEntrepreneursSummary: filteredList,
       };
     }, [
@@ -244,33 +252,18 @@ export function useAdminData(enabled: boolean = true) {
     ]);
 
   // --- Resumen para la sección CONSUMIDORES (Empleados) ---
-  // --- Resumen para la sección CONSUMIDORES (Empleados) ---
-  const consumersSummary = useMemo<ConsumerSummary[]>(() => {
+  const { fullConsumersSummary, consumersSummary } = useMemo(() => {
     const map: Record<string, ConsumerSummary> = {};
-    const searchLower = searchQuery.toLowerCase();
+    const staticMap: Record<string, ConsumerSummary> = {}; // <--- Mapa de referencia persistente
 
-    // Filtramos ventas por ciclo antes de agrupar consumidores
-    const cycleSales = sales.filter((s) =>
-      isDateInCycle(new Date(s.created_at), payrollCycle, selectedMonth),
-    );
-
-    cycleSales.forEach((s) => {
+    // 1. Agrupación estática (Para que el nombre del consumidor nunca sea undefined)
+    // Usamos 'sales' sin filtrar para asegurar que todos los usuarios existan en la referencia
+    sales.forEach((s) => {
       const user = s.users;
       if (!user) return;
 
-      const userName = user.name.toLowerCase();
-      const userEmail = user.email.toLowerCase();
-
-      if (
-        searchQuery &&
-        !userName.includes(searchLower) &&
-        !userEmail.includes(searchLower)
-      ) {
-        return;
-      }
-
-      if (!map[user.email]) {
-        map[user.email] = {
+      if (!staticMap[user.email]) {
+        staticMap[user.email] = {
           id: user.id,
           name: user.name,
           email: user.email,
@@ -279,6 +272,22 @@ export function useAdminData(enabled: boolean = true) {
           ordersCount: 0,
           pendingIds: [],
         };
+      }
+    });
+
+    // 2. Filtramos ventas por ciclo y mes para los cálculos de la tabla
+    const cycleSales = sales.filter((s) =>
+      isDateInCycle(new Date(s.created_at), payrollCycle, selectedMonth),
+    );
+
+    // 3. Agrupamos los datos reales del ciclo en el mapa que se mostrará
+    cycleSales.forEach((s) => {
+      const user = s.users;
+      if (!user) return;
+
+      if (!map[user.email]) {
+        // Inicializamos con los datos base del staticMap para asegurar consistencia
+        map[user.email] = { ...staticMap[user.email] };
       }
 
       map[user.email].totalSpent += s.total;
@@ -290,7 +299,25 @@ export function useAdminData(enabled: boolean = true) {
       }
     });
 
-    return Object.values(map);
+    // Esta lista se usa para la tabla (afectada por filtros de ciclo/mes)
+    const fullListForCycle = Object.values(map);
+    const searchLower = searchQuery.toLowerCase();
+
+    // 4. Aplicamos el filtro de búsqueda para la vista de tabla
+    const filteredList = fullListForCycle.filter((consumer) => {
+      if (!searchQuery) return true;
+      return (
+        consumer.name.toLowerCase().includes(searchLower) ||
+        consumer.email.toLowerCase().includes(searchLower)
+      );
+    });
+
+    return {
+      // fullConsumersSummary ahora tiene TODOS los usuarios de la base de datos de ventas
+      // Esto previene el error de 'undefined' al buscar el nombre en el encabezado
+      fullConsumersSummary: Object.values(staticMap),
+      consumersSummary: filteredList,
+    };
   }, [sales, searchQuery, payrollCycle, isDateInCycle, selectedMonth]);
 
   const filteredSales = useMemo(() => {
@@ -342,6 +369,7 @@ export function useAdminData(enabled: boolean = true) {
     toggleSaleSelection,
     fullEntrepreneursSummary,
     entrepreneursSummary: filteredEntrepreneursSummary,
+    fullConsumersSummary,
     consumersSummary,
     loading,
     processingIds,
