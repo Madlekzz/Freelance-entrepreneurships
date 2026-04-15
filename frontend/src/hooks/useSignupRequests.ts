@@ -1,5 +1,5 @@
 import { message } from "antd";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import {
   approveAccessRequest,
@@ -16,7 +16,10 @@ export const useSignupRequests = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const fetchRequests = async () => {
+  // 1. Estado para el término de búsqueda
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getPendingRequests();
@@ -26,12 +29,26 @@ export const useSignupRequests = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: false positive
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [fetchRequests]);
+
+  // 2. Lógica de filtrado con useMemo
+  const filteredRequests = useMemo(() => {
+    if (!searchQuery.trim()) return requests;
+
+    const lowerQuery = searchQuery.toLowerCase();
+
+    return requests.filter((req) => {
+      // Filtramos por nombre de usuario o por email
+      return (
+        req.user_name.toLowerCase().includes(lowerQuery) ||
+        req.email.toLowerCase().includes(lowerQuery)
+      );
+    });
+  }, [requests, searchQuery]);
 
   const handleApprove = async (id: string) => {
     setProcessingId(id);
@@ -39,6 +56,7 @@ export const useSignupRequests = () => {
       await approveAccessRequest(id);
       const successMsg = "Solicitud aprobada con éxito";
       toast.success(successMsg);
+      // Actualizamos la lista base (requests)
       setRequests((prev) => prev.filter((req) => req.id !== id));
     } catch (error) {
       const errorMsg =
@@ -67,6 +85,7 @@ export const useSignupRequests = () => {
     setIsRejecting(true);
     try {
       await rejectAccessRequest(selectedId);
+      // Actualizamos la lista base (requests)
       setRequests((prev) => prev.filter((r) => r.id !== selectedId));
       setIsModalOpen(false);
       toast.success("Solicitud rechazada exitosamente");
@@ -81,8 +100,13 @@ export const useSignupRequests = () => {
   };
 
   return {
-    requests,
+    // Retornamos las solicitudes filtradas
+    requests: filteredRequests,
+    // Retornamos la lista original por si necesitas contar el total real
+    rawRequests: requests,
     loading,
+    searchQuery,
+    setSearchQuery,
     processingId,
     isRejecting,
     isModalOpen,
@@ -91,5 +115,6 @@ export const useSignupRequests = () => {
     openRejectModal,
     closeRejectModal,
     handleConfirmReject,
+    refresh: fetchRequests,
   };
 };

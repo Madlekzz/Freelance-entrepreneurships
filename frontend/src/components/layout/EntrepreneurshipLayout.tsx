@@ -67,7 +67,7 @@ export default function EntrepreneurshipLayout() {
               <button
                 type="button"
                 onClick={() => navigate("/dashboard/entrepreneurships")}
-                className="cursor-pointer p-2 hover:bg-gray-50 rounded-xl text-gray-400 hover:text-primary transition-all"
+                className="cursor-pointer md:p-2 hover:bg-gray-50 rounded-xl text-gray-400 hover:text-primary transition-all"
               >
                 <ChevronLeft size={20} />
               </button>
@@ -109,7 +109,7 @@ export default function EntrepreneurshipLayout() {
                 to={item.path}
                 end={item.end}
                 className={({ isActive }) => `
-                  flex items-center gap-2 py-3 border-b-2 text-sm font-bold transition-all whitespace-nowrap
+                  flex flex-col md:flex-row items-center gap-2 py-3 border-b-2 text-sm font-bold transition-all whitespace-nowrap
                   ${
                     isActive
                       ? "border-primary text-primary"

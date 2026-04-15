@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import freelanceLogo from "../assets/Isotipo FLA-Blanco.png";
+import freelanceLogoColored from "../assets/Isotipo Freelance.png";
 import LoginForm from "../components/ui/login/LoginForm";
 import RegisterForm from "../components/ui/login/RegisterForm";
 
@@ -75,13 +76,29 @@ export default function LoginPage() {
         <div className="flex-1 bg-white flex items-center justify-center px-8 py-12 md:px-12">
           <div className="w-full max-w-sm">
             {/* Mobile brand */}
-            <div className="flex items-center gap-2 mb-8 md:hidden">
-              <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
-                <div className="w-3.5 h-3.5 bg-white rounded-sm" />
-              </div>
-              <span className="font-display font-semibold text-gray-900">
-                Freelance <span className="text-primary">Latin America</span>
-              </span>
+            {/* Mobile brand */}
+            <div className="flex flex-col items-center mb-8 md:hidden">
+              <button
+                type="button"
+                className="cursor-pointer flex flex-col items-center"
+                onClick={() => navigate("/")}
+              >
+                {/* Contenedor del Logo: Círculo o cuadrado redondeado con el color primario */}
+                <img
+                  src={freelanceLogoColored}
+                  alt="Logo de Freelance Latin America"
+                  className="h-12 w-auto object-contain"
+                />
+
+                <div className="text-center">
+                  <h2 className="font-display font-bold text-xl text-gray-900 leading-tight">
+                    Freelance
+                  </h2>
+                  <p className="text-primary font-semibold text-sm tracking-wide">
+                    LATIN AMERICA
+                  </p>
+                </div>
+              </button>
             </div>
 
             {/* Mode toggle */}

@@ -3,7 +3,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock,
-  PackageCheck,
+  Package,
   ShoppingBag,
   User,
 } from "lucide-react";
@@ -43,24 +43,26 @@ export default function MySales() {
   if (loading) return <ProductTableSkeleton />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Resumen rápido */}
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20 md:pb-0">
+      {/* Resumen rápido - Adaptado para que no se vea gigante en mobile */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+        <div className="bg-white p-5 md:p-6 rounded-4xl md:rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shrink-0">
             <ShoppingBag size={24} />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium">
+            <p className="text-xs md:text-sm text-gray-500 font-medium">
               Ventas Encontradas
             </p>
-            <p className="text-2xl font-bold text-gray-900">{sales.length}</p>
+            <p className="text-xl md:text-2xl font-bold text-gray-900 leading-tight">
+              {sales.length}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Barra de Búsqueda y Filtros */}
-      <div className="flex flex-col lg:flex-row gap-3 items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+      {/* Barra de Búsqueda y Filtros (Ya ajustada previamente) */}
+      <div className="flex flex-col lg:flex-row gap-3 items-center bg-white p-4 rounded-4xl md:rounded-2xl border border-gray-100 shadow-sm">
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
@@ -68,23 +70,28 @@ export default function MySales() {
         />
 
         <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-          <FilterDropdown
-            options={STATUS_OPTIONS}
-            value={statusFilter}
-            onChange={setStatusFilter}
-          />
-          <FilterDropdown
-            options={SORT_OPTIONS}
-            value={sortBy}
-            onChange={setSortBy}
-            icon={<ChevronDown size={14} className="text-gray-400" />}
-          />
+          <div className="w-full lg:w-44 min-w-0">
+            <FilterDropdown
+              options={STATUS_OPTIONS}
+              value={statusFilter}
+              onChange={setStatusFilter}
+            />
+          </div>
+          <div className="w-full lg:w-44 min-w-0">
+            <FilterDropdown
+              options={SORT_OPTIONS}
+              value={sortBy}
+              onChange={setSortBy}
+              icon={<ChevronDown size={14} className="text-gray-400" />}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Tabla de Ventas */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* CONTENEDOR DE VENTAS */}
+      <div>
+        {/* VISTA DESKTOP: Tabla original */}
+        <div className="hidden md:block bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
@@ -109,31 +116,12 @@ export default function MySales() {
               {sales.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
-                    className="px-6 py-16 text-center text-gray-400"
+                    colSpan={5} // Cambiado a 5 para cubrir todas las columnas
+                    className="px-6 py-20 text-center"
                   >
-                    <div className="flex flex-col items-center gap-3">
-                      <PackageCheck size={48} className="opacity-10" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">
-                          No se encontraron resultados
-                        </p>
-                        <p className="text-xs">
-                          Intenta ajustar los filtros o la búsqueda.
-                        </p>
-                      </div>
-                      {(searchQuery || statusFilter !== "all") && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSearchQuery("");
-                            setStatusFilter("all");
-                          }}
-                          className="mt-2 text-primary text-xs font-bold hover:underline"
-                        >
-                          Limpiar todos los filtros
-                        </button>
-                      )}
+                    <div className="flex flex-col items-center justify-center gap-2 text-gray-400 italic">
+                      <Package size={40} className="opacity-20" />
+                      <p>No se encontraron ventas.</p>
                     </div>
                   </td>
                 </tr>
@@ -175,18 +163,12 @@ export default function MySales() {
                         ))}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
-                        <Calendar size={14} className="text-gray-400" />
-                        {new Date(sale.created_at).toLocaleDateString(
-                          undefined,
-                          {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          },
-                        )}
-                      </div>
+                    <td className="px-6 py-4 text-xs text-gray-500 font-medium">
+                      {new Date(sale.created_at).toLocaleDateString(undefined, {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </td>
                     <td className="px-6 py-4">
                       {sale.payroll_processed ? (
@@ -214,6 +196,99 @@ export default function MySales() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* VISTA MOBILE: Cards Detalladas */}
+        <div className="md:hidden grid grid-cols-1 gap-4 p-4">
+          {sales.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center bg-gray-50/50 rounded-[2.5rem] border-2 border-dashed border-gray-100 mt-4">
+              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                <Package size={32} className="text-gray-300" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">
+                Sin ventas
+              </h3>
+              <p className="text-sm text-gray-500 max-w-55 leading-relaxed">
+                {searchQuery
+                  ? `No encontramos resultados para "${searchQuery}"`
+                  : "Aún no has vendido ningun producto."}
+              </p>
+            </div>
+          ) : (
+            sales.map((sale) => (
+              <div
+                key={sale.id}
+                className="bg-white p-5 rounded-4xl border border-gray-100 shadow-sm space-y-4"
+              >
+                {/* Header de la Card: Cliente e ID */}
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 shrink-0">
+                      <User size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-gray-900 truncate uppercase tracking-tight">
+                        {sale.users.name}
+                      </p>
+                      <p className="text-[10px] text-gray-400 font-mono">
+                        #{sale.id.slice(0, 8).toUpperCase()}
+                      </p>
+                    </div>
+                  </div>
+                  {sale.payroll_processed ? (
+                    <span className="bg-emerald-50 text-emerald-600 p-1.5 rounded-lg shrink-0">
+                      <CheckCircle2 size={16} />
+                    </span>
+                  ) : (
+                    <span className="bg-amber-50 text-amber-600 p-1.5 rounded-lg shrink-0">
+                      <Clock size={16} />
+                    </span>
+                  )}
+                </div>
+
+                {/* Lista de Productos */}
+                <div className="bg-gray-50/50 rounded-2xl p-3 space-y-2">
+                  {sale.sale_items.map((item) => (
+                    <div
+                      key={item.products.id}
+                      className="flex justify-between items-center text-[11px]"
+                    >
+                      <span className="text-gray-600 truncate max-w-[70%]">
+                        <span className="font-bold text-primary mr-1">
+                          {item.quantity}x
+                        </span>
+                        {item.products.name}
+                      </span>
+                      <span className="font-bold text-gray-400 italic">
+                        ${item.unit_price.toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer de la Card: Fecha y Total */}
+                <div className="flex justify-between items-end pt-2">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                      Fecha de Venta
+                    </span>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-700 font-bold">
+                      <Calendar size={13} className="text-primary" />
+                      {new Date(sale.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                      Monto Total
+                    </p>
+                    <p className="text-lg font-black text-primary leading-tight">
+                      ${sale.total.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

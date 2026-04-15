@@ -16,15 +16,15 @@ export default function Topbar({ title, subtitle }: Props) {
   };
 
   return (
-    <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 h-16 flex items-center justify-between shrink-0 sticky top-0 z-40">
+    <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 h-16 flex items-center justify-between shrink-0 sticky top-0 z-40 gap-8 md:gap-0">
       {/* ── Left Side: Title & Navigation ── */}
       <div className="flex items-center gap-4">
         <div className="flex flex-col">
-          <h2 className="font-display text-lg font-bold text-gray-900 leading-tight tracking-tight">
+          <h2 className="font-display md:text-lg text-md font-bold text-gray-900 leading-tight tracking-tight">
             {title}
           </h2>
           {subtitle && (
-            <p className="text-[0.75rem] font-medium text-gray-400 uppercase tracking-wider">
+            <p className="md:text-sm text-xs font-medium text-gray-400 uppercase tracking-wider">
               {subtitle}
             </p>
           )}
