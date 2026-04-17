@@ -1,79 +1,12 @@
 import api from "../config/api";
+import type {
+  CreateSalePayload,
+  EntrepreneurshipSale,
+  GlobalSale,
+  Sale,
+} from "../types";
 
 // --- Interfaces existentes (SIN CAMBIOS) ---
-interface CreateSalePayload {
-  consumer_id: string;
-  items: SaleItemPayload[];
-}
-
-export interface SaleItemPayload {
-  product_id: string;
-  quantity: number;
-}
-
-export interface Sale {
-  id: string;
-  consumer_id: string;
-  total_amount: number;
-  payroll_processed: boolean;
-  created_at: string;
-}
-
-export interface SaleItemDetail {
-  quantity: number;
-  unit_price: number;
-  subtotal: number;
-  products: {
-    id: string;
-    name: string;
-    entrepreneurship_id: string;
-  };
-}
-
-export interface EntrepreneurshipSale {
-  id: string;
-  created_at: string;
-  total: number;
-  payroll_processed: boolean;
-  users: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  sale_items: SaleItemDetail[];
-}
-
-// --- Nueva Interfaz para la Vista Global del Admin (GET /sales) ---
-
-export interface GlobalSale {
-  id: string;
-  created_at: string;
-  total: number;
-  payroll_processed: boolean;
-  users: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  sale_items: {
-    quantity: number;
-    unit_price: number;
-    subtotal: number;
-    products: {
-      id: string;
-      name: string;
-      entrepreneurships: {
-        // Estructura anidada del JSON de /sales
-        id: string;
-        name: string;
-        users: {
-          name: string;
-        };
-        owner_id: string;
-      };
-    };
-  }[];
-}
 
 // --- Funciones del Service ---
 

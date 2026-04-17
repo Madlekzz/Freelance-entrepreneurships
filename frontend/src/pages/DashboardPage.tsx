@@ -5,15 +5,8 @@ import Topbar from "../components/layout/Topbar";
 import { useDashboard } from "../hooks/useDashboard";
 
 export default function DashboardPage() {
-  const {
-    activeTab,
-    user,
-    roles,
-    navConfig,
-    MENU_ITEMS,
-    handleNavigation,
-    loading,
-  } = useDashboard();
+  const { activeTab, navConfig, MENU_ITEMS, handleNavigation, loading } =
+    useDashboard();
 
   const location = useLocation();
 
@@ -31,11 +24,9 @@ export default function DashboardPage() {
     <DashboardLayout
       sidebar={
         <Sidebar
-          roles={roles} // El array: ["IT", "ADMIN"]
           navConfig={navConfig}
           activeId={activeTab}
           onNavigate={handleNavigation}
-          user={user}
         />
       }
       topbar={
@@ -44,7 +35,10 @@ export default function DashboardPage() {
             title={
               MENU_ITEMS.find((i) => i.id === activeTab)?.label || "Dashboard"
             }
-            subtitle="Bienvenido al panel de gestión"
+            subtitle={
+              MENU_ITEMS.find((i) => i.id === activeTab)?.subtitle ||
+              "Bienvenido al panel de gestión"
+            }
           />
         )
       }

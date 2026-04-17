@@ -1,18 +1,18 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import EntrepreneurshipLayout from "./components/layout/EntrepreneurshipLayout";
-import AdminConsumers from "./components/ui/modules/admin-consumers/AdminConsumers";
-import AdminEntrepreneurs from "./components/ui/modules/admin-entrepreneurs/AdminEntrepreneurs";
-import GeneralDashboard from "./components/ui/modules/dashboard/GeneralDashboard";
+import AdminConsumers from "./components/features/admin-consumers/AdminConsumers";
+import AdminEntrepreneurs from "./components/features/admin-entrepreneurs/AdminEntrepreneurs";
+import GeneralDashboard from "./components/features/dashboard/GeneralDashboard";
+import EntrepreneurshipOverview from "./components/features/my-entrepreneurships/EntrepreneurShipsMenu/EntrepreneurshipOverview";
+import MyProducts from "./components/features/my-entrepreneurships/EntrepreneurShipsMenu/products/MyProducts";
+import MySales from "./components/features/my-entrepreneurships/EntrepreneurShipsMenu/sales/MySales";
 // Módulos
-import EntrepreneurshipOverview from "./components/ui/modules/my-entrepreneurships/EntrepreneurshipOverview";
-import MyEntrepreneurships from "./components/ui/modules/my-entrepreneurships/MyEntrepreneurships";
-import MyProducts from "./components/ui/modules/my-entrepreneurships/products/MyProducts";
-import MySales from "./components/ui/modules/my-entrepreneurships/sales/MySales";
-import MyPurchases from "./components/ui/modules/my-purchases/MyPurchases";
-import SignupRequests from "./components/ui/modules/signup-requests/SignupRequests";
-import SystemUsers from "./components/ui/modules/system-users/SystemUsers";
+import MyEntrepreneurships from "./components/features/my-entrepreneurships/MyEntrepreneurships";
+import MyPurchases from "./components/features/my-purchases/MyPurchases";
+import SignupRequests from "./components/features/signup-requests/SignupRequests";
+import SystemUsers from "./components/features/system-users/SystemUsers";
+import EntrepreneurshipLayout from "./components/layout/EntrepreneurshipLayout";
 // Páginas Públicas
 import CatalogPage from "./pages/CatalogPage";
 // Layouts

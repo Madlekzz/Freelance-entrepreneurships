@@ -1,8 +1,4 @@
-export interface PayrollCycle {
-  label: string;
-  startDay: number;
-  endDay: number;
-}
+import type { PayrollCycle } from "../types";
 
 export const PAYROLL_CYCLES: (PayrollCycle | null)[] = [
   null,

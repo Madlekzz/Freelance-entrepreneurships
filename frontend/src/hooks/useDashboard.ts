@@ -26,6 +26,7 @@ export const useDashboard = () => {
       {
         id: "signupRequests",
         label: "Solicitudes de registro",
+        subtitle: "Gestión y aprobación de nuevos usuarios en la plataforma",
         icon: UserCheck,
         roles: ["IT"],
         path: "/dashboard/requests",
@@ -33,6 +34,7 @@ export const useDashboard = () => {
       {
         id: "systemUsers",
         label: "Usuarios del Sistema",
+        subtitle: "Administración de cuentas, roles y permisos",
         icon: UserRound,
         roles: ["IT"],
         path: "/dashboard/users",
@@ -40,6 +42,7 @@ export const useDashboard = () => {
       {
         id: "purchases",
         label: "Mis consumos",
+        subtitle: "Historial detallado de tus compras y facturación por nómina",
         icon: ShoppingBasket,
         roles: ["CONSUMIDOR"],
         path: "/dashboard/purchases",
@@ -47,6 +50,7 @@ export const useDashboard = () => {
       {
         id: "entrepreneurships",
         label: "Mis emprendimientos",
+        subtitle: "Gestión de tus negocios, productos y ventas",
         icon: Store,
         roles: ["PROVEEDOR"],
         path: "/dashboard/entrepreneurships",
@@ -54,6 +58,7 @@ export const useDashboard = () => {
       {
         id: "entrepreneurs",
         label: "Emprendedores",
+        subtitle: "Panel administrativo de emprendedores y sus métricas",
         icon: BriefcaseBusiness,
         roles: ["ADMIN"],
         path: "/dashboard/entrepreneurs",
@@ -61,6 +66,7 @@ export const useDashboard = () => {
       {
         id: "consumers",
         label: "Consumidores",
+        subtitle: "Listado de usuarios consumidores y gestión de créditos",
         icon: Handbag,
         roles: ["ADMIN"],
         path: "/dashboard/consumers",
@@ -68,9 +74,11 @@ export const useDashboard = () => {
       {
         id: "catalog",
         label: "Ir al catálogo",
+        subtitle:
+          "Explora los productos disponibles en la red de emprendimientos",
         icon: ShoppingBag,
         roles: ["IT", "ADMIN", "PROVEEDOR", "CONSUMIDOR"],
-        path: "/", // Ruta pública
+        path: "/",
       },
     ],
     [],
@@ -144,7 +152,7 @@ export const useDashboard = () => {
   }, [roles, MENU_ITEMS]);
 
   return {
-    activeTab, // Ahora es dinámico basado en la URL
+    activeTab,
     user,
     roles,
     navConfig,

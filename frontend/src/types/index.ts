@@ -1,24 +1,10 @@
+import type { Session, User } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 
 // ── Auth ────────────────────────────────────────────────────────────
 export type UserRole = "IT" | "ADMIN" | "PROVEEDOR" | "CONSUMIDOR";
 
-export interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  user_metadata: {
-    roles: UserRole[];
-  };
-}
-
 // ── Domain ──────────────────────────────────────────────────────────
-export interface Entrepreneurship {
-  id: number;
-  owner_id: string;
-  name: string;
-  is_active: boolean;
-}
 
 export interface Product {
   id: number;
@@ -28,17 +14,6 @@ export interface Product {
   current_stock: number;
   image: string | null;
   is_active: boolean;
-}
-
-export interface Sale {
-  id: number;
-  consumer_id: string;
-  product_id: number;
-  quantity: number;
-  unit_price: number;
-  total: number;
-  payroll_processed: boolean;
-  created_at: string;
 }
 
 export interface EntrepreneurshipInfo {
@@ -81,31 +56,11 @@ export interface RegistrationRequest {
 export type MenuItem = {
   id: string;
   label: string;
+  subtitle: string;
   icon: LucideIcon; // Usamos el tipo específico de Lucide para mayor seguridad
   roles: UserRole[];
   path?: string;
 };
-
-// ── UI ──────────────────────────────────────────────────────────────
-export type BadgeVariant =
-  | "active"
-  | "inactive"
-  | "pending"
-  | "processed"
-  | "rejected"
-  | "IT"
-  | "ADMIN"
-  | "PROVEEDOR";
-
-export type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "outline"
-  | "success"
-  | "danger"
-  | "ghost";
-export type ButtonSize = "sm" | "md" | "lg";
-export type StatColor = "blue" | "green" | "amber" | "red" | "default";
 
 export interface SidebarUser {
   id: string;
@@ -146,3 +101,213 @@ export class AppError extends Error {
     Object.setPrototypeOf(this, AppError.prototype);
   }
 }
+
+export interface FilterOption {
+  value: string;
+  label: string;
+}
+
+export interface UpdatePayrollResponse {
+  message: string;
+  data: {
+    id: string;
+    payroll_processed: boolean;
+    total: number;
+    created_at: string;
+  };
+}
+
+export interface LoginResponse {
+  message: string;
+  session: Session;
+  user: User;
+}
+
+export interface SimpleResponse {
+  message: string;
+}
+
+export interface SignupRequest {
+  id: string;
+  user_name: string;
+  email: string;
+  entrepreneurship_name?: string;
+  role: UserRole[];
+  reviewed_by?: string;
+  created_at: string;
+  status: "PENDIENTE" | "APROBADO" | "RECHAZADO";
+}
+
+export interface Entrepreneurship {
+  id: string;
+  owner_id: string;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+  users: {
+    name: string;
+  };
+  logo_url?: string;
+  products: {
+    count: number;
+  }[];
+  product_count: number;
+}
+
+export type EntrepreneurshipPayload = Pick<
+  Entrepreneurship,
+  "name" | "description" | "logo_url"
+>;
+
+export interface CatalogProduct {
+  id: string;
+  name: string;
+  price: number;
+  current_stock: number;
+  image: string | null;
+  entrepreneurships: {
+    id: number;
+    name: string;
+  };
+  vendor?: string;
+}
+
+export interface EntrepreneurshipProduct {
+  id: string;
+  name: string;
+  price: number;
+  current_stock: number;
+  image: string;
+  is_active: boolean;
+  entrepreneurship_id: string;
+  created_at: string;
+}
+
+export interface ProductInput {
+  name: string;
+  price: number;
+  current_stock: number;
+  is_active: boolean;
+  entrepreneurship_id?: string; // Necesario para la creación
+  image: string;
+  imageFile?: File | null; // El archivo físico seleccionado en el modal
+}
+
+export interface CreateSalePayload {
+  consumer_id: string;
+  items: SaleItemPayload[];
+}
+
+export interface SaleItemPayload {
+  product_id: string;
+  quantity: number;
+}
+
+export interface Sale {
+  id: string;
+  consumer_id: string;
+  total: number;
+  payroll_processed: boolean;
+  created_at: string;
+}
+
+export interface SaleItemDetail {
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+  products: {
+    id: string;
+    name: string;
+    entrepreneurships: {
+      // Estructura anidada del JSON de /sales
+      id: string;
+      name: string;
+      users: {
+        name: string;
+      };
+      owner_id: string;
+    };
+  };
+}
+
+export interface EntrepreneurshipSale {
+  id: string;
+  created_at: string;
+  total: number;
+  payroll_processed: boolean;
+  users: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  sale_items: SaleItemDetail[];
+}
+
+// --- Nueva Interfaz para la Vista Global del Admin (GET /sales) ---
+
+export interface EntrepreneurSummary {
+  id: string;
+  name: string;
+  ownerName: string;
+  totalRevenue: number;
+  pendingPayroll: number;
+  salesCount: number;
+  pendingIds: string[];
+}
+
+export interface ConsumerSummary {
+  id: string;
+  name: string;
+  email: string;
+  totalSpent: number;
+  pendingDeduction: number;
+  ordersCount: number;
+  pendingIds: string[];
+}
+
+export interface PayrollCycle {
+  label: string;
+  startDay: number;
+  endDay: number;
+}
+
+export interface GlobalSale {
+  id: string;
+  created_at: string;
+  total: number;
+  payroll_processed: boolean;
+  users: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  sale_items: SaleItemDetail[];
+}
+
+export interface PublicUser {
+  id: string;
+  name: string;
+  email: string;
+  roles: string[];
+  departamento: string;
+  created_at?: string;
+}
+
+export interface ActiveSessionsResponse {
+  count: number;
+}
+
+export type Consumer = Pick<
+  PublicUser,
+  "email" | "name" | "departamento" | "id"
+>;
+
+export interface CartHook {
+  cart: Record<string, number>;
+  addToCart: (id: string) => void;
+}
+
+export type ProductCardData = Omit<CatalogProduct, "entrepreneurships"> & {
+  vendor: string;
+};

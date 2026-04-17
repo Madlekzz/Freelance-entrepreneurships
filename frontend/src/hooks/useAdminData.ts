@@ -1,31 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { updatePayrollStatus } from "../services/adminService";
-import { type GlobalSale, getAllSales } from "../services/saleService";
-import { AppError } from "../types";
-import type { PayrollCycle } from "../utils/payrollUtils";
-
-// --- Interfaces de Resumen (ViewModels) ---
-
-export interface EntrepreneurSummary {
-  id: string;
-  name: string;
-  ownerName: string;
-  totalRevenue: number;
-  pendingPayroll: number;
-  salesCount: number;
-  pendingIds: string[];
-}
-
-export interface ConsumerSummary {
-  id: string;
-  name: string;
-  email: string;
-  totalSpent: number;
-  pendingDeduction: number;
-  ordersCount: number;
-  pendingIds: string[];
-}
+import { getAllSales } from "../services/saleService";
+import {
+  AppError,
+  type ConsumerSummary,
+  type EntrepreneurSummary,
+  type GlobalSale,
+  type PayrollCycle,
+} from "../types";
 
 /**
  * @param enabled - Controla si el hook debe realizar la petición a la API.

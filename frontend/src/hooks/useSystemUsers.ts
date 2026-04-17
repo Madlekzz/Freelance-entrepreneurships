@@ -5,16 +5,16 @@ import {
   createUser, // Asegúrate de haber agregado esta función a tu service
   deleteUser,
   getAllUsers,
-  type User,
   updateUser,
 } from "../services/usersService";
+import type { PublicUser } from "../types";
 
 export function useSystemUsers() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<PublicUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<PublicUser | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -69,7 +69,10 @@ export function useSystemUsers() {
   };
 
   // --- Lógica de Guardado (Crear o Editar) ---
-  const handleSave = async (user: User | null, updatedData: Partial<User>) => {
+  const handleSave = async (
+    user: PublicUser | null,
+    updatedData: Partial<PublicUser>,
+  ) => {
     try {
       setLoading(true);
 
@@ -103,7 +106,7 @@ export function useSystemUsers() {
     }
   };
 
-  const openEditModal = (user: User) => {
+  const openEditModal = (user: PublicUser) => {
     setEditingUser(user);
     setIsModalOpen(true);
   };

@@ -1,21 +1,9 @@
 import api from "../config/api";
+import type { ActiveSessionsResponse, Consumer, PublicUser } from "../types";
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  roles: string[];
-  departamento: string;
-  created_at?: string;
-}
-
-export interface ActiveSessionsResponse {
-  count: number;
-}
-
-export type Consumer = Pick<User, "email" | "name" | "departamento" | "id">;
-
-export async function createUser(userData: Partial<User>): Promise<User> {
+export async function createUser(
+  userData: Partial<PublicUser>,
+): Promise<PublicUser> {
   const response = await api.post("/users", userData);
   return response.data;
 }
@@ -34,12 +22,12 @@ export async function getConsumersList(): Promise<Consumer[]> {
 /**
  * Obtiene el perfil completo de un usuario por su ID
  */
-export async function getUserProfile(id: string): Promise<User> {
-  const response = await api.get<User>(`/users/${id}`);
+export async function getUserProfile(id: string): Promise<PublicUser> {
+  const response = await api.get<PublicUser>(`/users/${id}`);
   return response.data;
 }
 
-export async function getAllUsers(): Promise<User[]> {
+export async function getAllUsers(): Promise<PublicUser[]> {
   const response = await api.get("/users");
   return response.data;
 }
@@ -58,13 +46,13 @@ export async function getActiveSessions(): Promise<number> {
 
 export async function updateUser(
   id: string,
-  userData: Partial<User>,
-): Promise<User> {
+  userData: Partial<PublicUser>,
+): Promise<PublicUser> {
   const response = await api.put(`/users/${id}`, userData);
   return response.data;
 }
 
-export async function deleteUser(id: string): Promise<User> {
+export async function deleteUser(id: string): Promise<PublicUser> {
   const response = await api.delete(`/users/${id}`);
   return response.data;
 }

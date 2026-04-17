@@ -1,15 +1,5 @@
 import api from "../config/api";
-
-// Definimos la interfaz de la respuesta para tener Tipado Fuerte (TypeScript)
-interface UpdatePayrollResponse {
-  message: string;
-  data: {
-    id: string;
-    payroll_processed: boolean;
-    total: number;
-    created_at: string;
-  };
-}
+import type { UpdatePayrollResponse } from "../types";
 
 export async function updatePayrollStatus(
   saleId: string,
