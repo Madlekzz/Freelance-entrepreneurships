@@ -1,37 +1,9 @@
 import api from "../config/api";
-
-export interface CatalogProduct {
-  id: string;
-  name: string;
-  price: number;
-  current_stock: number;
-  image: string | null;
-  entrepreneurships: {
-    id: number;
-    name: string;
-  };
-}
-
-export interface EntrepreneurshipProduct {
-  id: string;
-  name: string;
-  price: number;
-  current_stock: number;
-  image: string;
-  is_active: boolean;
-  entrepreneurship_id: string;
-  created_at: string;
-}
-
-export interface ProductInput {
-  name: string;
-  price: number;
-  current_stock: number;
-  is_active: boolean;
-  entrepreneurship_id?: string; // Necesario para la creación
-  image: string;
-  imageFile?: File | null; // El archivo físico seleccionado en el modal
-}
+import type {
+  CatalogProduct,
+  EntrepreneurshipProduct,
+  ProductInput,
+} from "../types";
 
 /**
  * Función auxiliar para convertir ProductInput a FormData

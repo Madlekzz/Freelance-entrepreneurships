@@ -4,11 +4,10 @@ import { toast } from "react-toastify";
 import {
   createProduct,
   deleteProduct,
-  type EntrepreneurshipProduct,
   getEntrepreneurshipProducts,
-  type ProductInput,
   updateProduct,
 } from "../services/productService";
+import type { EntrepreneurshipProduct, ProductInput } from "../types";
 
 export function useProducts(entrepreneurshipId?: string) {
   const [products, setProducts] = useState<EntrepreneurshipProduct[]>([]);
@@ -17,21 +16,6 @@ export function useProducts(entrepreneurshipId?: string) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("name-asc"); // name-asc, name-desc, price-asc, price-desc, stock-asc, stock-desc
   const [statusFilter, setStatusFilter] = useState("all"); // all, active, inactive
-
-  const SORT_OPTIONS = [
-    { value: "name-asc", label: "Nombre (A-Z)" },
-    { value: "name-desc", label: "Nombre (Z-A)" },
-    { value: "price-asc", label: "Precio: Menor a Mayor" },
-    { value: "price-desc", label: "Precio: Mayor a Menor" },
-    { value: "stock-asc", label: "Stock: Menor a Mayor" },
-    { value: "stock-desc", label: "Stock: Mayor a Menor" },
-  ];
-
-  const STATUS_OPTIONS = [
-    { value: "all", label: "Todos los estados" },
-    { value: "active", label: "Solo Activos" },
-    { value: "inactive", label: "Solo Pausados" },
-  ];
 
   const [formModal, setFormModal] = useState<{
     isOpen: boolean;
@@ -163,8 +147,6 @@ export function useProducts(entrepreneurshipId?: string) {
   return {
     products: filteredProducts,
     allProductsCount: products.length,
-    SORT_OPTIONS,
-    STATUS_OPTIONS,
     loading,
     isSaving,
     formModal,

@@ -1,30 +1,7 @@
 import api from "../config/api";
+import type { Entrepreneurship } from "../types";
 
 // Reflejamos exactamente lo que viene del backend
-export interface Entrepreneurship {
-  id: string;
-  owner_id: string;
-  name: string;
-  description?: string; // Opcional ya que no venía en tu JSON de ejemplo
-  is_active: boolean;
-  created_at: string;
-  users: {
-    name: string;
-  };
-  logo_url?: string;
-  // El backend envía este objeto por la relación de Supabase
-  products: {
-    count: number;
-  }[];
-  // La propiedad aplanada que agregamos en el controlador
-  product_count: number;
-}
-
-// Payload para crear/editar (omitimos campos automáticos)
-export type EntrepreneurshipPayload = Pick<
-  Entrepreneurship,
-  "name" | "description" | "logo_url"
->;
 
 /**
  * Obtiene los emprendimientos del usuario autenticado (/me)
