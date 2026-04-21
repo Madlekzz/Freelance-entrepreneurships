@@ -51,7 +51,11 @@ export interface RegistrationRequest {
   rol: UserRole;
   estado: "PENDIENTE" | "APROBADO" | "RECHAZADO";
 }
-
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+}
 // ── Nav ─────────────────────────────────────────────────────────────
 export type MenuItem = {
   id: string;
@@ -166,6 +170,8 @@ export interface CatalogProduct {
   price: number;
   current_stock: number;
   image: string | null;
+  category_id: number;
+  categories?: Category;
   entrepreneurships: {
     id: number;
     name: string;

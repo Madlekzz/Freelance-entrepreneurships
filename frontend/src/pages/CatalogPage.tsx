@@ -75,6 +75,9 @@ export default function CatalogPage() {
 
         <div className="flex flex-col md:flex-row gap-10">
           <CatalogSidebar
+            categories={catalog.categories}
+            selectedCategory={catalog.selectedCategory}
+            setSelectedCategory={catalog.setSelectedCategory}
             sortBy={catalog.sortBy}
             setSortBy={catalog.setSortBy}
             hideOutOfStock={catalog.hideOutOfStock}

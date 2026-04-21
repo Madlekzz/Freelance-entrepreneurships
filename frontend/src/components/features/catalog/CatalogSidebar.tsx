@@ -1,8 +1,12 @@
 import { ChevronRight, Filter, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { SortOption } from "../../../hooks/useCatalog";
+import type { Category } from "../../../types";
 
 interface Props {
+  categories: Category[];
+  selectedCategory: string | null;
+  setSelectedCategory: (val: string | null) => void;
   sortBy: SortOption;
   setSortBy: (val: SortOption) => void;
   hideOutOfStock: boolean;
@@ -14,6 +18,9 @@ interface Props {
 }
 
 export default function CatalogSidebar({
+  categories,
+  selectedCategory,
+  setSelectedCategory,
   sortBy,
   setSortBy,
   hideOutOfStock,
@@ -99,9 +106,29 @@ export default function CatalogSidebar({
           className={`overflow-hidden transition-all duration-300 ${isCategoriesOpen ? "max-h-60 opacity-100 mb-4" : "max-h-0 opacity-0"}`}
         >
           <div className="flex flex-col gap-1 ml-2 py-2">
-            <p className="text-xs text-gray-400 px-4 italic">
-              No hay categorías disponibles aún.
-            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategory(null);
+                if (window.innerWidth < 768) onClose?.();
+              }}
+              className={`cursor-pointer text-left px-4 py-2 rounded-lg text-sm transition-all ${selectedCategory === null ? "bg-primary/10 text-primary font-medium" : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"}`}
+            >
+              Todas las categorías
+            </button>
+            {categories.map((category) => (
+              <button
+                type="button"
+                key={category.id}
+                onClick={() => {
+                  setSelectedCategory(String(category.id));
+                  if (window.innerWidth < 768) onClose?.();
+                }}
+                className={`cursor-pointer text-left px-4 py-2 rounded-lg text-sm transition-all ${selectedCategory === String(category.id) ? "bg-primary/10 text-primary font-medium" : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"}`}
+              >
+                {category.name}
+              </button>
+            ))}
           </div>
         </div>
       </div>
