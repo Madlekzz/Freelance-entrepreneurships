@@ -81,7 +81,7 @@ export async function createProduct(req: Request, res: Response) {
   const imageFile = req.file;
 
   // 1. Extracción y conversión de tipos (FormData envía strings)
-  const { entrepreneurship_id, name, is_active } = req.body;
+  const { entrepreneurship_id, name, is_active, category_id } = req.body;
   const price = parseFloat(req.body.price);
   const current_stock = parseInt(req.body.current_stock, 10);
 
@@ -137,6 +137,7 @@ export async function createProduct(req: Request, res: Response) {
         current_stock,
         image: imageUrl, // Usamos la URL generada por el Storage
         is_active: is_active === "true" || is_active === true, // Manejo de booleano desde FormData
+        category_id: category_id ? parseInt(category_id, 10) : null,
       })
       .select()
       .single();
@@ -193,6 +194,9 @@ export async function updateProduct(req: Request, res: Response) {
     if (updates.is_active !== undefined) {
       updates.is_active =
         updates.is_active === "true" || updates.is_active === true;
+    }
+    if (updates.category_id) {
+      updates.category_id = parseInt(updates.category_id, 10);
     }
 
     // 3. Manejo de la nueva imagen (si se subió una)

@@ -1,28 +1,35 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  type CatalogProduct,
-  getActiveProducts,
-} from "../services/productService";
+import { getCategories } from "../services/categoryService";
+import { getActiveProducts } from "../services/productService";
+import type { CatalogProduct, Category } from "../types";
 
 export type SortOption = "name-asc" | "name-desc" | "price-asc" | "price-desc";
 const PAGE_SIZE = 12;
 
 export function useCatalog() {
   const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
   const [hideOutOfStock, setHideOutOfStock] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
   // Usamos useCallback para poder pasarlo a otros hooks sin causar re-renders
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getActiveProducts();
-      setProducts([...data].sort((a, b) => a.name.localeCompare(b.name)));
+      const [productsData, categoriesData] = await Promise.all([
+        getActiveProducts(),
+        getCategories(),
+      ]);
+      setProducts(
+        [...productsData].sort((a, b) => a.name.localeCompare(b.name)),
+      );
+      setCategories(categoriesData);
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Error al cargar los productos",
@@ -43,7 +50,8 @@ export function useCatalog() {
           p.entrepreneurships.name
             .toLowerCase()
             .includes(search.toLowerCase())) &&
-        (!hideOutOfStock || p.current_stock > 0),
+        (!hideOutOfStock || p.current_stock > 0) &&
+        (!selectedCategory || p.category_id === Number(selectedCategory)),
     );
 
     return result.sort((a, b) => {
@@ -60,7 +68,7 @@ export function useCatalog() {
           return 0;
       }
     });
-  }, [products, search, sortBy, hideOutOfStock]);
+  }, [products, search, sortBy, hideOutOfStock, selectedCategory]);
 
   const totalPages = Math.ceil(filteredAndSorted.length / PAGE_SIZE);
   const paginatedProducts = filteredAndSorted.slice(
@@ -77,13 +85,15 @@ export function useCatalog() {
     setSearch("");
     setSortBy("name-asc");
     setHideOutOfStock(false);
+    setSelectedCategory(null);
     setPage(1);
   };
 
   return {
-    allProducts: products, // Exportamos todos para el carrito
+    allProducts: products,
+    categories,
     paginatedProducts,
-    filteredAndSorted, // Exportamos paginados para la vista
+    filteredAndSorted,
     refreshProducts: fetchProducts,
     loading,
     error,
@@ -96,7 +106,13 @@ export function useCatalog() {
     setSortBy,
     hideOutOfStock,
     setHideOutOfStock,
+    selectedCategory,
+    setSelectedCategory,
     clearFilters,
-    hasFilters: search !== "" || sortBy !== "name-asc" || hideOutOfStock,
+    hasFilters:
+      search !== "" ||
+      sortBy !== "name-asc" ||
+      hideOutOfStock ||
+      selectedCategory !== null,
   };
 }

@@ -1,9 +1,12 @@
 import { Switch } from "antd";
-import { DollarSign, List, Package } from "lucide-react";
+import { ChevronDown, DollarSign, List, Package } from "lucide-react";
+import { useEffect, useState } from "react";
 import type {
+  Category,
   EntrepreneurshipProduct,
   ProductInput,
 } from "../../../../../types";
+import { getCategories } from "../../../../../services/categoryService";
 import BaseFormModal from "../../../../shared/BaseFormModal";
 import ImageUpload from "../../../../shared/ImageUpload";
 import { useProductForm } from "./hooks/useProductForm";
@@ -25,6 +28,18 @@ export default function ProductFormModal({
   isLoading,
   entrepreneurshipId,
 }: ProductFormModalProps) {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setLoadingCategories(true);
+      getCategories()
+        .then(setCategories)
+        .finally(() => setLoadingCategories(false));
+    }
+  }, [isOpen]);
+
   // Integramos el hook refactorizado
   const { formData, selectedFile, setSelectedFile, updateField } =
     useProductForm(product);
@@ -136,6 +151,41 @@ export default function ProductFormModal({
                 }
               />
             </div>
+          </div>
+        </div>
+
+        {/* Categoría */}
+        <div>
+          <label
+            htmlFor="category"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Categoría
+          </label>
+          <div className="relative">
+            <select
+              id="category"
+              value={formData.category_id || ""}
+              onChange={(e) =>
+                updateField(
+                  "category_id",
+                  e.target.value ? parseInt(e.target.value, 10) : undefined,
+                )
+              }
+              disabled={loadingCategories}
+              className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm appearance-none bg-white"
+            >
+              <option value="">Seleccionar categoría</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              size={18}
+            />
           </div>
         </div>
 
