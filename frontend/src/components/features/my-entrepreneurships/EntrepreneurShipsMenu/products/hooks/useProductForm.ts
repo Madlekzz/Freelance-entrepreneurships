@@ -13,6 +13,7 @@ export function useProductForm(product: EntrepreneurshipProduct | null) {
     current_stock: product?.current_stock || 0,
     is_active: product?.is_active ?? true,
     image: product?.image || "",
+    category_id: product?.category_id,
   });
 
   const updateField = <K extends keyof ProductInput>(

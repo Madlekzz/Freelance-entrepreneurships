@@ -21,6 +21,8 @@ const prepareFormData = (data: Partial<ProductInput>) => {
     formData.append("is_active", String(data.is_active));
   if (data.entrepreneurship_id)
     formData.append("entrepreneurship_id", data.entrepreneurship_id);
+  if (data.category_id !== undefined)
+    formData.append("category_id", data.category_id.toString());
 
   // El archivo debe ir con la clave "image" para que coincida con upload.single("image") del backend
   if (data.imageFile) {

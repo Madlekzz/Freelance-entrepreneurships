@@ -187,6 +187,7 @@ export interface EntrepreneurshipProduct {
   image: string;
   is_active: boolean;
   entrepreneurship_id: string;
+  category_id?: number;
   created_at: string;
 }
 
@@ -195,9 +196,10 @@ export interface ProductInput {
   price: number;
   current_stock: number;
   is_active: boolean;
-  entrepreneurship_id?: string; // Necesario para la creación
+  entrepreneurship_id?: string;
   image: string;
-  imageFile?: File | null; // El archivo físico seleccionado en el modal
+  imageFile?: File | null;
+  category_id?: number;
 }
 
 export interface CreateSalePayload {
