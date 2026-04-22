@@ -185,18 +185,27 @@ export async function updateProduct(req: Request, res: Response) {
     }
 
     // 2. Preparar el objeto de actualización
-    // Extraemos lo que viene en el body y convertimos tipos si existen
-    const updates: any = { ...req.body };
+    type UpdatesType = {
+      name?: string;
+      price?: string | number;
+      current_stock?: string | number;
+      is_active?: string | boolean;
+      category_id?: string | number;
+      image?: string;
+      entrepreneurships?: unknown;
+      entrepreneurship_id?: unknown;
+    };
+    const updates: UpdatesType = { ...req.body };
 
-    if (updates.price) updates.price = parseFloat(updates.price);
+    if (updates.price) updates.price = parseFloat(updates.price as string);
     if (updates.current_stock)
-      updates.current_stock = parseInt(updates.current_stock, 10);
+      updates.current_stock = parseInt(updates.current_stock as string, 10);
     if (updates.is_active !== undefined) {
       updates.is_active =
         updates.is_active === "true" || updates.is_active === true;
     }
     if (updates.category_id) {
-      updates.category_id = parseInt(updates.category_id, 10);
+      updates.category_id = parseInt(updates.category_id as string, 10);
     }
 
     // 3. Manejo de la nueva imagen (si se subió una)
