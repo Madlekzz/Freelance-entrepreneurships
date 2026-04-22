@@ -2,14 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify/unstyled";
 import { supabase } from "../config/supabaseClient";
 import { getConsumerPurchases } from "../services/saleService";
-import type { ConsumerSale } from "../types";
+import type { ConsumerSale, PayrollCycle } from "../types";
 
 export const useConsumerSales = () => {
   const [sales, setSales] = useState<ConsumerSale[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Estado para el término de búsqueda
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [payrollCycle, setPayrollCycle] = useState<PayrollCycle | null>(null);
 
   const fetchMySales = useCallback(async () => {
     try {
@@ -32,11 +33,32 @@ export const useConsumerSales = () => {
 
   // 2. Lógica de filtrado con useMemo para optimizar rendimiento
   const filteredSales = useMemo(() => {
-    if (!searchQuery.trim()) return sales;
+    let result = sales;
+
+    if (selectedMonth !== null) {
+      result = result.filter((sale) => {
+        const saleDate = new Date(sale.created_at);
+        return saleDate.getMonth() === selectedMonth;
+      });
+    }
+
+    if (payrollCycle !== null) {
+      result = result.filter((sale) => {
+        const saleDate = new Date(sale.created_at);
+        const day = saleDate.getDate();
+        if (payrollCycle.startDay < payrollCycle.endDay) {
+          return day >= payrollCycle.startDay && day <= payrollCycle.endDay;
+        } else {
+          return day >= payrollCycle.startDay || day <= payrollCycle.endDay;
+        }
+      });
+    }
+
+    if (!searchQuery.trim()) return result;
 
     const lowerQuery = searchQuery.toLowerCase();
 
-    return sales.filter((sale) => {
+    return result.filter((sale) => {
       const matchesItem = sale.sale_items.some(
         (item) =>
           item.products.name.toLowerCase().includes(lowerQuery) ||
@@ -49,7 +71,7 @@ export const useConsumerSales = () => {
 
       return matchesItem || matchesId;
     });
-  }, [sales, searchQuery]);
+  }, [sales, searchQuery, selectedMonth, payrollCycle]);
 
   useEffect(() => {
     fetchMySales();
@@ -57,11 +79,15 @@ export const useConsumerSales = () => {
 
   // 3. Retornamos los nuevos estados
   return {
-    sales: filteredSales, // Retornamos las ventas ya filtradas
-    rawSales: sales, // Por si necesitas la cuenta total original
+    sales: filteredSales,
+    rawSales: sales,
     loading,
     searchQuery,
     setSearchQuery,
+    selectedMonth,
+    setSelectedMonth,
+    payrollCycle,
+    setPayrollCycle,
     refresh: fetchMySales,
   };
 };
