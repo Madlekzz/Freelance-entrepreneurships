@@ -124,4 +124,3 @@ cd backend && npm run dev
 cd frontend && npm run dev
 ```
 
-Desarrollado con ❤️ para impulsar el ecosistema de emprendimiento local.
