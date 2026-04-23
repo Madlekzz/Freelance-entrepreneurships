@@ -16,6 +16,7 @@ export function useProducts(entrepreneurshipId?: string) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("name-asc"); // name-asc, name-desc, price-asc, price-desc, stock-asc, stock-desc
   const [statusFilter, setStatusFilter] = useState("all"); // all, active, inactive
+  const [stockFilter, setStockFilter] = useState("all"); // all, low-stock
 
   const [formModal, setFormModal] = useState<{
     isOpen: boolean;
@@ -121,7 +122,14 @@ export function useProducts(entrepreneurshipId?: string) {
       result = result.filter((p) => p.is_active === isActive);
     }
 
-    // 3. Ordenamiento
+    // 3. Filtro de Stock
+    if (stockFilter === "low-stock") {
+      result = result.filter((p) => p.current_stock < 5);
+    } else if (stockFilter === "normal-stock") {
+      result = result.filter((p) => p.current_stock >= 5);
+    }
+
+    // 4. Ordenamiento
     result.sort((a, b) => {
       switch (sortBy) {
         case "name-asc":
@@ -142,7 +150,7 @@ export function useProducts(entrepreneurshipId?: string) {
     });
 
     return result;
-  }, [products, searchQuery, sortBy, statusFilter]);
+  }, [products, searchQuery, sortBy, statusFilter, stockFilter]);
 
   return {
     products: filteredProducts,
@@ -161,6 +169,8 @@ export function useProducts(entrepreneurshipId?: string) {
     setSortBy,
     statusFilter,
     setStatusFilter,
+    stockFilter,
+    setStockFilter,
     saveProduct,
     confirmDelete,
     fetchProducts,
