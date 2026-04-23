@@ -124,12 +124,12 @@ export default function UserFormModal({
         </label>
         <div className="grid grid-cols-2 gap-2">
           {AVAILABLE_ROLES.map((role) => {
-            const isSelected = formData.roles?.includes(role.id);
+            const isSelected = formData.roles?.includes(role.value);
             return (
               <button
-                key={role.id}
+                key={role.value}
                 type="button"
-                onClick={() => handleRoleChange(role.id)}
+                onClick={() => handleRoleChange(role.value)}
                 className={`flex items-center justify-between px-4 py-2 rounded-xl border transition-all text-sm ${
                   isSelected
                     ? "border-primary bg-primary/5 text-primary font-medium"

@@ -5,8 +5,8 @@ import {
   approveAccessRequest,
   getPendingRequests,
   rejectAccessRequest,
-  type SignupRequest,
 } from "../services/authService";
+import type { SignupRequest } from "../types";
 
 export const useSignupRequests = () => {
   const [requests, setRequests] = useState<SignupRequest[]>([]);

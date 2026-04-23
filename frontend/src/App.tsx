@@ -12,6 +12,7 @@ import MyEntrepreneurships from "./components/features/my-entrepreneurships/MyEn
 import MyPurchases from "./components/features/my-purchases/MyPurchases";
 import SignupRequests from "./components/features/signup-requests/SignupRequests";
 import SystemUsers from "./components/features/system-users/SystemUsers";
+import Settings from "./components/features/settings/Settings";
 import EntrepreneurshipLayout from "./components/layout/EntrepreneurshipLayout";
 // Páginas Públicas
 import CatalogPage from "./pages/CatalogPage";
@@ -48,6 +49,7 @@ function App() {
               />
               <Route path="entrepreneurs" element={<AdminEntrepreneurs />} />
               <Route path="consumers" element={<AdminConsumers />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
 
             {/* RUTA DINÁMICA: 

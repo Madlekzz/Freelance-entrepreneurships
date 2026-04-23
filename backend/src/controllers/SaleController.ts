@@ -17,6 +17,7 @@ interface ProductInfo {
   name: string;
   quantity: number;
   unit_price: number;
+  price: number;
 }
 
 interface ProcessedItem extends ProductInfo {
@@ -289,76 +290,87 @@ export async function createSale(req: Request, res: Response) {
     if (itemsError) throw itemsError;
 
     // --- PROCESO DE NOTIFICACIONES ---
+    // Separamos en try-catch para que errores en notificaciones no fallen toda la venta
 
     const consumerData = Array.isArray(sale.consumer)
       ? sale.consumer[0]
       : sale.consumer;
+
     // A. Notificar al Consumidor
-    if (consumerData?.email) {
-      const consumerBlocks = consumerPurchaseTemplate(
-        consumerData.name,
-        sale.id,
-        sale.total,
-        processedItems,
-      );
+    try {
+      if (consumerData?.email) {
+        const consumerBlocks = consumerPurchaseTemplate(
+          consumerData.name,
+          sale.id,
+          sale.total,
+          processedItems,
+        );
 
-      const resSlack = await sendSlackNotification(
-        consumerData.email,
-        consumerBlocks,
-      );
+        const resSlack = await sendSlackNotification(
+          consumerData.email,
+          consumerBlocks,
+        );
 
-      await supabaseAdmin.from("notification_logs").insert({
-        sale_id: sale.id,
-        user_id: consumerData.id,
-        slack_user_id: resSlack.slackUserId,
-        message_type: "CUSTOMER_CONFIRMATION",
-        message: consumerBlocks,
-        status: resSlack.success ? "sent" : "error",
-        error_message: resSlack.error,
-      });
+        await supabaseAdmin.from("notification_logs").insert({
+          sale_id: sale.id,
+          user_id: consumerData.id,
+          slack_user_id: resSlack.slackUserId,
+          message_type: "CUSTOMER_CONFIRMATION",
+          message: consumerBlocks,
+          status: resSlack.success ? "sent" : "error",
+          error_message: resSlack.error,
+        });
+      }
+    } catch (notifyErr) {
+      console.error("Error notifying consumer:", notifyErr);
     }
 
     // B. Notificar a los Emprendedores (Agrupados por Owner)
-    const sellersGroup = new Map<string, SellerGroup>();
+    try {
+      const sellersGroup = new Map<string, SellerGroup>();
 
-    processedItems.forEach((item) => {
-      if (!sellersGroup.has(item.owner_id)) {
-        sellersGroup.set(item.owner_id, {
-          email: item.owner_email,
-          name: item.owner_name,
-          products: [],
+      processedItems.forEach((item) => {
+        if (!sellersGroup.has(item.owner_id)) {
+          sellersGroup.set(item.owner_id, {
+            email: item.owner_email,
+            name: item.owner_name,
+            products: [],
+          });
+        }
+        sellersGroup.get(item.owner_id)?.products.push({
+          product_id: item.product_id,
+          name: item.name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          price: item.unit_price,
+        });
+      });
+
+      for (const [ownerId, data] of sellersGroup.entries()) {
+        const sellerBlocks = entrepreneurSaleTemplate(
+          data.name,
+          sale.id,
+          data.products,
+          consumerData?.name,
+        );
+
+        const resSlackSeller = await sendSlackNotification(
+          data.email,
+          sellerBlocks,
+        );
+
+        await supabaseAdmin.from("notification_logs").insert({
+          sale_id: sale.id,
+          user_id: ownerId,
+          slack_user_id: resSlackSeller.slackUserId,
+          message_type: "ENTREPRENEUR_SALE",
+          message: sellerBlocks,
+          status: resSlackSeller.success ? "sent" : "error",
+          error_message: resSlackSeller.error,
         });
       }
-      sellersGroup.get(item.owner_id)?.products.push({
-        product_id: item.product_id,
-        name: item.name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-      });
-    });
-
-    for (const [ownerId, data] of sellersGroup.entries()) {
-      const sellerBlocks = entrepreneurSaleTemplate(
-        data.name,
-        sale.id,
-        data.products,
-        consumerData?.name,
-      );
-
-      const resSlackSeller = await sendSlackNotification(
-        data.email,
-        sellerBlocks,
-      );
-
-      await supabaseAdmin.from("notification_logs").insert({
-        sale_id: sale.id,
-        user_id: ownerId,
-        slack_user_id: resSlackSeller.slackUserId,
-        message_type: "ENTREPRENEUR_SALE",
-        message: sellerBlocks,
-        status: resSlackSeller.success ? "sent" : "error",
-        error_message: resSlackSeller.error,
-      });
+    } catch (notifyErr) {
+      console.error("Error notifying entrepreneurs:", notifyErr);
     }
 
     res.status(201).json(sale);
@@ -526,5 +538,146 @@ export async function deleteSale(req: Request, res: Response) {
         ? error.message
         : "Error interno al eliminar la venta";
     res.status(500).json({ error: message });
+  }
+}
+
+// [ADMIN] Batch process multiple sales for payroll
+export async function updatePayrollStatusBatch(req: Request, res: Response) {
+  const { saleIds } = req.body;
+
+  if (!saleIds || !Array.isArray(saleIds) || saleIds.length === 0) {
+    return res.status(400).json({ error: "IDs de ventas requeridos" });
+  }
+
+  try {
+    const results: { saleId: string; success: boolean; error?: string }[] = [];
+
+    for (const saleId of saleIds) {
+      try {
+        await processSinglePayroll(saleId);
+        results.push({ saleId, success: true });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Error desconocido";
+        results.push({ saleId, success: false, error: message });
+      }
+    }
+
+    const failed = results.filter((r) => !r.success);
+    if (failed.length > 0) {
+      return res.status(207).json({
+        message: `Procesadas ${results.length - failed.length} ventas, ${failed.length} fallidas`,
+        results,
+      });
+    }
+
+    res.status(200).json({
+      message: "Todas las ventas procesadas correctamente",
+      results,
+    });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Error interno al procesar nómina";
+    res.status(500).json({ error: message });
+  }
+}
+
+async function processSinglePayroll(saleId: string) {
+  const { data: sale, error: findError } = await supabaseAdmin
+    .from("sales")
+    .select("id")
+    .eq("id", saleId)
+    .single();
+
+  if (findError || !sale) {
+    throw new Error("Venta no encontrada");
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("sales")
+    .update({ payroll_processed: true })
+    .eq("id", saleId)
+    .select(
+      `
+        id, 
+        payroll_processed, 
+        total,
+        created_at,
+        users!consumer_id(id, name, email),
+        sale_items(
+          subtotal,
+          products(id, name, entrepreneurships(id, name, owner_id, users(id, name, email)))
+        )
+      `,
+    )
+    .single();
+
+  if (error) throw error;
+
+  const saleData = data as unknown as {
+    users: { name: string; email: string } | { name: string; email: string }[];
+    sale_items: {
+      subtotal: number;
+      products: {
+        entrepreneurships: {
+          name: string;
+          owner_id: string;
+          users:
+            | { name: string; email: string }
+            | { name: string; email: string }[];
+        };
+      };
+    }[];
+  };
+
+  const usersData = saleData.users;
+  const consumerName = Array.isArray(usersData)
+    ? usersData[0]?.name
+    : usersData?.name;
+  const consumerEmail = Array.isArray(usersData)
+    ? usersData[0]?.email
+    : usersData?.email;
+
+  const entrepreneurshipTotals: Record<string, number> = {};
+  for (const item of saleData.sale_items || []) {
+    const entData = item.products?.entrepreneurships;
+    const entrepreneurshipName = Array.isArray(entData)
+      ? entData[0]?.name
+      : entData?.name;
+    if (entrepreneurshipName) {
+      entrepreneurshipTotals[entrepreneurshipName] =
+        (entrepreneurshipTotals[entrepreneurshipName] || 0) + item.subtotal;
+    }
+  }
+
+  if (
+    isGoogleSheetsConfigured() &&
+    consumerName &&
+    consumerEmail &&
+    Object.keys(entrepreneurshipTotals).length > 0
+  ) {
+    const rowNumber = await findFreelancerRow(consumerName, consumerEmail);
+    if (rowNumber !== null) {
+      for (const [entrepreneurshipName, total] of Object.entries(
+        entrepreneurshipTotals,
+      )) {
+        await updateEntrepreneurshipSpent(rowNumber, entrepreneurshipName, total);
+      }
+    }
+
+    for (const item of saleData.sale_items || []) {
+      const entData = item.products?.entrepreneurships;
+      const entrepreneurshipName = Array.isArray(entData)
+        ? entData[0]?.name
+        : entData?.name;
+      const ownerData = Array.isArray(entData) ? entData[0]?.users : entData?.users;
+      const ownerEmail = Array.isArray(ownerData)
+        ? ownerData[0]?.email
+        : ownerData?.email;
+      if (entrepreneurshipName && ownerEmail && item.subtotal) {
+        await updateEntrepreneurEarnings(entrepreneurshipName, ownerEmail, item.subtotal);
+      }
+    }
   }
 }

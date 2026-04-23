@@ -1,6 +1,7 @@
 import {
   BriefcaseBusiness,
   Handbag,
+  Settings,
   ShoppingBag,
   ShoppingBasket,
   Store,
@@ -70,6 +71,14 @@ export const useDashboard = () => {
         icon: Handbag,
         roles: ["ADMIN"],
         path: "/dashboard/consumers",
+      },
+      {
+        id: "settings",
+        label: "Configuración",
+        subtitle: "Configuración del Sistema",
+        icon: Settings,
+        roles: ["IT", "ADMIN"],
+        path: "/dashboard/settings",
       },
       {
         id: "catalog",

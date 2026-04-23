@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { updatePayrollStatus } from "../services/adminService";
+import { updatePayrollStatus, updatePayrollStatusBatch } from "../services/adminService";
 import { getAllSales } from "../services/saleService";
 import {
   AppError,
@@ -88,7 +88,7 @@ export function useAdminData(enabled: boolean = true) {
 
     try {
       setProcessingIds((prev) => [...prev, ...saleIds]);
-      await Promise.all(saleIds.map((id) => updatePayrollStatus(id)));
+      await updatePayrollStatusBatch(saleIds);
       toast.success("Registros actualizados correctamente");
       await fetchData(true);
       setSelectedSales((prev) => prev.filter((id) => !saleIds.includes(id)));

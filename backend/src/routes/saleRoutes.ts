@@ -7,6 +7,7 @@ import {
   getSalesByConsumer,
   getSalesByEntrepreneurship,
   updatePayrollStatus,
+  updatePayrollStatusBatch,
 } from "../controllers/SaleController.js";
 import { authenticate } from "../middleware/auth.js";
 import { authorize } from "../middleware/role.js";
@@ -31,6 +32,7 @@ saleRouter.get(
   getSalesByConsumer,
 );
 saleRouter.get("/:id", authorize("ADMIN"), getSaleById);
+saleRouter.patch("/batch/payroll", authorize("ADMIN"), updatePayrollStatusBatch);
 saleRouter.patch("/:id/payroll", authorize("ADMIN"), updatePayrollStatus);
 saleRouter.delete("/:id", authorize("IT"), deleteSale);
 

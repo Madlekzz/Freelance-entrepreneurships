@@ -1,6 +1,6 @@
 import { sheets_v4 } from "@googleapis/sheets";
 import { JWT } from "google-auth-library";
-import { spreadsheetId } from "./googleSheetsConfig.js";
+import { getAppConfigValue } from "./appConfigStore.js";
 
 const auth = new JWT({
   email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "",
@@ -11,10 +11,8 @@ const auth = new JWT({
 const sheets = new sheets_v4.Sheets({ auth });
 
 const TOTAL_COLUMN = "TOTAL";
-const SHEET_NAME = "CREDITOS MARZO 1";
 const NAME_COLUMN_INDEX = 1;
 const EMAIL_COLUMN_INDEX = 2;
-const PAYMENT_SHEET_NAME = "PAGO 02/30";
 const PAYMENT_NAME_COLUMN_INDEX = 1;
 const PAYMENT_EMAIL_COLUMN_INDEX = 2;
 const PAYMENT_EMPRENDIMIENTO_COLUMN_INDEX = 9;
@@ -23,44 +21,67 @@ function getColumnLetter(index: number): string {
   return String.fromCharCode(65 + index);
 }
 
+function getSheetNames() {
+  return {
+    creditsSheet: getAppConfigValue("credits_sheet") || "Creditos",
+    paymentsSheet: getAppConfigValue("payments_sheet") || "Pagos",
+  };
+}
+
+function getSpreadsheetId(): string {
+  return getAppConfigValue("spreadsheet_id") || "";
+}
+
 // FUNCIONES PARA CALCULOS DE CONSUMIDORES
 
 export async function findFreelancerRow(
   consumerName: string,
   consumerEmail: string,
 ): Promise<number | null> {
-  const emailMatches = await findInColumn(EMAIL_COLUMN_INDEX, consumerEmail);
+  const { creditsSheet } = getSheetNames();
+  const spreadsheetId = getSpreadsheetId();
+  
+  if (!spreadsheetId || !creditsSheet) return null;
+  
+  const emailMatches = await findInColumn(creditsSheet, EMAIL_COLUMN_INDEX, consumerEmail);
   if (emailMatches !== null) return emailMatches;
 
-  const nameMatches = await findInColumn(NAME_COLUMN_INDEX, consumerName);
+  const nameMatches = await findInColumn(creditsSheet, NAME_COLUMN_INDEX, consumerName);
   return nameMatches;
 }
 
 async function findInColumn(
+  sheetName: string,
   columnIndex: number,
   searchValue: string,
 ): Promise<number | null> {
   const columnLetter = getColumnLetter(columnIndex);
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId: spreadsheetId,
-    range: `${SHEET_NAME}!${columnLetter}:${columnLetter}`,
-  });
+  const spreadsheetId = getSpreadsheetId();
+  
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!${columnLetter}:${columnLetter}`,
+    });
 
-  const rows = response.data.values;
-  if (!rows || rows.length === 0) {
-    return null;
-  }
-
-  const searchLower = searchValue.toLowerCase().trim();
-
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row || !row[0]) continue;
-    const cellValue = row[0].toString().toLowerCase().trim();
-
-    if (cellValue === searchLower) {
-      return i + 1;
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      return null;
     }
+
+    const searchLower = searchValue.toLowerCase().trim();
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || !row[0]) continue;
+      const cellValue = row[0].toString().toLowerCase().trim();
+
+      if (cellValue === searchLower) {
+        return i + 1;
+      }
+    }
+  } catch (err) {
+    console.error("Error finding in column:", err);
   }
 
   return null;
@@ -71,21 +92,26 @@ export async function updateEntrepreneurshipSpent(
   columnName: string,
   amount: number,
 ): Promise<void> {
+  const { creditsSheet } = getSheetNames();
+  const spreadsheetId = getSpreadsheetId();
+  
+  if (!spreadsheetId || !creditsSheet) return;
+  
   const metadataResponse = await sheets.spreadsheets.get({
-    spreadsheetId: spreadsheetId,
-    ranges: [`${SHEET_NAME}!1:1`],
+    spreadsheetId,
+    ranges: [`${creditsSheet}!1:1`],
     includeGridData: true,
   });
 
   const sheet = metadataResponse.data.sheets?.find(
-    (s) => s.properties?.title === SHEET_NAME,
+    (s) => s.properties?.title === creditsSheet,
   );
   const gridProperties = sheet?.properties?.gridProperties;
   const maxCols = gridProperties?.columnCount || 11;
 
   const headersResponse = await sheets.spreadsheets.values.get({
     spreadsheetId: spreadsheetId,
-    range: `${SHEET_NAME}!1:1`,
+    range: `${creditsSheet}!1:1`,
   });
 
   const headers = headersResponse.data.values?.[0] || [];
@@ -186,7 +212,7 @@ export async function updateEntrepreneurshipSpent(
 
     await sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
-      range: `${SHEET_NAME}!${getColumnLetter(targetColumnIndex)}1`,
+      range: `${creditsSheet}!${getColumnLetter(targetColumnIndex)}1`,
       valueInputOption: "RAW",
       requestBody: {
         values: [[columnName]],
@@ -195,7 +221,7 @@ export async function updateEntrepreneurshipSpent(
   }
 
   const columnLetter = getColumnLetter(targetColumnIndex);
-  const cellRef = `${SHEET_NAME}!${columnLetter}${rowNumber}`;
+  const cellRef = `${creditsSheet}!${columnLetter}${rowNumber}`;
 
   const currentValueResponse = await sheets.spreadsheets.values.get({
     spreadsheetId: spreadsheetId,
@@ -223,7 +249,13 @@ export async function findEntrepreneurRow(
   entrepreneurName: string,
   entrepreneurEmail?: string,
 ): Promise<number | null> {
+  const { paymentsSheet } = getSheetNames();
+  const spreadsheetId = getSpreadsheetId();
+  
+  if (!spreadsheetId || !paymentsSheet) return null;
+
   const nameMatches = await findPaymentInColumn(
+    paymentsSheet,
     PAYMENT_NAME_COLUMN_INDEX,
     entrepreneurName,
   );
@@ -231,6 +263,7 @@ export async function findEntrepreneurRow(
 
   if (entrepreneurEmail) {
     const emailMatches = await findPaymentInColumn(
+      paymentsSheet,
       PAYMENT_EMAIL_COLUMN_INDEX,
       entrepreneurEmail,
     );
@@ -241,30 +274,37 @@ export async function findEntrepreneurRow(
 }
 
 async function findPaymentInColumn(
+  sheetName: string,
   columnIndex: number,
   searchValue: string,
 ): Promise<number | null> {
   const columnLetter = getColumnLetter(columnIndex);
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId: spreadsheetId,
-    range: `${PAYMENT_SHEET_NAME}!${columnLetter}:${columnLetter}`,
-  });
+  const spreadsheetId = getSpreadsheetId();
+  
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!${columnLetter}:${columnLetter}`,
+    });
 
-  const rows = response.data.values;
-  if (!rows || rows.length === 0) {
-    return null;
-  }
-
-  const searchLower = searchValue.toLowerCase().trim();
-
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row || !row[0]) continue;
-    const cellValue = row[0].toString().toLowerCase().trim();
-
-    if (cellValue === searchLower) {
-      return i + 1;
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      return null;
     }
+
+    const searchLower = searchValue.toLowerCase().trim();
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || !row[0]) continue;
+      const cellValue = row[0].toString().toLowerCase().trim();
+
+      if (cellValue === searchLower) {
+        return i + 1;
+      }
+    }
+  } catch (err) {
+    console.error("Error finding payment in column:", err);
   }
 
   return null;
@@ -275,19 +315,24 @@ export async function updateEntrepreneurEarnings(
   entrepreneurEmail: string,
   amount: number,
 ): Promise<void> {
+  const { paymentsSheet } = getSheetNames();
+  const spreadsheetId = getSpreadsheetId();
+  
+  if (!spreadsheetId || !paymentsSheet) return;
+
   const rowNumber = await findEntrepreneurRow(
     entrepreneurName,
     entrepreneurEmail,
   );
   if (rowNumber === null) {
     console.warn(
-      `Emprendedor ${entrepreneurName} no encontrado en ${PAYMENT_SHEET_NAME}`,
+      `Emprendedor ${entrepreneurName} no encontrado en ${paymentsSheet}`,
     );
     return;
   }
 
   const columnLetter = getColumnLetter(PAYMENT_EMPRENDIMIENTO_COLUMN_INDEX);
-  const cellRef = `${PAYMENT_SHEET_NAME}!${columnLetter}${rowNumber}`;
+  const cellRef = `${paymentsSheet}!${columnLetter}${rowNumber}`;
 
   const currentValueResponse = await sheets.spreadsheets.values.get({
     spreadsheetId: spreadsheetId,
