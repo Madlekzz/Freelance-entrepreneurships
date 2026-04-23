@@ -4,10 +4,40 @@ import {
   consumerPurchaseTemplate,
   entrepreneurSaleTemplate,
 } from "../schemas/slackTemplates.js";
+import { isGoogleSheetsConfigured } from "../services/googleSheetsConfig.js";
+import {
+  findFreelancerRow,
+  updateEntrepreneurEarnings,
+  updateEntrepreneurshipSpent,
+} from "../services/googleSheetsService.js";
 import { sendSlackNotification } from "../services/slackService.js";
 
+interface ProductInfo {
+  product_id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+}
+
+interface ProcessedItem extends ProductInfo {
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  name: string;
+  price: number;
+  owner_id: string;
+  owner_email: string;
+  owner_name: string;
+}
+
+interface SellerGroup {
+  email: string;
+  name: string;
+  products: ProductInfo[];
+}
+
 // [ADMIN] Obtener todas las ventas
-export async function getAllSales(req: Request, res: Response) {
+export async function getAllSales(_req: Request, res: Response) {
   const { data, error } = await supabaseAdmin
     .from("sales")
     .select(
@@ -163,7 +193,7 @@ export async function createSale(req: Request, res: Response) {
 
   try {
     let totalAmount = 0;
-    const processedItems = [];
+    const processedItems: ProcessedItem[] = [];
 
     // 1. Validar todos los productos, traer info de los emprendedores y calcular total
     for (const item of items) {
@@ -204,12 +234,20 @@ export async function createSale(req: Request, res: Response) {
       const subtotal = product.price * item.quantity;
       totalAmount += subtotal;
 
+      const entData = product.entrepreneurship as unknown as {
+        owner: { id: string; email: string; name: string };
+      };
+      const owner = entData.owner;
+
       processedItems.push({
-        ...product,
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: product.price,
-        current_stock: product.current_stock,
+        name: product.name,
+        price: product.price,
+        owner_id: owner.id,
+        owner_email: owner.email,
+        owner_name: owner.name,
       });
     }
 
@@ -281,21 +319,22 @@ export async function createSale(req: Request, res: Response) {
     }
 
     // B. Notificar a los Emprendedores (Agrupados por Owner)
-    const sellersGroup = new Map<
-      string,
-      { email: string; name: string; products: any[] }
-    >();
+    const sellersGroup = new Map<string, SellerGroup>();
 
     processedItems.forEach((item) => {
-      const owner = (item.entrepreneurship as any).owner;
-      if (!sellersGroup.has(owner.id)) {
-        sellersGroup.set(owner.id, {
-          email: owner.email,
-          name: owner.name,
+      if (!sellersGroup.has(item.owner_id)) {
+        sellersGroup.set(item.owner_id, {
+          email: item.owner_email,
+          name: item.owner_name,
           products: [],
         });
       }
-      sellersGroup.get(owner.id)?.products.push(item);
+      sellersGroup.get(item.owner_id)?.products.push({
+        product_id: item.product_id,
+        name: item.name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+      });
     });
 
     for (const [ownerId, data] of sellersGroup.entries()) {
@@ -323,17 +362,19 @@ export async function createSale(req: Request, res: Response) {
     }
 
     res.status(201).json(sale);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Error interno al crear la venta";
+    res.status(500).json({ error: message });
   }
 }
 
 // [ADMIN] Marcar una venta como procesada en nómina
-// [ADMIN] Marcar una venta como procesada en nómina
 export async function updatePayrollStatus(req: Request, res: Response) {
   const { id } = req.params;
 
-  // Verificamos existencia
   const { data: sale, error: findError } = await supabaseAdmin
     .from("sales")
     .select("id")
@@ -344,22 +385,106 @@ export async function updatePayrollStatus(req: Request, res: Response) {
     return res.status(404).json({ error: "Venta no encontrada" });
   }
 
-  // Actualizamos el booleano en la tabla maestra
   const { data, error } = await supabaseAdmin
     .from("sales")
     .update({ payroll_processed: true })
     .eq("id", id)
     .select(
       `
-            id, 
-            payroll_processed, 
-            total,
-            created_at
-        `,
+        id, 
+        payroll_processed, 
+        total,
+        created_at,
+        users!consumer_id(id, name, email),
+        sale_items(
+          subtotal,
+          products(id, name, entrepreneurships(id, name, owner_id, users(id, name, email)))
+        )
+      `,
     )
     .single();
 
   if (error) return res.status(400).json({ error: error.message });
+
+  const saleData = data as unknown as {
+    users: { name: string; email: string } | { name: string; email: string }[];
+    sale_items: {
+      subtotal: number;
+      products: {
+        entrepreneurships: {
+          name: string;
+          owner_id: string;
+          users:
+            | { name: string; email: string }
+            | { name: string; email: string }[];
+        };
+      };
+    }[];
+  };
+
+  const usersData = saleData.users;
+  const consumerName = Array.isArray(usersData)
+    ? usersData[0]?.name
+    : usersData?.name;
+  const consumerEmail = Array.isArray(usersData)
+    ? usersData[0]?.email
+    : usersData?.email;
+
+  const entrepreneurshipTotals: Record<string, number> = {};
+  for (const item of saleData.sale_items || []) {
+    const entData = item.products?.entrepreneurships;
+    const entrepreneurshipName = Array.isArray(entData)
+      ? entData[0]?.name
+      : entData?.name;
+    if (entrepreneurshipName) {
+      entrepreneurshipTotals[entrepreneurshipName] =
+        (entrepreneurshipTotals[entrepreneurshipName] || 0) + item.subtotal;
+    }
+  }
+
+  if (
+    isGoogleSheetsConfigured() &&
+    consumerName &&
+    consumerEmail &&
+    Object.keys(entrepreneurshipTotals).length > 0
+  ) {
+    try {
+      const rowNumber = await findFreelancerRow(consumerName, consumerEmail);
+      if (rowNumber !== null) {
+        for (const [entrepreneurshipName, total] of Object.entries(
+          entrepreneurshipTotals,
+        )) {
+          await updateEntrepreneurshipSpent(
+            rowNumber,
+            entrepreneurshipName,
+            total,
+          );
+        }
+      }
+
+      for (const item of saleData.sale_items || []) {
+        const entData = item.products?.entrepreneurships;
+        const entrepreneurshipName = Array.isArray(entData)
+          ? entData[0]?.name
+          : entData?.name;
+        const ownerData = Array.isArray(entData)
+          ? entData[0]?.users
+          : entData?.users;
+        const ownerEmail = Array.isArray(ownerData)
+          ? ownerData[0]?.email
+          : ownerData?.email;
+        if (entrepreneurshipName && ownerEmail && item.subtotal) {
+          await updateEntrepreneurEarnings(
+            entrepreneurshipName,
+            ownerEmail,
+            item.subtotal,
+          );
+        }
+      }
+    } catch (sheetsError) {
+      console.error("Error actualizando Google Sheets:", sheetsError);
+    }
+  }
 
   res.status(200).json({
     message: "Estado de nómina actualizado correctamente",
@@ -395,8 +520,11 @@ export async function deleteSale(req: Request, res: Response) {
     res.status(200).json({
       message: "Venta y sus detalles eliminados correctamente",
     });
-  } catch (error: any) {
-    console.error("Delete Error:", error.message);
-    res.status(500).json({ error: "Error interno al eliminar la venta" });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Error interno al eliminar la venta";
+    res.status(500).json({ error: message });
   }
 }
