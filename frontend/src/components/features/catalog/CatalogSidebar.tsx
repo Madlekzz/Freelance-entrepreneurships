@@ -31,7 +31,7 @@ export default function CatalogSidebar({
   onClose,
 }: Props) {
   const [isSortOpen, setIsSortOpen] = useState(true);
-  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(true);
 
   // Body Scroll Lock
   useEffect(() => {
