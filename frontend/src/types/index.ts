@@ -319,3 +319,14 @@ export interface CartHook {
 export type ProductCardData = Omit<CatalogProduct, "entrepreneurships"> & {
   vendor: string;
 };
+
+export interface AppConfig {
+  spreadsheet_id: string;
+  credits_sheet: string;
+  payments_sheet: string;
+}
+
+export interface SheetOption {
+  value: string;
+  label: string;
+}
