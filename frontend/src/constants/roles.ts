@@ -7,10 +7,10 @@ import {
 } from "lucide-react";
 
 export const AVAILABLE_ROLES = [
-  { id: "CONSUMIDOR", label: "Consumidor" },
-  { id: "IT", label: "IT" },
-  { id: "PROVEEDOR", label: "Emprendedor" },
-  { id: "ADMIN", label: "Administración" },
+  { value: "CONSUMIDOR", label: "Consumidor" },
+  { value: "IT", label: "IT" },
+  { value: "PROVEEDOR", label: "Emprendedor" },
+  { value: "ADMIN", label: "Administración" },
 ];
 
 export const DEPARTMENTS = [
