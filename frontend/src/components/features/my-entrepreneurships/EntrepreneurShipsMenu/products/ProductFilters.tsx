@@ -1,6 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import {
   SORT_OPTIONS,
+  STOCK_OPTIONS,
   STATUS_OPTIONS,
 } from "../../../../../constants/productsFilters";
 import FilterDropdown from "../../../../shared/FilterDropdown";
@@ -11,6 +12,8 @@ interface Props {
   onSearchChange: (value: string) => void;
   statusFilter: string;
   onStatusChange: (value: string) => void;
+  stockFilter: string;
+  onStockChange: (value: string) => void;
   sortBy: string;
   onSortChange: (value: string) => void;
 }
@@ -30,6 +33,13 @@ export default function ProductFilters(props: Props) {
             options={STATUS_OPTIONS}
             value={props.statusFilter}
             onChange={props.onStatusChange}
+          />
+        </div>
+        <div className="w-full lg:w-44 min-w-0">
+          <FilterDropdown
+            options={STOCK_OPTIONS}
+            value={props.stockFilter}
+            onChange={props.onStockChange}
           />
         </div>
         <div className="w-full lg:w-44 min-w-0">

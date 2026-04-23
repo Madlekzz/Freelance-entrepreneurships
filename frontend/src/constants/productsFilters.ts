@@ -1,3 +1,9 @@
+export const STOCK_OPTIONS = [
+  { value: "all", label: "Todo el stock" },
+  { value: "low-stock", label: "Stock bajo (<5)" },
+  { value: "normal-stock", label: "Stock normal (5+)" },
+];
+
 export const SORT_OPTIONS = [
   { value: "name-asc", label: "Nombre (A-Z)" },
   { value: "name-desc", label: "Nombre (Z-A)" },

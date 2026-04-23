@@ -42,7 +42,9 @@ export default function InventoryAndTips({
               <button
                 type="button"
                 onClick={() =>
-                  navigate(`/dashboard/entrepreneurships/${id}/products`)
+                  navigate(`/dashboard/entrepreneurships/${id}/products`, {
+                    state: { lowStockFilter: true },
+                  })
                 }
                 className="text-xs font-bold text-orange-600 hover:underline cursor-pointer"
               >

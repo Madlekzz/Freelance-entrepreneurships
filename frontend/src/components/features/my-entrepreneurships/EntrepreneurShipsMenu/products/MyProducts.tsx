@@ -26,6 +26,8 @@ export default function MyProducts() {
     setSortBy,
     statusFilter,
     setStatusFilter,
+    stockFilter,
+    setStockFilter,
     formModal,
     deleteModal,
     isSaving,
@@ -66,7 +68,11 @@ export default function MyProducts() {
       openFormModal();
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state?.openModal, openFormModal, navigate, location.pathname]);
+    if (location.state?.lowStockFilter === true) {
+      setStockFilter("low-stock");
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state?.openModal, location.state?.lowStockFilter, openFormModal, navigate, location.pathname, setStockFilter]);
 
   if (loading) return <ProductTableSkeleton />;
 
@@ -79,6 +85,8 @@ export default function MyProducts() {
         onSearchChange={setSearchQuery}
         statusFilter={statusFilter}
         onStatusChange={setStatusFilter}
+        stockFilter={stockFilter}
+        onStockChange={setStockFilter}
         sortBy={sortBy}
         onSortChange={setSortBy}
       />
