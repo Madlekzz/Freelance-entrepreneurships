@@ -9,3 +9,12 @@ export async function updatePayrollStatus(
   );
   return data;
 }
+
+export async function updatePayrollStatusBatch(
+  saleIds: string[],
+): Promise<UpdatePayrollResponse> {
+  const { data } = await api.patch<UpdatePayrollResponse>("/sales/batch/payroll", {
+    saleIds,
+  });
+  return data;
+}

@@ -3,10 +3,12 @@ import dotenv from "dotenv";
 import express from "express";
 import authRouter from "./routes/authRoutes.js";
 import categoryRouter from "./routes/categoryRoutes.js";
+import configRouter from "./routes/configRoutes.js";
 import entrepreneurshipRouter from "./routes/entrepreneurshipRoutes.js";
 import productRouter from "./routes/productRoutes.js";
 import saleRouter from "./routes/saleRoutes.js";
 import userRouter from "./routes/userRoutes.js";
+import { loadAppConfig } from "./services/appConfigStore.js";
 
 dotenv.config();
 
@@ -17,10 +19,14 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Load app config on startup
+loadAppConfig().then(() => console.log("App config loaded"));
+
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/categories", categoryRouter);
+app.use("/api/config", configRouter);
 app.use("/api/entrepreneurships", entrepreneurshipRouter);
 app.use("/api/products", productRouter);
 app.use("/api/sales", saleRouter);
