@@ -20,7 +20,6 @@ export async function loadAppConfig(): Promise<void> {
       configCache[item.key] = item.value;
     }
     cacheLoaded = true;
-    console.log("App config loaded:", Object.keys(configCache));
   } catch (err) {
     console.error("Error loading app config:", err);
   }

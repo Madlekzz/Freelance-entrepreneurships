@@ -20,7 +20,7 @@ app.use(cors());
 app.use(express.json());
 
 // Load app config on startup
-loadAppConfig().then(() => console.log("App config loaded"));
+loadAppConfig();
 
 // Routes
 app.use("/api/auth", authRouter);

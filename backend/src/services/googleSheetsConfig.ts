@@ -1,7 +1,7 @@
-import { JWT } from "google-auth-library";
 import { sheets_v4 } from "@googleapis/sheets";
+import { JWT } from "google-auth-library";
+import { getAppConfigValue } from "./appConfigStore.js";
 
-export const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID || "";
 const serviceEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "";
 const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n") || "";
 
@@ -15,10 +15,22 @@ function createAuth() {
 
 export const sheets = new sheets_v4.Sheets({ auth: createAuth() });
 
-export async function getSheetsClient(): Promise<sheets_v4.Sheets> {
-  return sheets;
+export function getSpreadsheetId(): string {
+  return getAppConfigValue("spreadsheet_id") || "";
+}
+
+export function getCreditsSheet(): string {
+  return getAppConfigValue("credits_sheet") || "Creditos";
+}
+
+export function getPaymentsSheet(): string {
+  return getAppConfigValue("payments_sheet") || "Pagos";
 }
 
 export function isGoogleSheetsConfigured(): boolean {
-  return !!(spreadsheetId && serviceEmail && privateKey);
+  return !!(serviceEmail && privateKey);
+}
+
+export function getSheetsClient(): sheets_v4.Sheets {
+  return sheets;
 }
