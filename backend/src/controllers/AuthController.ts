@@ -45,7 +45,7 @@ export async function GetPendingRequests(req: Request, res: Response) {
 }
 
 export async function ApproveSignup(req: Request, res: Response) {
-  const { requestId } = req.params; // El ID de la tabla signup_request
+  const { requestId } = req.params;
 
   try {
     // 1. Obtener los datos de la solicitud
@@ -54,14 +54,19 @@ export async function ApproveSignup(req: Request, res: Response) {
       .select("*")
       .eq("id", requestId)
       .single();
+
     if (fetchError || !request) {
-      return res.status(404).json({ error: fetchError });
+      console.error("❌ Error buscando la solicitud:", fetchError);
+      return res
+        .status(404)
+        .json({ error: fetchError?.message || "Solicitud no encontrada" });
     }
 
     // 2. Crear el usuario en Supabase Auth
     const rolesArray = Array.isArray(request.role)
       ? request.role
       : [request.role];
+
     const { data: authUser, error: authError } =
       await supabaseAdmin.auth.admin.inviteUserByEmail(request.email, {
         redirectTo: "https://freelancelatam.net/reset-password",
@@ -72,20 +77,38 @@ export async function ApproveSignup(req: Request, res: Response) {
         },
       });
 
-    if (authError) return res.status(400).json({ error: authError.message });
+    // AQUÍ ESTÁ LA MAGIA: Extraemos el error real para que no sea un objeto vacío
+    if (authError) {
+      console.error("❌ Error de Supabase Auth:", authError);
+      return res.status(400).json({
+        error:
+          authError.message ||
+          authError.name ||
+          "Error desconocido al crear el usuario en Auth",
+        details: authError,
+      });
+    }
 
     // 3. Marcar la solicitud como aprobada
-    await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from("signup_request")
-      .update({ status: "APROBADO" }) // Asegúrate de tener este ENUM o columna
+      .update({ status: "APROBADO" })
       .eq("id", requestId);
+
+    if (updateError) {
+      console.error("❌ Error actualizando el estado:", updateError);
+      return res.status(500).json({ error: updateError.message });
+    }
 
     res.status(200).json({
       message: "Proveedor aprobado y correo de invitación enviado",
       user: authUser.user,
     });
-  } catch (error) {
-    res.status(500).json({ error: "Error interno del servidor" });
+  } catch (error: any) {
+    console.error("❌ Error catastrófico en el servidor:", error);
+    res
+      .status(500)
+      .json({ error: error.message || "Error interno del servidor" });
   }
 }
 
