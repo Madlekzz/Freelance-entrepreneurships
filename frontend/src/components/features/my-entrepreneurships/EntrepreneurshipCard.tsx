@@ -57,7 +57,7 @@ export default function EntrepreneurshipCard({ biz, onEdit, onDelete }: Props) {
           <button
             type="button"
             onClick={(e) => e.stopPropagation()} // Detenemos el burbujeo aquí también
-            className="text-gray-400 hover:text-gray-600 p-2 rounded-xl hover:bg-gray-50 transition-colors"
+            className="text-gray-400 hover:text-gray-600 p-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
           >
             <MoreVertical size={20} />
           </button>
