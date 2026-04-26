@@ -37,6 +37,8 @@ export default function MyEntrepreneurships() {
       <EntrepreneurshipGrid
         items={items}
         loading={loading}
+        searchQuery=""
+        onAddEntrepreneurship={() => openFormModal()}
         onEdit={openFormModal}
         onDelete={openDeleteModal}
       />

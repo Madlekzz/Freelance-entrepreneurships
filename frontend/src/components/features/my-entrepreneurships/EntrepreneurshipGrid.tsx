@@ -1,10 +1,13 @@
 import type { Entrepreneurship } from "../../../types";
 import CardSkeleton from "./CardSkeleton";
 import EntrepreneurshipCard from "./EntrepreneurshipCard";
+import EntrepreneurshipEmptyState from "./EntrepreneurshipEmptyState";
 
 interface Props {
   items: Entrepreneurship[];
   loading: boolean;
+  searchQuery: string;
+  onAddEntrepreneurship: () => void;
   onEdit: (biz: Entrepreneurship) => void;
   onDelete: (id: string, name: string) => void;
 }
@@ -12,6 +15,8 @@ interface Props {
 export default function EntrepreneurshipGrid({
   items,
   loading,
+  searchQuery,
+  onAddEntrepreneurship,
   onEdit,
   onDelete,
 }: Props) {
@@ -24,6 +29,15 @@ export default function EntrepreneurshipGrid({
           <CardSkeleton key={id} />
         ))}
       </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <EntrepreneurshipEmptyState
+        searchQuery={searchQuery}
+        onAddEntrepreneurship={onAddEntrepreneurship}
+      />
     );
   }
 
