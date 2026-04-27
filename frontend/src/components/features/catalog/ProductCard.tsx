@@ -33,7 +33,7 @@ export default function ProductCard({ product, qty, onAdd }: Props) {
         )}
 
         {/* Badge del Vendedor: Ahora con truncado para evitar que rompa la imagen */}
-        <span className="absolute top-3 left-3 right-10 bg-primary/90 backdrop-blur-sm text-white text-[10px] md:text-xs font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider truncate inline-block max-w-35">
+        <span className="absolute top-3 left-3 right-10 bg-primary/90 backdrop-blur-sm text-white text-[10px] md:text-xs font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider truncate inline-block w-fit max-w-35">
           {product.vendor}
         </span>
 

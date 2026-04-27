@@ -66,7 +66,7 @@ export default function CatalogPage() {
 
       <CatalogHero />
 
-      <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 pb-32">
+      <main className="px-4 md:px-8 py-8 pb-32">
         <CatalogToolbar
           search={catalog.search}
           onSearch={catalog.handleSearch}
