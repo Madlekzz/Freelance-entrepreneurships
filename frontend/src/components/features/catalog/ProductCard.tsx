@@ -8,10 +8,10 @@ interface Props {
 }
 
 const fmt = (n: number) =>
-  new Intl.NumberFormat("es-CO", {
+  new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
+    currency: "USD",
+    maximumFractionDigits: 2,
   }).format(n);
 
 export default function ProductCard({ product, qty, onAdd }: Props) {
