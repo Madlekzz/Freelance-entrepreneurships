@@ -7,7 +7,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect } from "react";
-import type { CatalogProduct } from "../../../services/productService";
+import type { CatalogProduct } from "../../../types";
 
 interface CartEntry {
   product: CatalogProduct;
@@ -25,10 +25,10 @@ interface Props {
 }
 
 const fmt = (n: number) =>
-  new Intl.NumberFormat("es-CO", {
+  new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
+    currency: "USD",
+    maximumFractionDigits: 2,
   }).format(n);
 
 export default function CartDrawer({

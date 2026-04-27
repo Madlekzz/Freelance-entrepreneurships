@@ -1,14 +1,13 @@
 import { Select } from "antd";
 import { CheckCircle2, Loader2, X } from "lucide-react";
 import type { ModalStatus } from "../../../hooks/useCheckout";
-import type { CatalogProduct } from "../../../services/productService";
-import type { Consumer } from "../../../services/usersService";
+import type { CatalogProduct, Consumer } from "../../../types";
 
 const fmt = (n: number) =>
-  new Intl.NumberFormat("es-CO", {
+  new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
+    currency: "USD",
+    maximumFractionDigits: 2,
   }).format(n);
 
 interface Props {
