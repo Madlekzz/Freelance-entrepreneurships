@@ -1,5 +1,7 @@
 import type { Request, Response } from "express";
 import { supabaseAdmin } from "../db.js";
+import { sendSlackWebhookNotification } from "../services/slackService.js";
+import { signupRequestTemplate } from "../schemas/slackTemplates.js";
 
 export async function SignupRequest(req: Request, res: Response) {
   try {
@@ -17,6 +19,18 @@ export async function SignupRequest(req: Request, res: Response) {
       .insert([{ email, user_name, entrepreneurship_name, role: rolesArray }]);
 
     if (error) return res.status(400).json({ error: error.message });
+
+    const webhookUrl = process.env.SLACK_WEBHOOK_URL_IT;
+    if (webhookUrl) {
+      const template = signupRequestTemplate(
+        user_name,
+        email,
+        entrepreneurship_name || "",
+        rolesArray,
+      );
+      await sendSlackWebhookNotification(webhookUrl, template);
+    }
+
     res.status(201).json({ message: "Successful signup request " });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
