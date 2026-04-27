@@ -77,7 +77,7 @@ export const useDashboard = () => {
         label: "Configuración",
         subtitle: "Configuración del Sistema",
         icon: Settings,
-        roles: ["IT", "ADMIN"],
+        roles: ["IT", "ADMIN", "PROVEEDOR", "CONSUMIDOR"],
         path: "/dashboard/settings",
       },
       {
