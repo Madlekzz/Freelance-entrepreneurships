@@ -9,6 +9,57 @@ const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 export type SlackMessageContent = (Block | KnownBlock)[];
 
+interface SlackWebhookResponse {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Sends a notification to a Slack channel via webhook URL.
+ * Used for channel-wide notifications (e.g., IT team notifications).
+ */
+export const sendSlackWebhookNotification = async (
+  webhookUrl: string,
+  content: SlackMessageContent,
+): Promise<SlackWebhookResponse> => {
+  try {
+    const payload = {
+      blocks: content,
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `[SlackService] Webhook error: ${response.status} - ${errorText}`,
+      );
+      return {
+        success: false,
+        error: `Webhook returned status ${response.status}: ${errorText}`,
+      };
+    }
+
+    return { success: true };
+  } catch (error: unknown) {
+    const genericError = error as Error;
+    console.error(
+      `[SlackService] Fallo al enviar notificación via webhook:`,
+      genericError.message,
+    );
+    return {
+      success: false,
+      error: genericError.message,
+    };
+  }
+};
+
 export interface SlackNotificationResponse {
   success: boolean;
   slackUserId: string | null;

@@ -1,6 +1,51 @@
 import type { SlackMessageContent } from "../services/slackService.ts";
 
 /**
+ * Plantilla para notificaciones de solicitudes de registro (IT)
+ */
+export const signupRequestTemplate = (
+  userName: string,
+  email: string,
+  entrepreneurshipName: string = "",
+  roles: string[],
+): SlackMessageContent => {
+  const rolesText = roles.map((r) => `• ${r}`).join("\n");
+
+  return [
+    {
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: "Nueva Solicitud de Registro",
+        emoji: true,
+      },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `Se ha recibido una nueva solicitud de registro:\n\n*Nombre:* ${userName}\n*Email:* ${email}\n${entrepreneurshipName ? `*Emprendimiento:* ${entrepreneurshipName}\n` : ""}`,
+      },
+    },
+    { type: "divider" },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Roles solicitados:*\n${rolesText}`,
+      },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `_Revisa la solicitud en el panel de IT para aprobarla o rechazarla._`,
+      },
+    },
+  ];
+};
+
+/**
  * Plantilla para la confirmación de compra del Consumidor
  */
 export const consumerPurchaseTemplate = (
