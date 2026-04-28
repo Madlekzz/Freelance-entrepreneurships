@@ -245,7 +245,7 @@ export async function updateProduct(req: Request, res: Response) {
   }
 }
 
-// [IT] Eliminar un producto
+// Eliminar un producto
 export async function deleteProduct(req: Request, res: Response) {
   const { id } = req.params;
 

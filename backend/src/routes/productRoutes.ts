@@ -38,6 +38,6 @@ productRouter.put(
   upload.single("image"),
   updateProduct,
 );
-productRouter.delete("/:id", authorize("IT"), deleteProduct);
+productRouter.delete("/:id", authorize("PROVEEDOR"), deleteProduct);
 
 export default productRouter;
