@@ -63,6 +63,10 @@ export default function RegisterForm() {
             required
             className={inputClass}
           />
+          <p className="text-[10px] text-gray-400 mt-1 italic">
+            * Asegurate de utilizar tu correo de slack para poder recibir
+            notificaciones.
+          </p>
         </div>
 
         {/* Emprendimiento */}
