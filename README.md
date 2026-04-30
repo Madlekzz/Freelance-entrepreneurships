@@ -84,6 +84,10 @@ Crea un archivo `.env` en la raíz de `backend/`:
 PORT=3000
 SUPABASE_URL=tu_url_de_supabase
 SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
+SLACK_BOT_TOKEN=token_del_bot_de_slack
+SLACK_WEBHOOK_URL_IT=webhook_del_canal
+GOOGLE_SERVICE_ACCOUNT_EMAIL=CORREO_DEL_SERVICIO_DE_GOOGLE_SHEETS
+GOOGLE_PRIVATE_KEY=PRIVATE_KEY
 ```
 
 ### 4. Configuración del Frontend
