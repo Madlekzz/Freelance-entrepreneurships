@@ -32,11 +32,6 @@ export default function ProductCard({ product, qty, onAdd }: Props) {
           <ShoppingBag size={40} className="text-primary/20" />
         )}
 
-        {/* Badge del Vendedor: Ahora con truncado para evitar que rompa la imagen */}
-        <span className="absolute top-3 left-3 right-10 bg-primary/90 backdrop-blur-sm text-white text-[10px] md:text-xs font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider inline-block max-w-fit">
-          {product.vendor}
-        </span>
-
         {/* Check de Carrito */}
         {inCart && (
           <span className="absolute top-3 right-3 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-lg border border-primary/10">
