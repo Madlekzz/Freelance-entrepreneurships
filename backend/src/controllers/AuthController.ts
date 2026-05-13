@@ -14,9 +14,38 @@ export async function SignupRequest(req: Request, res: Response) {
 
 		const rolesArray = Array.isArray(role) ? role : [role];
 
+		const { data: existingRequests, error: existingError } =
+			await supabaseAdmin
+				.from("signup_request")
+				.select("id, status, created_at")
+				.eq("email", email.toLowerCase().trim())
+				.in("status", ["PENDIENTE", "APROBADO"])
+				.order("created_at", { ascending: false });
+
+		if (existingError)
+			return res.status(400).json({ error: existingError.message });
+
+		if (existingRequests && existingRequests.length > 0) {
+			const lastRequest = existingRequests[0];
+			if (lastRequest?.status === "APROBADO") {
+				return res.status(400).json({
+					error: "Ya existe una cuenta asociada a este correo",
+				});
+			}
+
+			const requestAge = Date.now() - new Date(lastRequest?.created_at).getTime();
+			const oneDayMs = 24 * 60 * 60 * 1000;
+			if (requestAge < oneDayMs) {
+				const hoursRemaining = Math.ceil((oneDayMs - requestAge) / (60 * 60 * 1000));
+				return res.status(429).json({
+					error: `Ya tienes una solicitud pendiente. Espera ${hoursRemaining} hora(s) antes de enviar otra.`,
+				});
+			}
+		}
+
 		const { data, error } = await supabaseAdmin
 			.from("signup_request")
-			.insert([{ email, user_name, entrepreneurship_name, role: rolesArray }]);
+			.insert([{ email: email.toLowerCase().trim(), user_name, entrepreneurship_name, role: rolesArray }]);
 
 		if (error) return res.status(400).json({ error: error.message });
 
@@ -37,7 +66,7 @@ export async function SignupRequest(req: Request, res: Response) {
 	}
 }
 
-export async function GetPendingRequests(req: Request, res: Response) {
+export async function GetPendingRequests(_req: Request, res: Response) {
 	try {
 		// Consultamos la tabla filtrando por el estado que consideres "pendiente"
 		// Si no tienes una columna de status, puedes quitar el .eq()
