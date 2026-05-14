@@ -39,6 +39,8 @@ export async function authenticate(
     req.user = user;
     next();
   } catch (error) {
-    return res.status(500).json({ error: "Error en la autenticación" });
+    const errorMessage = error instanceof Error ? error.message : "Error al verificar el token de sesión";
+    console.error("Error en autenticación:", errorMessage);
+    return res.status(500).json({ error: `Error al procesar la autenticación: ${errorMessage}` });
   }
 }

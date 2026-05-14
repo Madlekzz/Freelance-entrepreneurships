@@ -98,8 +98,9 @@ export function useSettings(): UseSettingsReturn {
         },
       });
       toast.success("Configuración guardada correctamente");
-    } catch {
-      toast.error("Error al guardar la configuración");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "No se pudo guardar la configuración. Verifica tu conexión e intenta de nuevo.";
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }

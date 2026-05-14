@@ -38,7 +38,11 @@ export function useResetPassword() {
       setSuccess(true);
       setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al actualizar.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo actualizar la contraseña. Intenta de nuevo más tarde.",
+      );
     } finally {
       setLoading(false);
     }

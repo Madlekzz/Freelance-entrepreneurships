@@ -41,9 +41,10 @@ export async function getPublicConsumers(_req: Request, res: Response) {
     if (error) throw error;
     res.status(200).json(data);
   } catch (error) {
-    console.error("Error al obtener sesiones activas:", error);
+    const errorMessage = error instanceof Error ? error.message : "Error desconocido al consultar la base de datos";
+    console.error("Error al obtener consumidores:", errorMessage);
     return res.status(500).json({
-      error: "No se pudo obtener los consumidores",
+      error: `Error al obtener la lista de consumidores: ${errorMessage}`,
     });
   }
 }
@@ -80,11 +81,11 @@ export const getActiveSessionsCount = async (_req: Request, res: Response) => {
     return res.json({ count: data || 0 });
   } catch (error: unknown) {
     const errorMessage =
-      error instanceof Error ? error.message : "Error desconocido";
+      error instanceof Error ? error.message : "Error al consultar la función RPC de Supabase";
     console.error("Controlador IT Error:", errorMessage);
 
     return res.status(500).json({
-      error: "No se pudo obtener la métrica de sesiones activas",
+      error: `Error al obtener el conteo de sesiones activas: ${errorMessage}`,
       details: errorMessage,
     });
   }
@@ -156,9 +157,10 @@ export async function deleteUser(req: Request, res: Response) {
 
     res.status(200).json({ message: "Usuario eliminado correctamente" });
   } catch (error) {
-    console.error("Error al obtener sesiones activas:", error);
+    const errorMessage = error instanceof Error ? error.message : "Error al procesar la eliminación en la base de datos";
+    console.error("Error al eliminar usuario:", errorMessage);
     return res.status(500).json({
-      error: "No se pudo eliminar el usuario del sistema.",
+      error: `No se pudo eliminar el usuario del sistema: ${errorMessage}`,
     });
   }
 }

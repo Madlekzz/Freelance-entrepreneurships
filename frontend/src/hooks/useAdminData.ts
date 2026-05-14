@@ -52,7 +52,8 @@ export function useAdminData(enabled: boolean = true) {
           console.error(`[${err.status}] ${err.message}`);
         } else {
           // Error genérico no controlado
-          toast.error("Ocurrió un error desconocido");
+          const errorMessage = err instanceof Error ? err.message : "Error al cargar los datos del panel. Verifica tu conexión e intenta de nuevo.";
+          toast.error(errorMessage);
         }
       } finally {
         setLoading(false);
@@ -95,7 +96,8 @@ export function useAdminData(enabled: boolean = true) {
       setIsModalOpen(false);
     } catch (error: unknown) {
       console.error("Error al procesar nómina:", error);
-      toast.error("Error al actualizar algunos registros");
+      const errorMessage = error instanceof Error ? error.message : "Error al procesar la nómina. Verifica tu conexión e intenta de nuevo.";
+      toast.error(errorMessage);
     } finally {
       setProcessingIds((prev) => prev.filter((id) => !saleIds.includes(id)));
       setIdsToProcess([]);

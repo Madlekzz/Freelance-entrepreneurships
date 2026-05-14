@@ -378,8 +378,9 @@ export async function createSale(req: Request, res: Response) {
     const message =
       error instanceof Error
         ? error.message
-        : "Error interno al crear la venta";
-    res.status(500).json({ error: message });
+        : "Error al insertar la venta o sus detalles en la base de datos";
+    console.error("Error al crear venta:", message);
+    res.status(500).json({ error: `Error al procesar la compra: ${message}` });
   }
 }
 
@@ -536,8 +537,9 @@ export async function deleteSale(req: Request, res: Response) {
     const message =
       error instanceof Error
         ? error.message
-        : "Error interno al eliminar la venta";
-    res.status(500).json({ error: message });
+        : "Error al eliminar los registros relacionados de la venta";
+    console.error("Error al eliminar venta:", message);
+    res.status(500).json({ error: `Error al eliminar la venta: ${message}` });
   }
 }
 
@@ -570,7 +572,7 @@ export async function updatePayrollStatusBatch(req: Request, res: Response) {
       });
     }
 
-    res.status(200).json({
+res.status(200).json({
       message: "Todas las ventas procesadas correctamente",
       results,
     });
@@ -578,8 +580,9 @@ export async function updatePayrollStatusBatch(req: Request, res: Response) {
     const message =
       error instanceof Error
         ? error.message
-        : "Error interno al procesar nómina";
-    res.status(500).json({ error: message });
+        : "Error al actualizar el estado de procesamiento de las ventas";
+    console.error("Error al procesar nómina batch:", message);
+    res.status(500).json({ error: `Error al procesar la nómina: ${message}` });
   }
 }
 
@@ -600,8 +603,8 @@ async function processSinglePayroll(saleId: string) {
     .eq("id", saleId)
     .select(
       `
-        id, 
-        payroll_processed, 
+        id,
+        payroll_processed,
         total,
         created_at,
         users!consumer_id(id, name, email),
@@ -623,58 +626,38 @@ async function processSinglePayroll(saleId: string) {
         entrepreneurships: {
           name: string;
           owner_id: string;
-          users:
-            | { name: string; email: string }
-            | { name: string; email: string }[];
+          users: { name: string; email: string } | { name: string; email: string }[];
         };
       };
     }[];
   };
 
   const usersData = saleData.users;
-  const consumerName = Array.isArray(usersData)
-    ? usersData[0]?.name
-    : usersData?.name;
-  const consumerEmail = Array.isArray(usersData)
-    ? usersData[0]?.email
-    : usersData?.email;
+  const consumerName = Array.isArray(usersData) ? usersData[0]?.name : usersData?.name;
+  const consumerEmail = Array.isArray(usersData) ? usersData[0]?.email : usersData?.email;
 
   const entrepreneurshipTotals: Record<string, number> = {};
   for (const item of saleData.sale_items || []) {
     const entData = item.products?.entrepreneurships;
-    const entrepreneurshipName = Array.isArray(entData)
-      ? entData[0]?.name
-      : entData?.name;
+    const entrepreneurshipName = Array.isArray(entData) ? entData[0]?.name : entData?.name;
     if (entrepreneurshipName) {
-      entrepreneurshipTotals[entrepreneurshipName] =
-        (entrepreneurshipTotals[entrepreneurshipName] || 0) + item.subtotal;
+      entrepreneurshipTotals[entrepreneurshipName] = (entrepreneurshipTotals[entrepreneurshipName] || 0) + item.subtotal;
     }
   }
 
-  if (
-    isGoogleSheetsConfigured() &&
-    consumerName &&
-    consumerEmail &&
-    Object.keys(entrepreneurshipTotals).length > 0
-  ) {
+  if (isGoogleSheetsConfigured() && consumerName && consumerEmail && Object.keys(entrepreneurshipTotals).length > 0) {
     const rowNumber = await findFreelancerRow(consumerName, consumerEmail);
     if (rowNumber !== null) {
-      for (const [entrepreneurshipName, total] of Object.entries(
-        entrepreneurshipTotals,
-      )) {
+      for (const [entrepreneurshipName, total] of Object.entries(entrepreneurshipTotals)) {
         await updateEntrepreneurshipSpent(rowNumber, entrepreneurshipName, total);
       }
     }
 
     for (const item of saleData.sale_items || []) {
       const entData = item.products?.entrepreneurships;
-      const entrepreneurshipName = Array.isArray(entData)
-        ? entData[0]?.name
-        : entData?.name;
+      const entrepreneurshipName = Array.isArray(entData) ? entData[0]?.name : entData?.name;
       const ownerData = Array.isArray(entData) ? entData[0]?.users : entData?.users;
-      const ownerEmail = Array.isArray(ownerData)
-        ? ownerData[0]?.email
-        : ownerData?.email;
+      const ownerEmail = Array.isArray(ownerData) ? ownerData[0]?.email : ownerData?.email;
       if (entrepreneurshipName && ownerEmail && item.subtotal) {
         await updateEntrepreneurEarnings(entrepreneurshipName, ownerEmail, item.subtotal);
       }

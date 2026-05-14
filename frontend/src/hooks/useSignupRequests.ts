@@ -60,7 +60,9 @@ export const useSignupRequests = () => {
       setRequests((prev) => prev.filter((req) => req.id !== id));
     } catch (error) {
       const errorMsg =
-        error instanceof Error ? error.message : "Error al aprobar";
+        error instanceof Error
+          ? error.message
+          : "No se pudo aprobar la solicitud. Verifica tu conexión e intenta de nuevo.";
       message.error(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -91,7 +93,9 @@ export const useSignupRequests = () => {
       toast.success("Solicitud rechazada exitosamente");
     } catch (error) {
       const errorMsg =
-        error instanceof Error ? error.message : "Error al rechazar";
+        error instanceof Error
+          ? error.message
+          : "No se pudo rechazar la solicitud. Verifica tu conexión e intenta de nuevo.";
       toast.error(errorMsg);
     } finally {
       setIsRejecting(false);

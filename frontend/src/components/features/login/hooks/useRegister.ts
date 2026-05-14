@@ -35,7 +35,9 @@ export function useRegister() {
       setSuccess(true);
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "Error al enviar la solicitud",
+        err instanceof Error
+          ? err.message
+          : "No se pudo enviar la solicitud. Verifica tu conexión e intenta de nuevo.",
       );
     } finally {
       setLoading(false);

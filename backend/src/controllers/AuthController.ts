@@ -33,7 +33,9 @@ export async function SignupRequest(req: Request, res: Response) {
 
 		res.status(201).json({ message: "Successful signup request " });
 	} catch (error) {
-		res.status(500).json({ error: "Internal server error" });
+		const errorMessage = error instanceof Error ? error.message : "Error al procesar la solicitud de registro";
+		console.error("Error en SignupRequest:", errorMessage);
+		res.status(500).json({ error: `Error al crear la solicitud de acceso: ${errorMessage}` });
 	}
 }
 
@@ -53,8 +55,9 @@ export async function GetPendingRequests(req: Request, res: Response) {
 
 		return res.status(200).json(data);
 	} catch (error) {
-		console.error("Error fetching pending requests:", error);
-		return res.status(500).json({ error: "Internal server error" });
+		const errorMessage = error instanceof Error ? error.message : "Error al consultar las solicitudes pendientes";
+		console.error("Error fetching pending requests:", errorMessage);
+		return res.status(500).json({ error: `Error al obtener las solicitudes de registro: ${errorMessage}` });
 	}
 }
 
@@ -99,7 +102,9 @@ export async function ApproveSignup(req: Request, res: Response) {
 			user: authUser.user,
 		});
 	} catch (error) {
-		res.status(500).json({ error: "Error interno del servidor" });
+		const errorMessage = error instanceof Error ? error.message : "Error al aprobar la solicitud e invitar al usuario";
+		console.error("Error en ApproveSignup:", errorMessage);
+		res.status(500).json({ error: `Error al aprobar la solicitud de acceso: ${errorMessage}` });
 	}
 }
 
@@ -125,7 +130,9 @@ export async function RejectSignup(req: Request, res: Response) {
 
 		res.status(200).json({ message: "Solicitud rechazada correctamente" });
 	} catch (error) {
-		res.status(500).json({ error: "Error interno del servidor" });
+		const errorMessage = error instanceof Error ? error.message : "Error al actualizar el estado de la solicitud";
+		console.error("Error en RejectSignup:", errorMessage);
+		res.status(500).json({ error: `Error al rechazar la solicitud: ${errorMessage}` });
 	}
 }
 
@@ -159,7 +166,8 @@ export async function Login(req: Request, res: Response) {
 			user: data.user,
 		});
 	} catch (error) {
-		console.error("Login error:", error);
-		return res.status(500).json({ error: "Internal server error" });
+		const errorMessage = error instanceof Error ? error.message : "Error al verificar las credenciales";
+		console.error("Login error:", errorMessage);
+		return res.status(500).json({ error: `Error al iniciar sesión: ${errorMessage}` });
 	}
 }
