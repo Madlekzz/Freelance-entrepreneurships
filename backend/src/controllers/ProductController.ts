@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { supabaseAdmin } from "../db.js";
 import { uploadProductImage } from "../services/uploadImageService.js";
+import { checkAndNotifyLowStock } from "../services/slackService.js";
 
 // [PÚBLICO] Obtener todos los productos activos de emprendimientos activos
 export async function getActiveProducts(req: Request, res: Response) {
@@ -163,6 +164,10 @@ export async function updateProduct(req: Request, res: Response) {
   const requestingUser = req.user;
   const imageFile = req.file;
 
+  if (!id || Array.isArray(id)) {
+    return res.status(400).json({ error: "ID de producto inválido" });
+  }
+
   try {
     // 1. Verificar existencia del producto y permisos de dueño
     const { data: product, error: fetchError } = await supabaseAdmin
@@ -232,6 +237,27 @@ export async function updateProduct(req: Request, res: Response) {
       .single();
 
     if (updateError) throw updateError;
+
+    if (updates.current_stock !== undefined) {
+      try {
+        const stockValue = updates.current_stock;
+        let newStock: number;
+        if (typeof stockValue === "number") {
+          newStock = stockValue;
+        } else if (typeof stockValue === "string") {
+          newStock = parseInt(stockValue, 10);
+        } else {
+          newStock = 0;
+        }
+        if (!Number.isNaN(newStock)) {
+          await checkAndNotifyLowStock([
+            { product_id: id, new_stock: newStock },
+          ]);
+        }
+      } catch (stockErr) {
+        console.error("Error checking low stock:", stockErr);
+      }
+    }
 
     return res.status(200).json({
       message: "Producto actualizado correctamente",

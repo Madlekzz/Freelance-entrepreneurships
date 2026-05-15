@@ -4,8 +4,12 @@ import {
   type WebAPIPlatformError,
   WebClient,
 } from "@slack/web-api";
+import { supabaseAdmin } from "../db.js";
+import { lowStockAlertTemplate } from "../schemas/slackTemplates.js";
 
 const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
+
+const LOW_STOCK_THRESHOLD = 5;
 
 export type SlackMessageContent = (Block | KnownBlock)[];
 
@@ -130,5 +134,70 @@ export const sendSlackNotification = async (
       slackUserId,
       error: genericError.message,
     };
+  }
+};
+
+export interface LowStockProduct {
+  id: string;
+  name: string;
+  current_stock: number;
+  entrepreneurship_name: string;
+  owner_id: string;
+  owner_email: string;
+  owner_name: string;
+}
+
+export const checkAndNotifyLowStock = async (
+  products: Array<{ product_id: string; new_stock: number }>,
+): Promise<void> => {
+  for (const item of products) {
+    if (item.new_stock >= LOW_STOCK_THRESHOLD) continue;
+
+    const { data: product, error } = await supabaseAdmin
+      .from("products")
+      .select(
+        `
+        id,
+        name,
+        current_stock,
+        entrepreneurship:entrepreneurship_id(
+          name,
+          owner:owner_id(id, email, name)
+        )
+      `,
+      )
+      .eq("id", item.product_id)
+      .single();
+
+    if (error || !product) continue;
+
+    const entData = product.entrepreneurship as unknown as {
+      name: string;
+      owner: { id: string; email: string; name: string };
+    };
+    const owner = entData.owner;
+
+    const blocks = lowStockAlertTemplate(
+      owner.name,
+      product.name,
+      entData.name,
+      product.current_stock,
+    );
+
+    try {
+      const resSlack = await sendSlackNotification(owner.email, blocks);
+
+      await supabaseAdmin.from("notification_logs").insert({
+        product_id: product.id,
+        user_id: owner.id,
+        slack_user_id: resSlack.slackUserId,
+        message_type: "LOW_STOCK_ALERT",
+        message: blocks,
+        status: resSlack.success ? "sent" : "error",
+        error_message: resSlack.error,
+      });
+    } catch (err) {
+      console.error("[LowStockNotify] Error:", err);
+    }
   }
 };

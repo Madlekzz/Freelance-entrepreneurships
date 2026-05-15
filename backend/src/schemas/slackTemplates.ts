@@ -176,3 +176,35 @@ export const entrepreneurSaleTemplate = (
     },
   ];
 };
+
+export const lowStockAlertTemplate = (
+  ownerName: string,
+  productName: string,
+  entrepreneurshipName: string,
+  currentStock: number,
+): SlackMessageContent => {
+  return [
+    {
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: "⚠️ Alerta de Stock Bajo",
+        emoji: true,
+      },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `Hola *${ownerName}*, uno de tus productos tiene stock bajo:\n\n*Producto:* ${productName}\n*Emprendimiento:* ${entrepreneurshipName}\n*Stock actual:* ${currentStock} unidades`,
+      },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: "_Por favor, repón el inventario pronto para evitar perder ventas._",
+      },
+    },
+  ];
+};

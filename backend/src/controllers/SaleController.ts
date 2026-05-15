@@ -10,7 +10,7 @@ import {
   updateEntrepreneurEarnings,
   updateEntrepreneurshipSpent,
 } from "../services/googleSheetsService.js";
-import { sendSlackNotification } from "../services/slackService.js";
+import { sendSlackNotification, checkAndNotifyLowStock } from "../services/slackService.js";
 
 interface ProductInfo {
   product_id: string;
@@ -371,6 +371,37 @@ export async function createSale(req: Request, res: Response) {
       }
     } catch (notifyErr) {
       console.error("Error notifying entrepreneurs:", notifyErr);
+    }
+
+    try {
+      const stockCheckItems = processedItems.map((item) => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+      }));
+
+      const { data: products } = await supabaseAdmin
+        .from("products")
+        .select("id, current_stock")
+        .in(
+          "id",
+          stockCheckItems.map((i) => i.product_id),
+        );
+
+      if (products) {
+        const productsToCheck = products.map((p) => {
+          const soldItem = stockCheckItems.find(
+            (i) => i.product_id === p.id,
+          );
+          return {
+            product_id: p.id,
+            new_stock: p.current_stock - (soldItem?.quantity || 0),
+          };
+        });
+
+        await checkAndNotifyLowStock(productsToCheck);
+      }
+    } catch (stockErr) {
+      console.error("Error checking low stock:", stockErr);
     }
 
     res.status(201).json(sale);
