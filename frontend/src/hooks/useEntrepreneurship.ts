@@ -38,8 +38,9 @@ export function useEntrepreneurships() {
       setLoading(true);
       const data = await getMyEntrepreneurships();
       setItems(data);
-    } catch {
-      toast.error("Error cargando emprendimientos.");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "No se pudieron cargar los emprendimientos. Verifica tu conexión e intenta de nuevo.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -71,8 +72,9 @@ export function useEntrepreneurships() {
       toast.success(`${deleteModal.name} eliminado con exito.`);
       await fetchData(); // Refrescar lista
       closeDeleteModal();
-    } catch {
-      toast.error("Error eliminando el emprendimiento");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "No se pudo eliminar el emprendimiento. Verifica que no tenga productos asociados.";
+      toast.error(errorMessage);
     } finally {
       setIsDeleting(false);
     }
@@ -102,7 +104,8 @@ export function useEntrepreneurships() {
       closeFormModal();
     } catch (error) {
       console.error(error);
-      toast.error("Hubo un error al intentar guardar");
+      const errorMessage = error instanceof Error ? error.message : "Error al guardar el emprendimiento. Verifica los datos e intenta de nuevo.";
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }

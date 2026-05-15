@@ -25,8 +25,9 @@ export async function getAppConfig(_req: Request, res: Response) {
     res.status(200).json(config);
   } catch (error: unknown) {
     const message =
-      error instanceof Error ? error.message : "Error al obtener configuración";
-    res.status(500).json({ error: message });
+      error instanceof Error ? error.message : "Error al consultar la configuración de la aplicación";
+    console.error("Error al obtener configuración:", message);
+    res.status(500).json({ error: `Error al obtener la configuración: ${message}` });
   }
 }
 
@@ -54,8 +55,9 @@ export async function saveAppConfig(req: Request, res: Response) {
     res.status(200).json({ message: "Configuración guardada" });
   } catch (error: unknown) {
     const message =
-      error instanceof Error ? error.message : "Error al guardar configuración";
-    res.status(500).json({ error: message });
+      error instanceof Error ? error.message : "Error al guardar la configuración en la base de datos";
+    console.error("Error al guardar configuración:", message);
+    res.status(500).json({ error: `Error al guardar la configuración: ${message}` });
   }
 }
 
@@ -82,7 +84,8 @@ export async function getAvailableSheets(req: Request, res: Response) {
     res.status(200).json({ sheets: sheetNames || [] });
   } catch (error: unknown) {
     const message =
-      error instanceof Error ? error.message : "Error al obtener hojas";
-    res.status(500).json({ error: message });
+      error instanceof Error ? error.message : "Error al conectar con la API de Google Sheets";
+    console.error("Error al obtener hojas:", message);
+    res.status(500).json({ error: `Error al obtener las hojas de cálculo: ${message}` });
   }
 }

@@ -24,7 +24,9 @@ export const useConsumerSales = () => {
       setSales(data);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Error al cargar las compras",
+        error instanceof Error
+          ? error.message
+          : "No se pudieron cargar tus compras. Verifica tu conexión e intenta de nuevo.",
       );
     } finally {
       setLoading(false);

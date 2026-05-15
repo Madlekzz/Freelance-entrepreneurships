@@ -39,7 +39,9 @@ export function useCheckout({
         setConsumers(data as Consumer[]);
       } catch (err: unknown) {
         setError(
-          err instanceof Error ? err.message : "Error al cargar compradores",
+          err instanceof Error
+            ? err.message
+            : "No se pudieron cargar los compradores. Verifica tu conexión e intenta de nuevo.",
         );
       } finally {
         setLoadingCons(false);
@@ -92,7 +94,9 @@ export function useCheckout({
     } catch (err: unknown) {
       // Capturamos el error del backend (ej: falta de stock)
       setError(
-        err instanceof Error ? err.message : "Error al registrar la compra",
+        err instanceof Error
+          ? err.message
+          : "No se pudo registrar la compra. Verifica el stock disponible e intenta de nuevo.",
       );
       setStatus("error");
     }

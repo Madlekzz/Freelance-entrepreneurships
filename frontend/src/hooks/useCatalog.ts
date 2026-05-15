@@ -32,7 +32,9 @@ export function useCatalog() {
       setCategories(categoriesData);
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "Error al cargar los productos",
+        err instanceof Error
+          ? err.message
+          : "No se pudieron cargar los productos. Verifica tu conexión e intenta de nuevo.",
       );
     } finally {
       setLoading(false);

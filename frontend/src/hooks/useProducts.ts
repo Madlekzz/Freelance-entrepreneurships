@@ -43,7 +43,8 @@ export function useProducts(entrepreneurshipId?: string) {
       setProducts(data);
     } catch (error) {
       console.error(error);
-      toast.error("Error al cargar los productos");
+      const errorMessage = error instanceof Error ? error.message : "No se pudieron cargar los productos. Verifica tu conexión e intenta de nuevo.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -73,7 +74,8 @@ export function useProducts(entrepreneurshipId?: string) {
       setFormModal({ isOpen: false }); // Cerramos modal
     } catch (error) {
       console.error(error);
-      toast.error("Hubo un error al guardar el producto");
+      const errorMessage = error instanceof Error ? error.message : "Error al guardar el producto. Verifica los datos e intenta de nuevo.";
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -99,8 +101,9 @@ export function useProducts(entrepreneurshipId?: string) {
       toast.success("Producto eliminado");
       fetchProducts();
       closeDeleteModal();
-    } catch {
-      toast.error("Error al eliminar");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "No se pudo eliminar el producto. Intenta de nuevo más tarde.";
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }

@@ -25,7 +25,9 @@ export function useForgotPassword() {
       setSuccess(true);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Error al enviar el correo.",
+        err instanceof Error
+          ? err.message
+          : "No se pudo enviar el correo de recuperación. Verifica tu conexión e intenta de nuevo.",
       );
     } finally {
       setLoading(false);

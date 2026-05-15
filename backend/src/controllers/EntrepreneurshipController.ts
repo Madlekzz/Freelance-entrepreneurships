@@ -68,11 +68,9 @@ export async function getMyEntrepreneurships(req: Request, res: Response) {
 
     res.status(200).json(formattedData);
   } catch (error: unknown) {
-    let message = "";
-    if (error instanceof Error) {
-      message = error.message;
-    }
-    res.status(400).json({ error: message });
+    const message = error instanceof Error ? error.message : "Error al consultar los emprendimientos del usuario";
+    console.error("Error al obtener emprendimientos:", message);
+    res.status(500).json({ error: `Error al cargar tus emprendimientos: ${message}` });
   }
 }
 
@@ -154,6 +152,8 @@ export async function deleteEntrepreneurship(req: Request, res: Response) {
     if (error) return res.status(400).json({ error: error.message });
     res.status(200).json({ message: "Emprendimiento eliminado correctamente" });
   } catch (error) {
-    res.status(500).json({ error: "Error eliminando el emprendimiento." });
+    const errorMessage = error instanceof Error ? error.message : "Error al eliminar el emprendimiento de la base de datos";
+    console.error("Error al eliminar emprendimiento:", errorMessage);
+    res.status(500).json({ error: `No se pudo eliminar el emprendimiento: ${errorMessage}` });
   }
 }

@@ -24,7 +24,8 @@ export function useSales(entrepreneurshipId?: string) {
       setSales(data);
     } catch (error) {
       console.error("Error fetching sales:", error);
-      toast.error("No se pudieron cargar las ventas");
+      const errorMessage = error instanceof Error ? error.message : "Error al cargar las ventas. Intenta de nuevo más tarde.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

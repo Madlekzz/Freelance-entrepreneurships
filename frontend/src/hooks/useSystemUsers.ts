@@ -26,7 +26,8 @@ export function useSystemUsers() {
       setUsers(data);
     } catch (error) {
       console.error("Error al cargar usuarios", error);
-      toast.error("Error al cargar usuarios");
+      const errorMessage = error instanceof Error ? error.message : "No se pudieron cargar los usuarios. Verifica tu conexión e intenta de nuevo.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -60,7 +61,8 @@ export function useSystemUsers() {
       setIsDeleteModalOpen(false);
       toast.success("Usuario eliminado exitosamente");
     } catch (error) {
-      toast.error("Error al eliminar el usuario");
+      const errorMessage = error instanceof Error ? error.message : "No se pudo eliminar el usuario. Verifica que no tenga datos asociados.";
+      toast.error(errorMessage);
       console.error("Error al eliminar usuario", error);
     } finally {
       setIsDeleting(false);

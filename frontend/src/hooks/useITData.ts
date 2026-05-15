@@ -41,7 +41,9 @@ export function useITData(enabled: boolean) {
       });
     } catch (err: unknown) {
       const msg =
-        err instanceof Error ? err.message : "Error al cargar métricas de IT";
+        err instanceof Error
+          ? err.message
+          : "No se pudieron cargar las métricas del sistema. Verifica tu conexión e intenta de nuevo.";
       setError(msg);
       console.error("[useITData] Error:", msg);
     } finally {
