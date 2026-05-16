@@ -3,6 +3,7 @@ import { supabaseAdmin } from "../db.js";
 import {
   consumerPurchaseTemplate,
   entrepreneurSaleTemplate,
+  saleNotificationTemplate,
 } from "../schemas/slackTemplates.js";
 import { isGoogleSheetsConfigured } from "../services/googleSheetsConfig.js";
 import {
@@ -10,7 +11,7 @@ import {
   updateEntrepreneurEarnings,
   updateEntrepreneurshipSpent,
 } from "../services/googleSheetsService.js";
-import { sendSlackNotification, checkAndNotifyLowStock } from "../services/slackService.js";
+import { sendSlackNotification, sendSlackWebhookNotification, checkAndNotifyLowStock } from "../services/slackService.js";
 
 interface ProductInfo {
   product_id: string;
@@ -402,6 +403,69 @@ export async function createSale(req: Request, res: Response) {
       }
     } catch (stockErr) {
       console.error("Error checking low stock:", stockErr);
+    }
+
+    // C. Notificar al canal de Slack vía webhook
+    try {
+      const webhookUrl = process.env.SLACK_WEBHOOK_URL_IT;
+      if (webhookUrl) {
+        const sellersForNotification: Array<{
+          name: string;
+          products: Array<{ name: string; quantity: number; price: number }>;
+          subtotal: number;
+        }> = [];
+
+        const sellersGroupForWebhook = new Map<string, SellerGroup>();
+
+        processedItems.forEach((item) => {
+          if (!sellersGroupForWebhook.has(item.owner_id)) {
+            sellersGroupForWebhook.set(item.owner_id, {
+              email: item.owner_email,
+              name: item.owner_name,
+              products: [],
+            });
+          }
+          sellersGroupForWebhook.get(item.owner_id)?.products.push({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            price: item.price,
+            name: item.name,
+          });
+        });
+
+        for (const [, data] of sellersGroupForWebhook.entries()) {
+          const subtotal = data.products.reduce(
+            (acc: number, p) => acc + p.price * p.quantity,
+            0,
+          );
+          sellersForNotification.push({
+            name: data.name,
+            products: data.products.map((p) => ({
+              name: p.name,
+              quantity: p.quantity,
+              price: p.price,
+            })),
+            subtotal,
+          });
+        }
+
+        const webhookBlocks = saleNotificationTemplate(
+          consumerData?.name || "Cliente",
+          sale.id,
+          sale.total,
+          processedItems.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          sellersForNotification,
+        );
+
+        await sendSlackWebhookNotification(webhookUrl, webhookBlocks);
+      }
+    } catch (webhookErr) {
+      console.error("Error sending webhook notification:", webhookErr);
     }
 
     res.status(201).json(sale);
