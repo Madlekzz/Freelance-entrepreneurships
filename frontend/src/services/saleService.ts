@@ -3,6 +3,8 @@ import type {
   CreateSalePayload,
   EntrepreneurshipSale,
   GlobalSale,
+  RefundPayload,
+  RefundResponse,
   Sale,
 } from "../types";
 
@@ -37,5 +39,19 @@ export const getSalesByEntrepreneurship = async (
  */
 export const getAllSales = async (): Promise<GlobalSale[]> => {
   const { data } = await api.get<GlobalSale[]>("/sales");
+  return data;
+};
+
+/**
+ * Reembolsa items de una venta (solo PROVEEDOR dueño del emprendimiento)
+ */
+export const refundSale = async (
+  saleId: string,
+  payload?: RefundPayload,
+): Promise<RefundResponse> => {
+  const { data } = await api.post<RefundResponse>(
+    `/sales/${saleId}/refund`,
+    payload,
+  );
   return data;
 };

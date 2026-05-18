@@ -25,8 +25,10 @@ export function useAdminConsumers() {
         statusFilter === "all"
           ? true
           : statusFilter === "pending"
-            ? !s.payroll_processed
-            : s.payroll_processed;
+            ? !s.payroll_processed && !s.refunded
+            : statusFilter === "refunded"
+              ? s.refunded === true
+              : s.payroll_processed;
       const matchesSearch =
         s.sale_items.some((item: SaleItemDetail) =>
           item.products.name.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -45,7 +47,7 @@ export function useAdminConsumers() {
 
   const toggleAllVisible = () => {
     const pendingSalesIds = detailedSales
-      .filter((s) => !s.payroll_processed)
+      .filter((s) => !s.payroll_processed && !s.refunded)
       .map((s) => s.id);
     setSelectedSales(
       selectedSales.length === pendingSalesIds.length ? [] : pendingSalesIds,

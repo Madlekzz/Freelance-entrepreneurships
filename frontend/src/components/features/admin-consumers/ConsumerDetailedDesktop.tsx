@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { Loader2, RotateCcw } from "lucide-react";
 import type { GlobalSale, SaleItemDetail } from "../../../types";
 import { formatCurrency } from "../../../utils/format";
 
@@ -28,9 +28,9 @@ export const ConsumerDetailedDesktop = ({
               type="checkbox"
               onChange={toggleAll}
               checked={
-                sales.filter((s) => !s.payroll_processed).length > 0 &&
+                sales.filter((s) => !s.payroll_processed && !s.refunded).length > 0 &&
                 selectedSales.length ===
-                  sales.filter((s) => !s.payroll_processed).length
+                  sales.filter((s) => !s.payroll_processed && !s.refunded).length
               }
               className="rounded border-gray-300 text-primary cursor-pointer"
             />
@@ -57,7 +57,7 @@ export const ConsumerDetailedDesktop = ({
               <td className="px-6 py-4">
                 <input
                   type="checkbox"
-                  disabled={sale.payroll_processed || isProcessing}
+                  disabled={sale.payroll_processed || sale.refunded || isProcessing}
                   checked={selectedSales.includes(sale.id)}
                   onChange={() => toggleSelection(sale.id)}
                   className="rounded border-gray-300 text-primary cursor-pointer disabled:opacity-30"
@@ -68,15 +68,18 @@ export const ConsumerDetailedDesktop = ({
                   {sale.sale_items.map((item: SaleItemDetail) => (
                     <div
                       key={item.products.id}
-                      className="flex justify-between items-center gap-3 text-[11px]"
+                      className={`flex justify-between items-center gap-3 text-[11px] ${item.refunded ? 'text-red-400' : 'text-gray-600'}`}
                     >
-                      <div className="flex items-center gap-1.5 text-gray-600 truncate">
-                        <span className="font-bold text-primary shrink-0">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className={`font-bold shrink-0 ${item.refunded ? 'text-red-400' : 'text-primary'}`}>
                           {item.quantity}x
                         </span>
-                        <span className="truncate">{item.products.name}</span>
+                        <span className={`truncate ${item.refunded ? 'line-through' : ''}`}>{item.products.name}</span>
+                        {item.refunded && (
+                          <span className="text-[8px] font-bold text-red-500 bg-red-100 px-1 py-0.5 rounded shrink-0 ml-1">REEMBOLSADO</span>
+                        )}
                       </div>
-                      <span className="text-[10px] font-bold text-gray-400 italic shrink-0">
+                      <span className={`text-[10px] font-bold italic shrink-0 ${item.refunded ? 'text-red-300' : 'text-gray-400'}`}>
                         {formatCurrency(item.unit_price)}
                       </span>
                     </div>
@@ -87,7 +90,11 @@ export const ConsumerDetailedDesktop = ({
                 {new Date(sale.created_at).toLocaleDateString()}
               </td>
               <td className="px-6 py-4 text-center">
-                {sale.payroll_processed ? (
+                {sale.refunded ? (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-50 text-red-600 text-[10px] font-bold border border-red-100">
+                    <RotateCcw size={12} /> REEMBOLSADA
+                  </span>
+                ) : sale.payroll_processed ? (
                   <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-bold border border-emerald-100/50">
                     DESCONTADO
                   </span>
@@ -96,7 +103,7 @@ export const ConsumerDetailedDesktop = ({
                     type="button"
                     onClick={() => onProcessSingle(sale.id)}
                     disabled={isProcessing}
-                    className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition-all cursor-pointer min-w-[100px] flex items-center justify-center gap-2"
+                    className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition-all cursor-pointer min-w-25 flex items-center justify-center gap-2"
                   >
                     {isProcessing ? (
                       <Loader2 size={14} className="animate-spin" />

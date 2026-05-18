@@ -10,4 +10,5 @@ export const STATUS_OPTIONS = [
   { value: "all", label: "Todos los estados" },
   { value: "processed", label: "Procesado" },
   { value: "pending", label: "Pendiente" },
+  { value: "refunded", label: "Reembolsado" },
 ];

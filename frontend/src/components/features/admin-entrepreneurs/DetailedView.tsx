@@ -13,6 +13,7 @@ interface Props {
   setSortOrder: (order: "asc" | "desc") => void;
   processingIds: string[];
   searchQuery: string;
+  selectedEntId?: string | null;
 }
 
 export const DetailedView = (props: Props) => {
@@ -31,6 +32,7 @@ export const DetailedView = (props: Props) => {
         toggleSelection={props.toggleSelection}
         onProcessSingle={props.onProcessSingle}
         processingIds={props.processingIds}
+        selectedEntId={props.selectedEntId}
       />
     </div>
   );

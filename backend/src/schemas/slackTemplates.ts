@@ -177,6 +177,56 @@ export const entrepreneurSaleTemplate = (
   ];
 };
 
+export const refundTemplate = (
+  items: Array<{ quantity: number; unit_price: number; products: { name: string } }>,
+  total: number,
+  refundType: "full" | "partial",
+): SlackMessageContent => {
+  return [
+    {
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: `${
+          refundType === "full" ? "Reembolso Completado" : "Reembolso Parcial"
+        }`,
+        emoji: true,
+      },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text:
+          "Se ha procesado un reembolso por los siguientes items:\n" +
+          items
+            .map(
+              (item) =>
+                `• ${item.products.name} | *${item.quantity}* x $${item.unit_price.toLocaleString()} = *$${(
+                  item.quantity * item.unit_price
+                ).toLocaleString()}*`,
+            )
+            .join("\n"),
+      },
+    },
+    {
+      type: "section",
+      fields: [
+        {
+          type: "mrkdwn",
+          text: `*Total reembolsado:* ✨ *$${total.toLocaleString()}*`,
+        },
+        {
+          type: "mrkdwn",
+          text: `Tipo: *${
+            refundType === "full" ? "Reembolso total" : "Reembolso parcial"
+          }*`,
+        },
+      ],
+    },
+  ];
+};
+
 export const lowStockAlertTemplate = (
   ownerName: string,
   productName: string,

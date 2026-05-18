@@ -3,6 +3,7 @@ import { supabaseAdmin } from "../db.js";
 import {
   consumerPurchaseTemplate,
   entrepreneurSaleTemplate,
+  refundTemplate,
 } from "../schemas/slackTemplates.js";
 import { isGoogleSheetsConfigured } from "../services/googleSheetsConfig.js";
 import {
@@ -47,11 +48,14 @@ export async function getAllSales(_req: Request, res: Response) {
         created_at,
         total,
         payroll_processed,
+        refunded,
         users!consumer_id(id, name, email), 
         sale_items(
+            id,
             quantity,
             unit_price,
             subtotal,
+            refunded,
             products(id, name, entrepreneurships(id, name, owner_id, users(name)))
         )
     `,
@@ -96,11 +100,14 @@ export async function getSalesByEntrepreneurship(req: Request, res: Response) {
             created_at,
             total,
             payroll_processed,
+            refunded,
             users!consumer_id(id, name, email),
             sale_items!inner(
+                id,
                 quantity,
                 unit_price,
                 subtotal,
+                refunded,
                 products!inner(id, name, entrepreneurship_id)
             )
         `,
@@ -124,10 +131,14 @@ export async function getSalesByConsumer(req: Request, res: Response) {
             created_at,
             total,
             payroll_processed,
+            refunded,
             users!consumer_id(name),
             sale_items(
+                id,
                 quantity,
                 unit_price,
+                subtotal,
+                refunded,
                 products(name, entrepreneurships(name))
             )
         `,
@@ -152,6 +163,7 @@ export async function getSaleById(req: Request, res: Response) {
       created_at,
       total,
       payroll_processed,
+      refunded,
       users!consumer_id(
         id, 
         name, 
@@ -163,6 +175,7 @@ export async function getSaleById(req: Request, res: Response) {
         quantity,
         unit_price,
         subtotal,
+        refunded,
         products(
           id, 
           name, 
@@ -421,12 +434,16 @@ export async function updatePayrollStatus(req: Request, res: Response) {
 
   const { data: sale, error: findError } = await supabaseAdmin
     .from("sales")
-    .select("id")
+    .select("id, refunded, payroll_processed")
     .eq("id", id)
     .single();
 
   if (findError || !sale) {
     return res.status(404).json({ error: "Venta no encontrada" });
+  }
+
+  if (sale.refunded) {
+    return res.status(400).json({ error: "No se puede liquidar una venta reembolsada" });
   }
 
   const { data, error } = await supabaseAdmin
@@ -442,6 +459,7 @@ export async function updatePayrollStatus(req: Request, res: Response) {
         users!consumer_id(id, name, email),
         sale_items(
           subtotal,
+          refunded,
           products(id, name, entrepreneurships(id, name, owner_id, users(id, name, email)))
         )
       `,
@@ -454,6 +472,7 @@ export async function updatePayrollStatus(req: Request, res: Response) {
     users: { name: string; email: string } | { name: string; email: string }[];
     sale_items: {
       subtotal: number;
+      refunded?: boolean;
       products: {
         entrepreneurships: {
           name: string;
@@ -474,8 +493,12 @@ export async function updatePayrollStatus(req: Request, res: Response) {
     ? usersData[0]?.email
     : usersData?.email;
 
+  const activeItems = (saleData.sale_items || []).filter(
+    (item) => !item.refunded,
+  );
+
   const entrepreneurshipTotals: Record<string, number> = {};
-  for (const item of saleData.sale_items || []) {
+  for (const item of activeItems) {
     const entData = item.products?.entrepreneurships;
     const entrepreneurshipName = Array.isArray(entData)
       ? entData[0]?.name
@@ -506,7 +529,7 @@ export async function updatePayrollStatus(req: Request, res: Response) {
         }
       }
 
-      for (const item of saleData.sale_items || []) {
+      for (const item of activeItems) {
         const entData = item.products?.entrepreneurships;
         const entrepreneurshipName = Array.isArray(entData)
           ? entData[0]?.name
@@ -574,6 +597,260 @@ export async function deleteSale(req: Request, res: Response) {
   }
 }
 
+// [PROVEEDOR] Reembolsar items de una venta
+export async function refundSale(req: Request, res: Response) {
+  const { id } = req.params;
+  const { item_ids } = req.body;
+  const requestingUser = req.user;
+
+  // 1. Obtener la venta con todos sus items
+  const { data: sale, error: saleError } = await supabaseAdmin
+    .from("sales")
+    .select(
+      `
+        id,
+        total,
+        payroll_processed,
+        refunded,
+        sale_items(
+          id,
+          product_id,
+          quantity,
+          unit_price,
+          subtotal,
+          products!inner(
+            id,
+            name,
+            entrepreneurship_id,
+            current_stock,
+            entrepreneurships!inner(
+              id,
+              owner_id
+            )
+          )
+        )
+      `,
+    )
+    .eq("id", id)
+    .single();
+
+  if (saleError || !sale) {
+    return res.status(404).json({ error: "Venta no encontrada" });
+  }
+
+  if (sale.payroll_processed) {
+    return res
+      .status(400)
+      .json({ error: "No se puede reembolsar una venta que ya fue liquidada" });
+  }
+
+  if (sale.refunded) {
+    return res
+      .status(400)
+      .json({ error: "La venta ya fue reembolsada" });
+  }
+
+  // 2. Obtener los emprendimientos del usuario solicitante
+  const { data: entrepreneurships } = await supabaseAdmin
+    .from("entrepreneurships")
+    .select("id")
+    .eq("owner_id", requestingUser?.id);
+
+  if (!entrepreneurships || entrepreneurships.length === 0) {
+    return res
+      .status(403)
+      .json({ error: "No tienes emprendimientos registrados" });
+  }
+
+  const userEntIds = entrepreneurships.map((e: { id: string }) => e.id);
+
+  // 3. Filtrar items que pertenecen a los emprendimientos del usuario
+  const saleData = sale as unknown as {
+    id: string;
+    total: number;
+    payroll_processed: boolean;
+    refunded: boolean;
+    sale_items: Array<{
+      id: number;
+      product_id: string;
+      quantity: number;
+      unit_price: number;
+      subtotal: number;
+      products: {
+        id: string;
+        name: string;
+        entrepreneurship_id: string;
+        current_stock: number;
+        entrepreneurships:
+          | { id: string; owner_id: string }
+          | Array<{ id: string; owner_id: string }>;
+      };
+    }>;
+  };
+
+  const userItems = saleData.sale_items.filter((item) => {
+    const entData = item.products.entrepreneurships;
+    const entId = Array.isArray(entData) ? entData[0]?.id : entData?.id;
+    return entId ? userEntIds.includes(entId) : false;
+  });
+
+  if (userItems.length === 0) {
+    return res
+      .status(400)
+      .json({ error: "No hay items de tus emprendimientos en esta venta" });
+  }
+
+  // 4. Determinar qué items reembolsar
+  let refundItems: typeof userItems;
+
+  if (item_ids && Array.isArray(item_ids) && item_ids.length > 0) {
+    refundItems = userItems.filter((item) => item_ids.includes(item.id));
+    if (refundItems.length !== item_ids.length) {
+      return res.status(400).json({
+        error: "Uno o más items no pertenecen a tus emprendimientos o no existen",
+      });
+    }
+  } else {
+    refundItems = userItems;
+  }
+
+  if (refundItems.length === 0) {
+    return res
+      .status(400)
+      .json({ error: "No hay items para reembolsar" });
+  }
+
+  // 5. Restaurar stock de cada producto reembolsado y notificar low stock
+  for (const item of refundItems) {
+    const newStock = item.products.current_stock + item.quantity;
+
+    const { error: stockError } = await supabaseAdmin
+      .from("products")
+      .update({ current_stock: newStock })
+      .eq("id", item.product_id);
+
+    if (stockError) {
+      console.error(
+        `Error restoring stock for product ${item.product_id}:`,
+        stockError,
+      );
+    }
+  }
+
+  // 6. Calcular el total reembolsado
+  const refundTotal = refundItems.reduce(
+    (sum, item) => sum + (item.subtotal ?? item.quantity * item.unit_price),
+    0,
+  );
+
+  const refundItemIds = refundItems.map((item) => item.id);
+
+  // 7. Marcar sale_items como reembolsados (no se borran para mantener trazabilidad)
+  const { error: refundItemsError } = await supabaseAdmin
+    .from("sale_items")
+    .update({ refunded: true })
+    .in("id", refundItemIds);
+
+  if (refundItemsError) {
+    return res
+      .status(500)
+      .json({ error: "Error al marcar los items como reembolsados" });
+  }
+
+  // 8. Determinar si es reembolso parcial o total
+  const remainingItemsCount = saleData.sale_items.length - refundItems.length;
+
+  if (remainingItemsCount === 0) {
+    // --- REEMBOLSO TOTAL ---
+    const { error: refundError } = await supabaseAdmin
+      .from("sales")
+      .update({ refunded: true, total: 0 })
+      .eq("id", id);
+
+    if (refundError) {
+      return res
+        .status(500)
+        .json({ error: "Error al marcar la venta como reembolsada" });
+    }
+
+    try {
+      await sendRefundNotification(sale.id, refundItems, refundTotal, "full");
+    } catch (notifyErr) {
+      console.error("Error sending refund notification:", notifyErr);
+    }
+
+    return res.status(200).json({
+      message: "Venta reembolsada correctamente",
+      type: "full",
+      refunded_amount: refundTotal,
+    });
+  } else {
+    // --- REEMBOLSO PARCIAL ---
+    const newTotal = Math.max(0, saleData.total - refundTotal);
+
+    const { error: updateError } = await supabaseAdmin
+      .from("sales")
+      .update({ total: newTotal })
+      .eq("id", id);
+
+    if (updateError) {
+      return res
+        .status(500)
+        .json({ error: "Error al actualizar el total de la venta" });
+    }
+
+    try {
+      await sendRefundNotification(
+        sale.id,
+        refundItems,
+        refundTotal,
+        "partial",
+      );
+    } catch (notifyErr) {
+      console.error("Error sending refund notification:", notifyErr);
+    }
+
+    return res.status(200).json({
+      message: "Items reembolsados correctamente",
+      type: "partial",
+      refunded_amount: refundTotal,
+      new_total: newTotal,
+    });
+  }
+}
+
+async function sendRefundNotification(
+  saleId: string,
+  refundItems: Array<{
+    product_id: string;
+    quantity: number;
+    unit_price: number;
+    products: { name: string };
+  }>,
+  refundTotal: number,
+  refundType: "full" | "partial",
+) {
+  const { data: sale } = await supabaseAdmin
+    .from("sales")
+    .select("users!consumer_id(id, name, email)")
+    .eq("id", saleId)
+    .single();
+
+  if (!sale) return;
+
+  const saleNotif = sale as unknown as {
+    users: { id: string; name: string; email: string } | { id: string; name: string; email: string }[];
+  };
+
+  const usersData = saleNotif.users;
+  const consumerEmail = Array.isArray(usersData) ? usersData[0]?.email : usersData?.email;
+
+  if (consumerEmail) {
+    const blocks = refundTemplate(refundItems, refundTotal, refundType);
+    await sendSlackNotification(consumerEmail, blocks);
+  }
+}
+
 // [ADMIN] Batch process multiple sales for payroll
 export async function updatePayrollStatusBatch(req: Request, res: Response) {
   const { saleIds } = req.body;
@@ -620,12 +897,16 @@ res.status(200).json({
 async function processSinglePayroll(saleId: string) {
   const { data: sale, error: findError } = await supabaseAdmin
     .from("sales")
-    .select("id")
+    .select("id, refunded")
     .eq("id", saleId)
     .single();
 
   if (findError || !sale) {
     throw new Error("Venta no encontrada");
+  }
+
+  if (sale.refunded) {
+    throw new Error("No se puede liquidar una venta reembolsada");
   }
 
   const { data, error } = await supabaseAdmin
@@ -641,6 +922,7 @@ async function processSinglePayroll(saleId: string) {
         users!consumer_id(id, name, email),
         sale_items(
           subtotal,
+          refunded,
           products(id, name, entrepreneurships(id, name, owner_id, users(id, name, email)))
         )
       `,
@@ -653,6 +935,7 @@ async function processSinglePayroll(saleId: string) {
     users: { name: string; email: string } | { name: string; email: string }[];
     sale_items: {
       subtotal: number;
+      refunded?: boolean;
       products: {
         entrepreneurships: {
           name: string;
@@ -667,8 +950,12 @@ async function processSinglePayroll(saleId: string) {
   const consumerName = Array.isArray(usersData) ? usersData[0]?.name : usersData?.name;
   const consumerEmail = Array.isArray(usersData) ? usersData[0]?.email : usersData?.email;
 
+  const activeItems = (saleData.sale_items || []).filter(
+    (item) => !item.refunded,
+  );
+
   const entrepreneurshipTotals: Record<string, number> = {};
-  for (const item of saleData.sale_items || []) {
+  for (const item of activeItems) {
     const entData = item.products?.entrepreneurships;
     const entrepreneurshipName = Array.isArray(entData) ? entData[0]?.name : entData?.name;
     if (entrepreneurshipName) {
@@ -684,7 +971,7 @@ async function processSinglePayroll(saleId: string) {
       }
     }
 
-    for (const item of saleData.sale_items || []) {
+    for (const item of activeItems) {
       const entData = item.products?.entrepreneurships;
       const entrepreneurshipName = Array.isArray(entData) ? entData[0]?.name : entData?.name;
       const ownerData = Array.isArray(entData) ? entData[0]?.users : entData?.users;

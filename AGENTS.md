@@ -32,3 +32,7 @@ Image uploads require a public bucket named `product-images` with RLS policies f
 
 - Biome config uses **tabs** for indentation and **double quotes** for JS
 - Apply with `pnpm format` in backend (frontend uses ESLint/Prettier via Vite)
+
+## Build Policy
+
+Do NOT run `pnpm build` or `tsc --noEmit` automatically after every change. Only run builds when the user explicitly requests it, or when testing/verification is part of the task.

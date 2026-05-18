@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import {
-  type EntrepreneurshipSale,
   getSalesByEntrepreneurship,
 } from "../services/saleService";
+import type { EntrepreneurshipSale } from "../types";
 
 export function useSales(entrepreneurshipId?: string) {
   const [sales, setSales] = useState<EntrepreneurshipSale[]>([]);
@@ -59,10 +59,27 @@ export function useSales(entrepreneurshipId?: string) {
       });
     }
 
-    // --- B. Filtro por Estado de Nómina (payroll_processed) ---
+    // --- B. Filtro por Estado (payroll_processed / refunded) ---
     if (statusFilter !== "all") {
-      const isProcessed = statusFilter === "processed";
-      result = result.filter((sale) => sale.payroll_processed === isProcessed);
+      if (statusFilter === "refunded") {
+        result = result.filter(
+          (sale) =>
+            sale.refunded === true ||
+            sale.sale_items.every((item) => item.refunded),
+        );
+      } else {
+        const isProcessed = statusFilter === "processed";
+        result = result.filter((sale) => {
+          const allItemsRefunded = sale.sale_items.every(
+            (item) => item.refunded,
+          );
+          return (
+            !sale.refunded &&
+            !allItemsRefunded &&
+            sale.payroll_processed === isProcessed
+          );
+        });
+      }
     }
 
     // --- C. Ordenamiento ---
