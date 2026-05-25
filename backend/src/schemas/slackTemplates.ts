@@ -227,6 +227,89 @@ export const refundTemplate = (
   ];
 };
 
+interface SaleNotificationProduct {
+  name: string;
+  quantity: number;
+  price: number;
+  entrepreneurship_name?: string;
+  owner_name?: string;
+}
+
+interface SaleNotificationSeller {
+  name: string;
+  products: SaleNotificationProduct[];
+  subtotal: number;
+}
+
+export const saleNotificationTemplate = (
+  consumerName: string,
+  orderId: string = "",
+  total: number,
+  items: SaleNotificationProduct[],
+  sellers: SaleNotificationSeller[],
+): SlackMessageContent => {
+  const idParts = orderId.split("-");
+  const firstPart = idParts[0];
+  const displayId =
+    firstPart && typeof firstPart === "string"
+      ? firstPart.toUpperCase()
+      : "N/A";
+
+  const productsList =
+    items.length > 0
+      ? items
+          .map(
+            (p) =>
+              `• ${p.name} | *${p.quantity}* x $${p.price.toLocaleString()} = *$${(p.quantity * p.price).toLocaleString()}*`,
+          )
+          .join("\n")
+      : "_Sin productos_";
+
+  const sellersList =
+    sellers.length > 0
+      ? sellers
+          .map(
+            (s) =>
+              `• *${s.name}*: $${s.subtotal.toLocaleString()} (${s.products.length} producto(s))`,
+          )
+          .join("\n")
+      : "_Sin emprendedores_";
+
+  return [
+    {
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: "Nueva Venta Realizada 💰",
+        emoji: true,
+      },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Nueva compra realizada*\n\n*Cliente:* ${consumerName}\n*Orden:* \`#${displayId}\`\n*Total:* $${total.toLocaleString()}`,
+      },
+    },
+    { type: "divider" },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Productos vendidos:*\n${productsList}`,
+      },
+    },
+    { type: "divider" },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Emprendedores involucrados:*\n${sellersList}`,
+      },
+    },
+  ];
+};
+
 export const lowStockAlertTemplate = (
   ownerName: string,
   productName: string,
