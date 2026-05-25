@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, ShoppingBag, Store } from "lucide-react";
+import { ChevronDown, ChevronUp, RotateCcw, ShoppingBag, Store } from "lucide-react";
 import type { ConsumerSale } from "../../../types";
 import StatusBadge from "./shared/StatusBadge";
 
@@ -53,7 +53,7 @@ export default function MyPurchasesMobile({
               </div>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <StatusBadge processed={sale.payroll_processed} />
+              <StatusBadge processed={sale.payroll_processed} refunded={sale.refunded} />
               {expandedId === sale.id ? (
                 <ChevronUp size={16} className="text-primary" />
               ) : (
@@ -71,21 +71,28 @@ export default function MyPurchasesMobile({
               {sale.sale_items.map((item) => (
                 <div
                   key={item.products.name}
-                  className="flex justify-between items-center bg-gray-50 p-3 rounded-2xl"
+                  className={`flex justify-between items-center p-3 rounded-2xl ${item.refunded ? 'bg-red-50/50' : 'bg-gray-50'}`}
                 >
                   <div className="min-w-0 text-left">
-                    <p className="text-sm font-bold text-gray-900 truncate">
-                      {item.products.name}
-                    </p>
-                    <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                    <div className="flex items-center gap-2">
+                      <p className={`text-sm font-bold truncate ${item.refunded ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                        {item.products.name}
+                      </p>
+                      {item.refunded && (
+                        <span className="inline-flex items-center gap-0.5 text-[8px] font-black text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase shrink-0">
+                          <RotateCcw size={8} /> Reembolsado
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-[10px] flex items-center gap-1 ${item.refunded ? 'text-red-300' : 'text-gray-500'}`}>
                       <Store size={10} /> {item.products.entrepreneurships.name}
                     </p>
                   </div>
                   <div className="text-right shrink-0 ml-4">
-                    <p className="text-xs font-bold text-primary">
+                    <p className={`text-xs font-bold ${item.refunded ? 'text-red-400 line-through' : 'text-primary'}`}>
                       {fmt(item.unit_price * item.quantity)}
                     </p>
-                    <p className="text-[10px] text-gray-400">
+                    <p className={`text-[10px] ${item.refunded ? 'text-red-300' : 'text-gray-400'}`}>
                       {item.quantity} u.
                     </p>
                   </div>

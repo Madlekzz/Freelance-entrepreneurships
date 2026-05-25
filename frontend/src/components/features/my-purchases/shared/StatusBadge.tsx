@@ -1,6 +1,19 @@
-import { CheckCircle2, Clock } from "lucide-react";
+import { CheckCircle2, Clock, RotateCcw } from "lucide-react";
 
-export default function StatusBadge({ processed }: { processed: boolean }) {
+interface Props {
+  processed: boolean;
+  refunded?: boolean;
+}
+
+export default function StatusBadge({ processed, refunded }: Props) {
+  if (refunded) {
+    return (
+      <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-1 rounded-lg text-[9px] font-black uppercase border border-red-100">
+        <RotateCcw size={10} /> Reembolsado
+      </span>
+    );
+  }
+
   return processed ? (
     <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-lg text-[9px] font-black uppercase border border-green-100">
       <CheckCircle2 size={10} /> Procesado

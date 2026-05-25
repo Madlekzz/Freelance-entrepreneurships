@@ -7,7 +7,7 @@ interface Props {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   statusFilter: string;
-  setStatusFilter: (s: "all" | "pending" | "processed") => void;
+  setStatusFilter: (s: "all" | "pending" | "processed" | "refunded") => void;
 }
 
 export const ConsumersFilters = ({
@@ -50,6 +50,11 @@ export const ConsumersFilters = ({
                   label: "Procesados",
                   onClick: () => setStatusFilter("processed"),
                 },
+                {
+                  key: "refunded",
+                  label: "Reembolsadas",
+                  onClick: () => setStatusFilter("refunded"),
+                },
               ],
             }}
             trigger={["click"]}
@@ -65,7 +70,9 @@ export const ConsumersFilters = ({
                     ? "Todos los estados"
                     : statusFilter === "pending"
                       ? "Pendientes"
-                      : "Procesados"}
+                      : statusFilter === "refunded"
+                        ? "Reembolsadas"
+                        : "Procesados"}
                 </span>
               </div>
               <ChevronDown size={14} className="text-gray-400 shrink-0" />

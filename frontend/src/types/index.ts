@@ -29,6 +29,7 @@ export interface SaleItem {
   products: ProductInfo;
   quantity: number;
   unit_price: number;
+  refunded?: boolean;
 }
 
 export interface UserInfo {
@@ -40,6 +41,7 @@ export interface ConsumerSale {
   created_at: string;
   total: number;
   payroll_processed: boolean;
+  refunded?: boolean;
   users: UserInfo;
   sale_items: SaleItem[];
 }
@@ -217,13 +219,16 @@ export interface Sale {
   consumer_id: string;
   total: number;
   payroll_processed: boolean;
+  refunded?: boolean;
   created_at: string;
 }
 
 export interface SaleItemDetail {
+  id: number;
   quantity: number;
   unit_price: number;
   subtotal: number;
+  refunded?: boolean;
   products: {
     id: string;
     name: string;
@@ -244,6 +249,7 @@ export interface EntrepreneurshipSale {
   created_at: string;
   total: number;
   payroll_processed: boolean;
+  refunded?: boolean;
   users: {
     id: string;
     name: string;
@@ -285,12 +291,24 @@ export interface GlobalSale {
   created_at: string;
   total: number;
   payroll_processed: boolean;
+  refunded?: boolean;
   users: {
     id: string;
     name: string;
     email: string;
   };
   sale_items: SaleItemDetail[];
+}
+
+export interface RefundPayload {
+  item_ids?: number[];
+}
+
+export interface RefundResponse {
+  message: string;
+  type: "full" | "partial";
+  refunded_amount: number;
+  new_total?: number;
 }
 
 export interface PublicUser {

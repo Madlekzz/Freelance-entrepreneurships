@@ -74,7 +74,7 @@ export default function MyPurchasesDesktop({
                   {fmt(sale.total)}
                 </td>
                 <td className="px-6 py-4 text-center">
-                  <StatusBadge processed={sale.payroll_processed} />
+                  <StatusBadge processed={sale.payroll_processed} refunded={sale.refunded} />
                 </td>
               </tr>
               {expandedId === sale.id && (

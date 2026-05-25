@@ -13,7 +13,7 @@ export default function AdminEntrepreneurs() {
   if (logic.loading) return <AdminConsumersSkeleton />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20 md:pb-0 [scrollbar-gutter:stable]">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20 md:pb-0 scrollbar-gutter:stable">
       <EntrepreneursHeader
         view={logic.view}
         entrepreneurName={logic.selectedEntrepreneur?.name}
@@ -58,6 +58,7 @@ export default function AdminEntrepreneurs() {
             setSortOrder={logic.setSortOrder}
             processingIds={logic.processingIds}
             searchQuery={logic.searchQuery}
+            selectedEntId={logic.selectedEntId}
           />
         )}
       </div>

@@ -160,21 +160,24 @@ export function useAdminData(enabled: boolean = true) {
       const staticMap: Record<string, EntrepreneurSummary> = {}; // <--- NUEVO: Para nombres siempre visibles
 
       // 1. Agrupación estática (Para que el nombre no desaparezca nunca)
+      // Itera sobre ALL sale_items para capturar TODOS los emprendimientos involucrados
       sales.forEach((s) => {
-        const entrepreneurship = s.sale_items[0]?.products?.entrepreneurships;
-        if (!entrepreneurship) return;
+        s.sale_items.forEach((item) => {
+          const entrepreneurship = item.products?.entrepreneurships;
+          if (!entrepreneurship) return;
 
-        if (!staticMap[entrepreneurship.id]) {
-          staticMap[entrepreneurship.id] = {
-            id: entrepreneurship.id,
-            name: entrepreneurship.name,
-            ownerName: entrepreneurship.users.name,
-            totalRevenue: 0,
-            pendingPayroll: 0,
-            salesCount: 0,
-            pendingIds: [],
-          };
-        }
+          if (!staticMap[entrepreneurship.id]) {
+            staticMap[entrepreneurship.id] = {
+              id: entrepreneurship.id,
+              name: entrepreneurship.name,
+              ownerName: entrepreneurship.users.name,
+              totalRevenue: 0,
+              pendingPayroll: 0,
+              salesCount: 0,
+              pendingIds: [],
+            };
+          }
+        });
       });
 
       // 2. Filtrado base por CICLO y ESTADO (Lo que afecta a la tabla)
@@ -195,21 +198,34 @@ export function useAdminData(enabled: boolean = true) {
       });
 
       // 3. Agrupación por Emprendimiento para resultados filtrados
+      // Itera sobre ALL sale_items para distribuir subtotales a cada emprendimiento
       baseSales.forEach((s) => {
-        const entrepreneurship = s.sale_items[0]?.products?.entrepreneurships;
-        if (!entrepreneurship) return;
+        const venturesInSale = new Set<string>();
 
-        const entId = entrepreneurship.id;
-        if (!map[entId]) {
-          map[entId] = { ...staticMap[entId] }; // Copiamos la base estática
-        }
+        s.sale_items.forEach((item) => {
+          const entrepreneurship = item.products?.entrepreneurships;
+          if (!entrepreneurship) return;
 
-        map[entId].totalRevenue += s.total;
-        map[entId].salesCount += 1;
-        if (!s.payroll_processed) {
-          map[entId].pendingPayroll += s.total;
-          map[entId].pendingIds.push(s.id);
-        }
+          const entId = entrepreneurship.id;
+          venturesInSale.add(entId);
+
+          if (!map[entId]) {
+            map[entId] = { ...staticMap[entId] };
+          }
+
+          const subtotal = Number(item.subtotal) || 0;
+          map[entId].totalRevenue += subtotal;
+          if (!s.payroll_processed) {
+            map[entId].pendingPayroll += subtotal;
+          }
+        });
+
+        venturesInSale.forEach((entId) => {
+          map[entId].salesCount += 1;
+          if (!s.payroll_processed) {
+            map[entId].pendingIds.push(s.id);
+          }
+        });
       });
 
       const fullList = Object.values(map);
@@ -311,20 +327,20 @@ export function useAdminData(enabled: boolean = true) {
       const saleDate = new Date(sale.created_at);
 
       // 1. Filtro por Texto
-      const entrepreneurName =
-        sale.sale_items[0]?.products?.entrepreneurships?.name?.toLowerCase() ||
-        "";
       const userName = sale.users?.name?.toLowerCase() || "";
 
-      // --- NUEVO: Buscar en los nombres de los productos ---
+      const matchesEntrepreneur = sale.sale_items.some((item) =>
+        item.products?.entrepreneurships?.name?.toLowerCase().includes(searchLower),
+      );
+
       const matchesProduct = sale.sale_items.some((item) =>
         item.products?.name?.toLowerCase().includes(searchLower),
       );
 
       const matchesSearch =
-        entrepreneurName.includes(searchLower) ||
+        matchesEntrepreneur ||
         userName.includes(searchLower) ||
-        matchesProduct; // <--- Agregamos la condición aquí
+        matchesProduct;
 
       // 2. Filtro por Estado de Nómina
       const matchesStatus =

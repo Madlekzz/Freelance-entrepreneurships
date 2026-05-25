@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, CheckCircle2, User } from "lucide-react";
+import { ArrowDown, ArrowUp, CheckCircle2, RotateCcw, User } from "lucide-react";
 import type { GlobalSale, SaleItemDetail } from "../../../types";
 import { formatCurrency } from "../../../utils/format";
 
@@ -11,6 +11,7 @@ interface Props {
   sortOrder: "asc" | "desc";
   setSortOrder: (order: "asc" | "desc") => void;
   processingIds: string[];
+  selectedEntId?: string | null;
 }
 
 export const DetailedDesktop = (props: Props) => {
@@ -23,6 +24,7 @@ export const DetailedDesktop = (props: Props) => {
     sortOrder,
     setSortOrder,
     processingIds,
+    selectedEntId,
   } = props;
 
   return (
@@ -65,13 +67,20 @@ export const DetailedDesktop = (props: Props) => {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
-          {sales.map((sale) => (
+          {sales.map((sale) => {
+            const visibleItems = sale.sale_items.filter(
+              (item: SaleItemDetail) => !selectedEntId || item.products.entrepreneurships.id === selectedEntId,
+            );
+            const allVisibleItemsRefunded = visibleItems.every((item: SaleItemDetail) => item.refunded);
+            const isEffectivelyRefunded = sale.refunded || allVisibleItemsRefunded;
+            const visibleItemsTotal = visibleItems.reduce((sum: number, item: SaleItemDetail) => sum + Number(item.subtotal), 0);
+            return (
             <tr key={sale.id} className="hover:bg-gray-50/50 transition-colors">
               <td className="px-6 py-4">
                 <input
                   type="checkbox"
                   disabled={
-                    sale.payroll_processed || processingIds.includes(sale.id)
+                    sale.payroll_processed || isEffectivelyRefunded || processingIds.includes(sale.id)
                   }
                   checked={selectedSales.includes(sale.id)}
                   onChange={() => toggleSelection(sale.id)}
@@ -94,13 +103,18 @@ export const DetailedDesktop = (props: Props) => {
                 </div>
               </td>
               <td className="px-6 py-4">
-                {sale.sale_items.map((item: SaleItemDetail) => (
+                {sale.sale_items
+                  .filter((item: SaleItemDetail) => !selectedEntId || item.products.entrepreneurships.id === selectedEntId)
+                  .map((item: SaleItemDetail) => (
                   <p
                     key={item.products.id}
-                    className="text-[11px] text-gray-600"
+                    className={`text-[11px] ${item.refunded ? 'text-red-400' : 'text-gray-600'}`}
                   >
-                    <b className="text-primary">{item.quantity}x</b>{" "}
-                    {item.products.name}
+                    <b className={item.refunded ? 'text-red-400' : 'text-primary'}>{item.quantity}x</b>{" "}
+                    <span className={item.refunded ? 'line-through' : ''}>{item.products.name}</span>
+                    {item.refunded && (
+                      <span className="text-[8px] font-bold text-red-500 bg-red-100 px-1 py-0.5 rounded ml-1">REEMBOLSADO</span>
+                    )}
                   </p>
                 ))}
               </td>
@@ -108,7 +122,11 @@ export const DetailedDesktop = (props: Props) => {
                 {new Date(sale.created_at).toLocaleDateString()}
               </td>
               <td className="px-6 py-4 text-center">
-                {!sale.payroll_processed ? (
+                {isEffectivelyRefunded ? (
+                  <span className="inline-flex items-center gap-1 text-red-500 text-[10px] font-bold">
+                    <RotateCcw size={14} /> REEMBOLSADO
+                  </span>
+                ) : !sale.payroll_processed ? (
                   <button
                     type="button"
                     onClick={() => onProcessSingle(sale.id)}
@@ -125,10 +143,11 @@ export const DetailedDesktop = (props: Props) => {
                 )}
               </td>
               <td className="px-6 py-4 text-right font-bold text-gray-900">
-                {formatCurrency(sale.total)}
+                {formatCurrency(visibleItemsTotal)}
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

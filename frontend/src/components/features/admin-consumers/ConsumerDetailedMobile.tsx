@@ -1,4 +1,4 @@
-import { Calendar, Loader2 } from "lucide-react";
+import { Calendar, Loader2, RotateCcw } from "lucide-react";
 import type { GlobalSale, SaleItemDetail } from "../../../types";
 import { formatCurrency } from "../../../utils/format";
 
@@ -29,7 +29,7 @@ export const ConsumerDetailedMobile = ({
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
-                disabled={sale.payroll_processed || isProcessing}
+                disabled={sale.payroll_processed || sale.refunded || isProcessing}
                 checked={selectedSales.includes(sale.id)}
                 onChange={() => toggleSelection(sale.id)}
                 className="w-5 h-5 rounded-lg border-gray-200 text-primary cursor-pointer"
@@ -43,7 +43,11 @@ export const ConsumerDetailedMobile = ({
                 </p>
               </div>
             </div>
-            {sale.payroll_processed ? (
+            {sale.refunded ? (
+              <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 px-2.5 py-1 rounded-lg text-[9px] font-black italic">
+                <RotateCcw size={12} /> REEMBOLSADA
+              </span>
+            ) : sale.payroll_processed ? (
               <span className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-lg text-[9px] font-black italic">
                 DESCONTADO
               </span>
@@ -67,13 +71,16 @@ export const ConsumerDetailedMobile = ({
             {sale.sale_items.map((item: SaleItemDetail) => (
               <div
                 key={item.products.id}
-                className="text-[11px] text-gray-600 flex justify-between gap-2"
+                className={`text-[11px] flex justify-between gap-2 ${item.refunded ? 'text-red-400' : 'text-gray-600'}`}
               >
                 <span className="truncate">
-                  <b className="text-primary">{item.quantity}x</b>{" "}
-                  {item.products.name}
+                  <b className={item.refunded ? 'text-red-400' : 'text-primary'}>{item.quantity}x</b>{" "}
+                  <span className={item.refunded ? 'line-through' : ''}>{item.products.name}</span>
+                  {item.refunded && (
+                    <span className="text-[8px] font-bold text-red-500 bg-red-100 px-1 py-0.5 rounded ml-1">REEMBOLSADO</span>
+                  )}
                 </span>
-                <span className="font-mono text-gray-400 shrink-0">
+                <span className={`font-mono shrink-0 ${item.refunded ? 'text-red-300' : 'text-gray-400'}`}>
                   {formatCurrency(item.unit_price)}
                 </span>
               </div>
