@@ -1,10 +1,12 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useSales } from "../../../../../hooks/useSales";
-import { refundSale } from "../../../../../services/saleService";
+import { refundSale, refundSalesBatch } from "../../../../../services/saleService";
 import type { EntrepreneurshipSale } from "../../../../../types";
+import ConfirmationModal from "../../../../shared/ConfirmationModal";
 import ProductTableSkeleton from "../products/ProductTableSkeleton";
+import { BulkRefundBanner } from "./BulkRefundBanner";
 import SalesCardsMobile from "./SalesCardMobile";
 import SalesEmptyState from "./SalesEmptyState";
 import SalesFilters from "./SalesFilters";
@@ -30,6 +32,86 @@ export default function MySales() {
     useState<EntrepreneurshipSale | null>(null);
   const [isRefunding, setIsRefunding] = useState(false);
 
+  const [selectedSales, setSelectedSales] = useState<string[]>([]);
+  const [processingIds, setProcessingIds] = useState<string[]>([]);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkModalConfig, setBulkModalConfig] = useState({ title: "", message: "" });
+  const [idsToBulkRefund, setIdsToBulkRefund] = useState<string[]>([]);
+
+  const refundableSales = useMemo(() => {
+    return sales.filter((sale) => {
+      const allItemsRefunded = sale.sale_items.every((item) => item.refunded);
+      const isEffectivelyRefunded = sale.refunded || allItemsRefunded;
+      return !sale.payroll_processed && !isEffectivelyRefunded;
+    });
+  }, [sales]);
+
+  const toggleSelection = useCallback((saleId: string) => {
+    setSelectedSales((prev) =>
+      prev.includes(saleId)
+        ? prev.filter((id) => id !== saleId)
+        : [...prev, saleId],
+    );
+  }, []);
+
+  const toggleAllVisible = useCallback(() => {
+    const refundableIds = refundableSales.map((s) => s.id);
+    if (selectedSales.length === refundableIds.length && refundableIds.length > 0) {
+      setSelectedSales([]);
+    } else {
+      setSelectedSales(refundableIds);
+    }
+  }, [refundableSales, selectedSales.length]);
+
+  const openBulkRefund = useCallback(() => {
+    if (selectedSales.length === 0) return;
+
+    setIdsToBulkRefund(selectedSales);
+    const isMultiple = selectedSales.length > 1;
+
+    setBulkModalConfig({
+      title: isMultiple
+        ? "Reembolsar selección masiva"
+        : "Reembolsar venta individual",
+      message: isMultiple
+        ? `¿Estás seguro de que deseas reembolsar las ${selectedSales.length} ventas seleccionadas? Se reembolsarán TODOS los items de tus emprendimientos en cada venta. Esta acción no se puede deshacer.`
+        : "¿Estás seguro de que deseas reembolsar esta venta? Se reembolsarán TODOS los items de tu emprendimiento en esta venta.",
+    });
+
+    setIsBulkModalOpen(true);
+  }, [selectedSales]);
+
+  const handleConfirmBulkRefund = useCallback(async () => {
+    if (idsToBulkRefund.length === 0) return;
+
+    try {
+      setProcessingIds((prev) => [...prev, ...idsToBulkRefund]);
+      const result = await refundSalesBatch(idsToBulkRefund);
+
+      const successCount = result.results.filter((r) => r.success).length;
+      const failedCount = result.results.filter((r) => !r.success).length;
+
+      if (failedCount > 0 && successCount > 0) {
+        toast.warning(`${successCount} ventas reembolsadas, ${failedCount} fallidas`);
+      } else if (failedCount > 0) {
+        toast.error(`No se pudieron reembolsar ${failedCount} venta${failedCount === 1 ? "" : "s"}`);
+      } else {
+        toast.success(`${successCount} venta${successCount === 1 ? "" : "s"} reembolsada${successCount === 1 ? "" : "s"} correctamente`);
+      }
+
+      await refetch();
+      setSelectedSales((prev) => prev.filter((id) => !idsToBulkRefund.includes(id)));
+      setIsBulkModalOpen(false);
+    } catch (error: unknown) {
+      console.error("Error al procesar reembolsos masivos:", error);
+      const errorMessage = error instanceof Error ? error.message : "Error al procesar los reembolsos. Verifica tu conexión e intenta de nuevo.";
+      toast.error(errorMessage);
+    } finally {
+      setProcessingIds((prev) => prev.filter((id) => !idsToBulkRefund.includes(id)));
+      setIdsToBulkRefund([]);
+    }
+  }, [idsToBulkRefund, refetch]);
+
   const handleRefund = useCallback((sale: EntrepreneurshipSale) => {
     setRefundingSale(sale);
   }, []);
@@ -44,6 +126,7 @@ export default function MySales() {
       if (!refundingSale) return;
       try {
         setIsRefunding(true);
+        setProcessingIds((prev) => [...prev, refundingSale.id]);
         const result = await refundSale(refundingSale.id, {
           item_ids: itemIds,
         });
@@ -53,7 +136,8 @@ export default function MySales() {
           toast.success("Items reembolsados correctamente");
         }
         setRefundingSale(null);
-        refetch();
+        setSelectedSales((prev) => prev.filter((id) => id !== refundingSale.id));
+        await refetch();
       } catch (error) {
         const errorMessage =
           error instanceof Error
@@ -62,6 +146,7 @@ export default function MySales() {
         toast.error(errorMessage);
       } finally {
         setIsRefunding(false);
+        setProcessingIds((prev) => prev.filter((id) => id !== refundingSale?.id));
       }
     },
     [refundingSale, refetch],
@@ -82,6 +167,14 @@ export default function MySales() {
         onSortChange={setSortBy}
       />
 
+      {selectedSales.length > 0 && (
+        <BulkRefundBanner
+          count={selectedSales.length}
+          onRefund={openBulkRefund}
+          isLoading={processingIds.length > 0}
+        />
+      )}
+
       {sales.length === 0 ? (
         <SalesEmptyState
           isFiltering={!!searchQuery || statusFilter !== "all"}
@@ -92,12 +185,19 @@ export default function MySales() {
             <SalesTableDesktop
               sales={sales}
               onRefund={handleRefund}
+              selectedSales={selectedSales}
+              toggleSelection={toggleSelection}
+              toggleAll={toggleAllVisible}
+              processingIds={processingIds}
             />
           </div>
           <div className="md:hidden">
             <SalesCardsMobile
               sales={sales}
               onRefund={handleRefund}
+              selectedSales={selectedSales}
+              toggleSelection={toggleSelection}
+              processingIds={processingIds}
             />
           </div>
         </>
@@ -114,6 +214,17 @@ export default function MySales() {
           saleId={refundingSale.id}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={isBulkModalOpen}
+        onClose={() => processingIds.length === 0 && setIsBulkModalOpen(false)}
+        onConfirm={handleConfirmBulkRefund}
+        title={bulkModalConfig.title}
+        message={bulkModalConfig.message}
+        confirmText="Si, reembolsar"
+        type="danger"
+        isLoading={processingIds.length > 0}
+      />
     </div>
   );
 }

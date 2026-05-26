@@ -5,6 +5,7 @@ import {
   entrepreneurSaleTemplate,
   saleNotificationTemplate,
   refundTemplate,
+  refundBatchTemplate,
 } from "../schemas/slackTemplates.js";
 import { isGoogleSheetsConfigured } from "../services/googleSheetsConfig.js";
 import {
@@ -19,6 +20,8 @@ import {
   entrepreneurSaleEmailHtml,
   REFUND_SUBJECT,
   refundEmailHtml,
+  BATCH_REFUND_SUBJECT,
+  refundBatchEmailHtml,
 } from "../schemas/emailTemplates.js";
 import { sendUserNotification, checkAndNotifyLowStock } from "../services/notificationService.js";
 import { sendSlackWebhookNotification } from "../services/slackService.js";
@@ -1004,6 +1007,255 @@ res.status(200).json({
     console.error("Error al procesar nómina batch:", message);
     res.status(500).json({ error: `Error al procesar la nómina: ${message}` });
   }
+}
+
+// [PROVEEDOR] Batch refund multiple sales
+export async function refundSaleBatch(req: Request, res: Response) {
+  const { saleIds } = req.body;
+  const requestingUser = req.user;
+
+  if (!saleIds || !Array.isArray(saleIds) || saleIds.length === 0) {
+    return res.status(400).json({ error: "IDs de ventas requeridos" });
+  }
+
+  try {
+    const { data: entrepreneurships } = await supabaseAdmin
+      .from("entrepreneurships")
+      .select("id")
+      .eq("owner_id", requestingUser?.id);
+
+    if (!entrepreneurships || entrepreneurships.length === 0) {
+      return res.status(403).json({ error: "No tienes emprendimientos registrados" });
+    }
+
+    const userEntIds = entrepreneurships.map((e: { id: string }) => e.id);
+    const results: { saleId: string; success: boolean; error?: string; type?: "full" | "partial" }[] = [];
+    const successNotifications: RefundNotificationData[] = [];
+
+    for (const saleId of saleIds) {
+      try {
+        const result = await processSingleRefund(saleId, userEntIds);
+        results.push({ saleId, success: true, type: result.type });
+        successNotifications.push(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Error desconocido";
+        results.push({ saleId, success: false, error: message });
+      }
+    }
+
+    if (successNotifications.length > 0) {
+      const groupedByEmail: Record<string, RefundNotificationData[]> = {};
+
+      for (const notif of successNotifications) {
+        const email = notif.consumerEmail;
+        if (email) {
+          if (!groupedByEmail[email]) {
+            groupedByEmail[email] = [];
+          }
+          groupedByEmail[email].push(notif);
+        }
+      }
+
+      for (const [email, notifs] of Object.entries(groupedByEmail)) {
+        try {
+          const grandTotal = notifs.reduce((sum, n) => sum + n.total, 0);
+          const blocks = refundBatchTemplate(notifs, grandTotal);
+          const html = refundBatchEmailHtml(notifs, grandTotal);
+          await sendUserNotification(email, blocks, html, BATCH_REFUND_SUBJECT);
+        } catch (notifyErr) {
+          console.error(`Error sending batch refund notification to ${email}:`, notifyErr);
+        }
+      }
+    }
+
+    const failed = results.filter((r) => !r.success);
+    if (failed.length > 0) {
+      return res.status(207).json({
+        message: `Reembolsadas ${results.length - failed.length} ventas, ${failed.length} fallidas`,
+        results,
+      });
+    }
+
+    res.status(200).json({
+      message: "Todas las ventas reembolsadas correctamente",
+      results,
+    });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Error al procesar los reembolsos";
+    console.error("Error al procesar reembolsos batch:", message);
+    res.status(500).json({ error: `Error al procesar los reembolsos: ${message}` });
+  }
+}
+
+interface RefundNotificationData {
+  saleId: string;
+  consumerEmail: string | null;
+  consumerName: string | null;
+  items: Array<{
+    quantity: number;
+    unit_price: number;
+    products: { name: string };
+  }>;
+  total: number;
+  type: "full" | "partial";
+}
+
+async function processSingleRefund(saleId: string, userEntIds: string[]): Promise<RefundNotificationData> {
+  const { data: sale, error: saleError } = await supabaseAdmin
+    .from("sales")
+    .select(
+      `
+        id,
+        total,
+        payroll_processed,
+        refunded,
+        users!consumer_id(id, name, email),
+        sale_items(
+          id,
+          product_id,
+          quantity,
+          unit_price,
+          subtotal,
+          refunded,
+          products!inner(
+            id,
+            name,
+            entrepreneurship_id,
+            current_stock,
+            entrepreneurships!inner(
+              id,
+              owner_id
+            )
+          )
+        )
+      `,
+    )
+    .eq("id", saleId)
+    .single();
+
+  if (saleError || !sale) {
+    throw new Error("Venta no encontrada");
+  }
+
+  if (sale.payroll_processed) {
+    throw new Error("No se puede reembolsar una venta que ya fue liquidada");
+  }
+
+  if (sale.refunded) {
+    throw new Error("La venta ya fue reembolsada");
+  }
+
+  const saleData = sale as unknown as {
+    id: string;
+    total: number;
+    payroll_processed: boolean;
+    refunded: boolean;
+    users:
+      | { id: string; name: string; email: string }
+      | Array<{ id: string; name: string; email: string }>;
+    sale_items: Array<{
+      id: number;
+      product_id: string;
+      quantity: number;
+      unit_price: number;
+      subtotal: number;
+      refunded: boolean;
+      products: {
+        id: string;
+        name: string;
+        entrepreneurship_id: string;
+        current_stock: number;
+        entrepreneurships:
+          | { id: string; owner_id: string }
+          | Array<{ id: string; owner_id: string }>;
+      };
+    }>;
+  };
+
+  const usersData = saleData.users;
+  const consumerEmail = Array.isArray(usersData) ? usersData[0]?.email : usersData?.email;
+  const consumerName = Array.isArray(usersData) ? usersData[0]?.name : usersData?.name;
+
+  const userItems = saleData.sale_items.filter((item) => {
+    if (item.refunded) return false;
+    const entData = item.products.entrepreneurships;
+    const entId = Array.isArray(entData) ? entData[0]?.id : entData?.id;
+    return entId ? userEntIds.includes(entId) : false;
+  });
+
+  if (userItems.length === 0) {
+    throw new Error("No hay items de tus emprendimientos para reembolsar en esta venta");
+  }
+
+  for (const item of userItems) {
+    const newStock = item.products.current_stock + item.quantity;
+    const { error: stockError } = await supabaseAdmin
+      .from("products")
+      .update({ current_stock: newStock })
+      .eq("id", item.product_id);
+
+    if (stockError) {
+      console.error(`Error restoring stock for product ${item.product_id}:`, stockError);
+    }
+  }
+
+  const refundTotal = userItems.reduce(
+    (sum, item) => sum + (item.subtotal ?? item.quantity * item.unit_price),
+    0,
+  );
+
+  const refundItemIds = userItems.map((item) => item.id);
+
+  const { error: refundItemsError } = await supabaseAdmin
+    .from("sale_items")
+    .update({ refunded: true })
+    .in("id", refundItemIds);
+
+  if (refundItemsError) {
+    throw new Error("Error al marcar los items como reembolsados");
+  }
+
+  const nonRefundedItems = saleData.sale_items.filter((item) => !item.refunded && !refundItemIds.includes(item.id));
+  const isFullRefund = nonRefundedItems.length === 0;
+  const refundType: "full" | "partial" = isFullRefund ? "full" : "partial";
+
+  if (isFullRefund) {
+    const { error: refundError } = await supabaseAdmin
+      .from("sales")
+      .update({ refunded: true, total: 0 })
+      .eq("id", saleId);
+
+    if (refundError) {
+      throw new Error("Error al marcar la venta como reembolsada");
+    }
+  } else {
+    const newTotal = Math.max(0, saleData.total - refundTotal);
+
+    const { error: updateError } = await supabaseAdmin
+      .from("sales")
+      .update({ total: newTotal })
+      .eq("id", saleId);
+
+    if (updateError) {
+      throw new Error("Error al actualizar el total de la venta");
+    }
+  }
+
+  const notificationItems = userItems.map((item) => ({
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    products: { name: item.products.name },
+  }));
+
+  return {
+    saleId: saleData.id,
+    consumerEmail: consumerEmail ?? null,
+    consumerName: consumerName ?? null,
+    items: notificationItems,
+    total: refundTotal,
+    type: refundType,
+  };
 }
 
 async function processSinglePayroll(saleId: string) {
