@@ -12,7 +12,16 @@ import {
   updateEntrepreneurEarnings,
   updateEntrepreneurshipSpent,
 } from "../services/googleSheetsService.js";
-import { sendSlackNotification, sendSlackWebhookNotification, checkAndNotifyLowStock } from "../services/slackService.js";
+import {
+  CONSUMER_PURCHASE_SUBJECT,
+  consumerPurchaseEmailHtml,
+  ENTREPRENEUR_SALE_SUBJECT,
+  entrepreneurSaleEmailHtml,
+  REFUND_SUBJECT,
+  refundEmailHtml,
+} from "../schemas/emailTemplates.js";
+import { sendUserNotification, checkAndNotifyLowStock } from "../services/notificationService.js";
+import { sendSlackWebhookNotification } from "../services/slackService.js";
 
 interface ProductInfo {
   product_id: string;
@@ -325,20 +334,36 @@ export async function createSale(req: Request, res: Response) {
           processedItems,
         );
 
-        const resSlack = await sendSlackNotification(
-          consumerData.email,
-          consumerBlocks,
+        const consumerHtml = consumerPurchaseEmailHtml(
+          consumerData.name,
+          sale.id,
+          sale.total,
+          processedItems,
         );
 
-        await supabaseAdmin.from("notification_logs").insert({
-          sale_id: sale.id,
-          user_id: consumerData.id,
-          slack_user_id: resSlack.slackUserId,
-          message_type: "CUSTOMER_CONFIRMATION",
-          message: consumerBlocks,
-          status: resSlack.success ? "sent" : "error",
-          error_message: resSlack.error,
-        });
+        const notificationResult = await sendUserNotification(
+          consumerData.email,
+          consumerBlocks,
+          consumerHtml,
+          CONSUMER_PURCHASE_SUBJECT,
+        );
+
+        const { error: logError } = await supabaseAdmin
+          .from("notification_logs")
+          .insert({
+            sale_id: sale.id,
+            user_id: consumerData.id,
+            slack_user_id: notificationResult.slackUserId,
+            message_type: "CUSTOMER_CONFIRMATION",
+            message: consumerBlocks,
+            status: notificationResult.success ? "sent" : "error",
+            error_message: notificationResult.error ?? null,
+            channel: notificationResult.channel,
+          });
+
+        if (logError) {
+          console.error("[SaleController] Error al insertar notification_log:", logError);
+        }
       }
     } catch (notifyErr) {
       console.error("Error notifying consumer:", notifyErr);
@@ -373,20 +398,36 @@ export async function createSale(req: Request, res: Response) {
           consumerData?.name,
         );
 
-        const resSlackSeller = await sendSlackNotification(
-          data.email,
-          sellerBlocks,
+        const sellerHtml = entrepreneurSaleEmailHtml(
+          data.name,
+          sale.id,
+          data.products,
+          consumerData?.name,
         );
 
-        await supabaseAdmin.from("notification_logs").insert({
-          sale_id: sale.id,
-          user_id: ownerId,
-          slack_user_id: resSlackSeller.slackUserId,
-          message_type: "ENTREPRENEUR_SALE",
-          message: sellerBlocks,
-          status: resSlackSeller.success ? "sent" : "error",
-          error_message: resSlackSeller.error,
-        });
+        const notificationResult = await sendUserNotification(
+          data.email,
+          sellerBlocks,
+          sellerHtml,
+          ENTREPRENEUR_SALE_SUBJECT,
+        );
+
+        const { error: logError } = await supabaseAdmin
+          .from("notification_logs")
+          .insert({
+            sale_id: sale.id,
+            user_id: ownerId,
+            slack_user_id: notificationResult.slackUserId,
+            message_type: "ENTREPRENEUR_SALE",
+            message: sellerBlocks,
+            status: notificationResult.success ? "sent" : "error",
+            error_message: notificationResult.error ?? null,
+            channel: notificationResult.channel,
+          });
+
+        if (logError) {
+          console.error("[SaleController] Error al insertar notification_log:", logError);
+        }
       }
     } catch (notifyErr) {
       console.error("Error notifying entrepreneurs:", notifyErr);
@@ -916,7 +957,9 @@ async function sendRefundNotification(
 
   if (consumerEmail) {
     const blocks = refundTemplate(refundItems, refundTotal, refundType);
-    await sendSlackNotification(consumerEmail, blocks);
+    const html = refundEmailHtml(refundItems, refundTotal, refundType);
+
+    await sendUserNotification(consumerEmail, blocks, html, REFUND_SUBJECT);
   }
 }
 
