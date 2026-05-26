@@ -16,8 +16,7 @@ export function useForgotPassword() {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email,
         {
-          redirectTo:
-            "https://freelance-entrepreneurships-fronten.vercel.app/reset-password",
+          redirectTo: `${window.location.origin}/reset-password`,
         },
       );
 
