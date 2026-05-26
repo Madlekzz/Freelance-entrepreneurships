@@ -110,7 +110,7 @@ export async function ApproveSignup(req: Request, res: Response) {
 			: [request.role];
 		const { data: authUser, error: authError } =
 			await supabaseAdmin.auth.admin.inviteUserByEmail(request.email, {
-				redirectTo: "https://app.freelancelatam.net/reset-password",
+				redirectTo: `${process.env.APP_URL}/reset-password`,
 				data: {
 					name: request.user_name,
 					entrepreneurship_name: request.entrepreneurship_name,
