@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAdminData } from "../../../../hooks/useAdminData";
 import { useDashboard } from "../../../../hooks/useDashboard";
 import { useITData } from "../../../../hooks/useITData";
-import type { SaleItemDetail } from "../../../../types";
+import { getConsumerPurchases } from "../../../../services/saleService";
+import type { ConsumerSale, SaleItemDetail } from "../../../../types";
 
 export function useGeneralStats() {
   const { user, roles, loading: authLoading } = useDashboard();
@@ -13,18 +14,29 @@ export function useGeneralStats() {
   const isProvider = roles.includes("PROVEEDOR");
   const isConsumer = roles.includes("CONSUMIDOR");
 
-  // Fetch de datos condicional
+  // Fetch de datos condicional (solo ADMIN y PROVEEDOR)
   const {
     sales,
     loading: adminLoading,
     entrepreneursSummary,
-  } = useAdminData(canSeeAdmin || isProvider || isConsumer);
+  } = useAdminData(canSeeAdmin || isProvider);
   const {
     totalUsers,
     pendingRequests,
     activeSessions,
     loading: itLoading,
   } = useITData(canSeeIT);
+
+  // Fetch específico para CONSUMIDOR (null = loading)
+  const [consumerSales, setConsumerSales] = useState<ConsumerSale[] | null>(null);
+
+  useEffect(() => {
+    if (!isConsumer || !user) return;
+
+    getConsumerPurchases(user.id)
+      .then((data) => setConsumerSales(data ?? []))
+      .catch(() => setConsumerSales([]));
+  }, [isConsumer, user]);
 
   const stats = useMemo(() => {
     // 1. Stats para ADMIN
@@ -48,15 +60,15 @@ export function useGeneralStats() {
       salesCount: providerSales.length,
     };
 
-    // 3. Stats para CONSUMIDOR (Filtrar por comprador)
-    const consumerPurchases = sales.filter((s) => s.users.id === user?.id);
+    // 3. Stats para CONSUMIDOR (desde su propio endpoint)
+    const safeConsumerSales = consumerSales ?? [];
     const consumerStats = {
-      totalSpent: consumerPurchases.reduce((acc, s) => acc + s.total, 0),
-      purchaseCount: consumerPurchases.length,
+      totalSpent: safeConsumerSales.reduce((acc, s) => acc + s.total, 0),
+      purchaseCount: safeConsumerSales.length,
     };
 
     return { adminStats, providerStats, consumerStats };
-  }, [sales, entrepreneursSummary, user]);
+  }, [sales, entrepreneursSummary, user, consumerSales]);
 
   // Formateador de roles para el tip de abajo
   const rolesList = new Intl.ListFormat("es", {
@@ -74,6 +86,6 @@ export function useGeneralStats() {
     stats,
     itData: { totalUsers, pendingRequests, activeSessions },
     rolesList,
-    loading: authLoading || adminLoading || itLoading,
+    loading: authLoading || adminLoading || itLoading || (isConsumer && consumerSales === null),
   };
 }
