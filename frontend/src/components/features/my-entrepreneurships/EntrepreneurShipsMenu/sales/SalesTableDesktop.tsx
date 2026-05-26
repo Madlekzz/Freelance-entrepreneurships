@@ -5,14 +5,42 @@ import { formatCurrency } from "../../../../../utils/format";
 interface Props {
   sales: EntrepreneurshipSale[];
   onRefund: (sale: EntrepreneurshipSale) => void;
+  selectedSales: string[];
+  toggleSelection: (id: string) => void;
+  toggleAll: () => void;
+  processingIds: string[];
 }
 
-export default function SalesTableDesktop({ sales, onRefund }: Props) {
+export default function SalesTableDesktop({
+  sales,
+  onRefund,
+  selectedSales,
+  toggleSelection,
+  toggleAll,
+  processingIds,
+}: Props) {
+  const refundableSales = sales.filter((sale) => {
+    const allItemsRefunded = sale.sale_items.every((item) => item.refunded);
+    const isEffectivelyRefunded = sale.refunded || allItemsRefunded;
+    return !sale.payroll_processed && !isEffectivelyRefunded;
+  });
+
   return (
     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="bg-gray-50/50 border-b border-gray-100">
+            <th className="px-6 py-4 w-10">
+              <input
+                type="checkbox"
+                checked={
+                  refundableSales.length > 0 &&
+                  refundableSales.every((s) => selectedSales.includes(s.id))
+                }
+                onChange={toggleAll}
+                className="rounded text-primary cursor-pointer"
+              />
+            </th>
             <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cliente</th>
             <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Productos</th>
             <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Fecha</th>
@@ -26,9 +54,19 @@ export default function SalesTableDesktop({ sales, onRefund }: Props) {
             const allItemsRefunded = sale.sale_items.every((item) => item.refunded);
             const isEffectivelyRefunded = sale.refunded || allItemsRefunded;
             const canRefund = !sale.payroll_processed && !isEffectivelyRefunded;
+            const isProcessing = processingIds.includes(sale.id);
             const itemsTotal = sale.sale_items.reduce((sum, item) => sum + Number(item.subtotal), 0);
             return (
               <tr key={sale.id} className="hover:bg-gray-50/50 transition-colors group">
+                <td className="px-6 py-4">
+                  <input
+                    type="checkbox"
+                    disabled={!canRefund || isProcessing}
+                    checked={selectedSales.includes(sale.id)}
+                    onChange={() => toggleSelection(sale.id)}
+                    className="rounded text-primary cursor-pointer disabled:opacity-30"
+                  />
+                </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 group-hover:bg-white transition-colors">
@@ -79,9 +117,10 @@ export default function SalesTableDesktop({ sales, onRefund }: Props) {
                     <button
                       type="button"
                       onClick={() => onRefund(sale)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-[10px] font-bold hover:bg-red-100 transition-colors cursor-pointer"
+                      disabled={isProcessing}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-[10px] font-bold hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50"
                     >
-                      <RotateCcw size={12} /> Reembolsar
+                      <RotateCcw size={12} /> {isProcessing ? "..." : "Reembolsar"}
                     </button>
                   ) : (
                     <span className="text-[10px] text-gray-300 italic">—</span>
