@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import api from "../../../../config/api";
 import type { AppConfig, SheetOption } from "../../../../types";
@@ -23,59 +23,65 @@ export function useSettings(): UseSettingsReturn {
   });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [loadingSheets, setLoadingSheets] = useState(false);
   const [creditsSheetOptions, setCreditsSheetOptions] = useState<SheetOption[]>(
     [],
   );
   const [paymentsSheetOptions, setPaymentsSheetOptions] = useState<
     SheetOption[]
   >([]);
+  const [fetchedSheetsId, setFetchedSheetsId] = useState("");
 
-  const fetchConfig = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data } = await api.get<Record<string, string>>("/config");
-      setConfig({
-        spreadsheet_id: data.spreadsheet_id || "",
-        credits_sheet: data.credits_sheet || "",
-        payments_sheet: data.payments_sheet || "",
-      });
-    } catch (err) {
-      console.error("Error fetching config:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchSheets = useCallback(async (spreadsheetId: string) => {
-    try {
-      setLoadingSheets(true);
-      const { data } = await api.get<{ sheets: string[] }>(
-        `/config/sheets?spreadsheetId=${encodeURIComponent(spreadsheetId)}`,
-      );
-      const options = (data.sheets || []).map((s) => ({ value: s, label: s }));
-      setCreditsSheetOptions(options);
-      setPaymentsSheetOptions(options);
-    } catch (err) {
-      console.error("Error fetching sheets:", err);
-    } finally {
-      setLoadingSheets(false);
-    }
-  }, []);
+  const loadingSheets =
+    config.spreadsheet_id.length > 5 &&
+    config.spreadsheet_id !== fetchedSheetsId;
 
   useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
+    api
+      .get<Record<string, string>>("/config")
+      .then(({ data }) => {
+        setConfig({
+          spreadsheet_id: data.spreadsheet_id || "",
+          credits_sheet: data.credits_sheet || "",
+          payments_sheet: data.payments_sheet || "",
+        });
+      })
+      .catch((err) => {
+        console.error("Error fetching config:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   useEffect(() => {
     const spreadsheetId = config.spreadsheet_id;
     if (spreadsheetId && spreadsheetId.length > 5) {
-      fetchSheets(spreadsheetId);
-    } else {
-      setCreditsSheetOptions([]);
-      setPaymentsSheetOptions([]);
+      api
+        .get<{ sheets: string[] }>(
+          `/config/sheets?spreadsheetId=${encodeURIComponent(spreadsheetId)}`,
+        )
+        .then(({ data }) => {
+          const options = (data.sheets || []).map((s) => ({
+            value: s,
+            label: s,
+          }));
+          setCreditsSheetOptions(options);
+          setPaymentsSheetOptions(options);
+          setFetchedSheetsId(spreadsheetId);
+          setConfig((prev) => ({
+            ...prev,
+            credits_sheet: "",
+            payments_sheet: "",
+          }));
+        })
+        .catch((err) => {
+          console.error("Error fetching sheets:", err);
+          toast.error(
+            "No se pudieron obtener las hojas. Verifica el ID e intenta de nuevo.",
+          );
+        });
     }
-  }, [config.spreadsheet_id, fetchSheets]);
+  }, [config.spreadsheet_id]);
 
   const handleSave = async () => {
     if (!config.spreadsheet_id.trim()) {
@@ -99,7 +105,10 @@ export function useSettings(): UseSettingsReturn {
       });
       toast.success("Configuración guardada correctamente");
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "No se pudo guardar la configuración. Verifica tu conexión e intenta de nuevo.";
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "No se pudo guardar la configuración. Verifica tu conexión e intenta de nuevo.";
       toast.error(errorMessage);
     } finally {
       setSaving(false);
