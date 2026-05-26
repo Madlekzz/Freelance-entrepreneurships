@@ -68,14 +68,16 @@ export default function AdminConsumers() {
                 <ConsumersDesktop
                   data={consumersSummary}
                   onSelect={(email) => {
-                    setSelectedUserEmail(email); // <--- Lógica recuperada
+                    setSearchQuery("");
+                    setSelectedUserEmail(email);
                     setView("detailed");
                   }}
                 />
                 <ConsumersMobile
                   data={consumersSummary}
                   onSelect={(email) => {
-                    setSelectedUserEmail(email); // <--- Lógica recuperada
+                    setSearchQuery("");
+                    setSelectedUserEmail(email);
                     setView("detailed");
                   }}
                 />

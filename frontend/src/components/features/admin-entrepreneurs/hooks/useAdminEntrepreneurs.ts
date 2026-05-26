@@ -41,11 +41,13 @@ export const useAdminEntrepreneurs = () => {
   };
 
   const handleBackToSummary = () => {
+    adminData.setSearchQuery("");
     setView("summary");
     setSelectedEntId(null);
   };
 
   const handleSelectEntrepreneur = (id: string) => {
+    adminData.setSearchQuery("");
     setSelectedEntId(id);
     setView("detailed");
   };
