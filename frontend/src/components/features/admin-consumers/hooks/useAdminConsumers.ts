@@ -55,6 +55,7 @@ export function useAdminConsumers() {
   };
 
   const handleBackToSummary = () => {
+    adminData.setSearchQuery("");
     setView("summary");
     setSelectedUserEmail(null);
     setSelectedSales([]);
