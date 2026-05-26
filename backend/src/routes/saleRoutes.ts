@@ -29,7 +29,7 @@ saleRouter.get(
 );
 saleRouter.get(
   "/consumer/:consumer_id",
-  authorize("ADMIN"),
+  authorize("ADMIN", "CONSUMIDOR"),
   getSalesByConsumer,
 );
 saleRouter.get("/:id", authorize("ADMIN"), getSaleById);

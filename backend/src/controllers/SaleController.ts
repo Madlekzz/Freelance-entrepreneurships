@@ -120,9 +120,14 @@ export async function getSalesByEntrepreneurship(req: Request, res: Response) {
   res.status(200).json(data);
 }
 
-// [ADMIN] Obtener ventas por consumidor
+// [ADMIN/CONSUMIDOR] Obtener ventas por consumidor
 export async function getSalesByConsumer(req: Request, res: Response) {
   const { consumer_id } = req.params;
+  const requestingUser = req.user;
+
+  if (requestingUser?.user_metadata.roles.includes("CONSUMIDOR") && requestingUser.id !== consumer_id) {
+    return res.status(403).json({ error: "No tienes permiso para ver las compras de otro usuario" });
+  }
 
   const { data, error } = await supabaseAdmin
     .from("sales")
