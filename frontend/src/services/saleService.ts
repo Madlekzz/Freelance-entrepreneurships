@@ -55,3 +55,28 @@ export const refundSale = async (
   );
   return data;
 };
+
+export interface BatchRefundResult {
+  saleId: string;
+  success: boolean;
+  error?: string;
+  type?: "full" | "partial";
+}
+
+export interface BatchRefundResponse {
+  message: string;
+  results: BatchRefundResult[];
+}
+
+/**
+ * Reembolsa multiples ventas en lote (solo PROVEEDOR)
+ * Reembolsa TODOS los items del emprendimiento en cada venta
+ */
+export const refundSalesBatch = async (
+  saleIds: string[],
+): Promise<BatchRefundResponse> => {
+  const { data } = await api.post<BatchRefundResponse>("/sales/batch/refund", {
+    saleIds,
+  });
+  return data;
+};

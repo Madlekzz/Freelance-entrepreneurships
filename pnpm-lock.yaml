@@ -93,6 +93,9 @@ importers:
       axios:
         specifier: ^1.14.0
         version: 1.16.0
+      dayjs:
+        specifier: ^1.11.21
+        version: 1.11.21
       lucide-react:
         specifier: ^1.7.0
         version: 1.14.0(react@19.2.6)
@@ -1612,6 +1615,9 @@ packages:
 
   dayjs@1.11.20:
     resolution: {integrity: sha512-YbwwqR/uYpeoP4pu043q+LTDLFBLApUP6VxRihdfNTqu4ubqMlGDLd6ErXhEgsyvY0K6nCs7nggYumAN+9uEuQ==}
+
+  dayjs@1.11.21:
+    resolution: {integrity: sha512-98IT+HOahAisibz/yjKbzuOBwYcjJ7BCLPzARyHiyEBmRz4fatF+KPJszEHXsGYjUG234aH/cOjW1wwTbKUZlA==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -4308,6 +4314,8 @@ snapshots:
   data-uri-to-buffer@4.0.1: {}
 
   dayjs@1.11.20: {}
+
+  dayjs@1.11.21: {}
 
   debug@4.4.3(supports-color@5.5.0):
     dependencies:

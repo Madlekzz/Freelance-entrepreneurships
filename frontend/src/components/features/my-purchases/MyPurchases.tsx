@@ -1,9 +1,9 @@
-import { Calendar, Layers } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { useState } from "react";
 import { useConsumerSales } from "../../../hooks/useCustomerSales";
 import { formatCurrency } from "../../../utils/format";
-import { MONTHS, PAYROLL_CYCLES } from "../../../utils/payrollUtils";
-import type { PayrollCycle } from "../../../types";
+import { MONTHS } from "../../../utils/payrollUtils";
+import { DateRangeFilter } from "../../shared/DateRangeFilter";
 import SearchInput from "../../shared/SearchInput";
 import FilterSelector from "../admin-entrepreneurs/FilterSelector";
 import MyPurchasesDesktop from "./MyPurchasesDesktop";
@@ -18,8 +18,8 @@ export default function MyPurchases() {
     setSearchQuery,
     selectedMonth,
     setSelectedMonth,
-    payrollCycle,
-    setPayrollCycle,
+    dateRange,
+    setDateRange,
   } = useConsumerSales();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -57,24 +57,7 @@ export default function MyPurchases() {
             ]}
           />
 
-          <FilterSelector
-            label={payrollCycle ? payrollCycle.label : "Ciclos"}
-            icon={Layers}
-            items={[
-              {
-                key: "all",
-                label: "Todos los ciclos",
-                onClick: () => setPayrollCycle(null),
-              },
-              ...PAYROLL_CYCLES.filter(
-                (c): c is PayrollCycle => c !== null,
-              ).map((c) => ({
-                key: c.label,
-                label: c.label,
-                onClick: () => setPayrollCycle(c),
-              })),
-            ]}
-          />
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
         </div>
       </div>
 

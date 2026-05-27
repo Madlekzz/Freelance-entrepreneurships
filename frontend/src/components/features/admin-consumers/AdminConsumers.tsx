@@ -28,6 +28,10 @@ export default function AdminConsumers() {
     setSearchQuery,
     statusFilter,
     setStatusFilter,
+    selectedMonth,
+    setSelectedMonth,
+    dateRange,
+    setDateRange,
     toggleSaleSelection,
     toggleAllVisible,
     handleBackToSummary,
@@ -54,6 +58,10 @@ export default function AdminConsumers() {
         setSearchQuery={setSearchQuery}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
+        selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth}
+        dateRange={dateRange}
+        setDateRange={setDateRange}
         exportButton={
           view === "detailed" && (
             <button

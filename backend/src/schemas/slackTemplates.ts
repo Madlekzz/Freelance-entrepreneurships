@@ -341,3 +341,75 @@ export const lowStockAlertTemplate = (
     },
   ];
 };
+
+interface BatchRefundItem {
+  saleId: string;
+  items: Array<{ quantity: number; unit_price: number; products: { name: string } }>;
+  total: number;
+  type: "full" | "partial";
+}
+
+export const refundBatchTemplate = (
+  refundGroups: BatchRefundItem[],
+  grandTotal: number,
+): SlackMessageContent => {
+  const blocks: any[] = [
+    {
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: `Reembolsos Procesados (${refundGroups.length} venta${refundGroups.length === 1 ? "" : "s"})`,
+        emoji: true,
+      },
+    },
+  ];
+
+  refundGroups.forEach((group, index) => {
+    if (index > 0) {
+      blocks.push({ type: "divider" });
+    }
+
+    const itemsList = group.items
+      .map(
+        (item) =>
+          `• ${item.products.name} | *${item.quantity}* x $${item.unit_price.toLocaleString()} = *$${(
+            item.quantity * item.unit_price
+          ).toLocaleString()}*`,
+      )
+      .join("\n");
+
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text:
+          `*Venta:* \`#${group.saleId.slice(0, 8).toUpperCase()}\`\n` +
+          `*Tipo:* ${group.type === "full" ? "Reembolso total" : "Reembolso parcial"}\n` +
+          `*Items reembolsados:*\n${itemsList}`,
+      },
+    });
+
+    blocks.push({
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: `*Total de esta venta:* $${group.total.toLocaleString()}`,
+        },
+      ],
+    });
+  });
+
+  blocks.push(
+    { type: "divider" },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*✅ Total general reembolsado:* ✨ *$${grandTotal.toLocaleString()}*`,
+      },
+    },
+  );
+
+  return blocks;
+};

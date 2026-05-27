@@ -5,20 +5,37 @@ import { formatCurrency } from "../../../../../utils/format";
 interface Props {
   sales: EntrepreneurshipSale[];
   onRefund: (sale: EntrepreneurshipSale) => void;
+  selectedSales: string[];
+  toggleSelection: (id: string) => void;
+  processingIds: string[];
 }
 
-export default function SalesCardsMobile({ sales, onRefund }: Props) {
+export default function SalesCardsMobile({
+  sales,
+  onRefund,
+  selectedSales,
+  toggleSelection,
+  processingIds,
+}: Props) {
   return (
     <div className="grid grid-cols-1 gap-4 p-4">
       {sales.map((sale) => {
         const allItemsRefunded = sale.sale_items.every((item) => item.refunded);
         const isEffectivelyRefunded = sale.refunded || allItemsRefunded;
         const canRefund = !sale.payroll_processed && !isEffectivelyRefunded;
+        const isProcessing = processingIds.includes(sale.id);
         const itemsTotal = sale.sale_items.reduce((sum, item) => sum + Number(item.subtotal), 0);
         return (
           <div key={sale.id} className="bg-white p-5 rounded-4xl border border-gray-100 shadow-sm space-y-4">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  disabled={!canRefund || isProcessing}
+                  checked={selectedSales.includes(sale.id)}
+                  onChange={() => toggleSelection(sale.id)}
+                  className="w-5 h-5 rounded-lg text-primary cursor-pointer disabled:opacity-30 shrink-0"
+                />
                 <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 shrink-0">
                   <User size={18} />
                 </div>
@@ -53,9 +70,10 @@ export default function SalesCardsMobile({ sales, onRefund }: Props) {
               <button
                 type="button"
                 onClick={() => onRefund(sale)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors cursor-pointer"
+                disabled={isProcessing}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50"
               >
-                <RotateCcw size={14} /> Reembolsar
+                <RotateCcw size={14} /> {isProcessing ? "Procesando..." : "Reembolsar"}
               </button>
             )}
             <div className="flex justify-between items-end pt-2 border-t border-gray-50">
