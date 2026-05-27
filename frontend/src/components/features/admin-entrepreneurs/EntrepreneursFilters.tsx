@@ -1,4 +1,5 @@
 import { Calendar, Filter, RotateCcw } from "lucide-react";
+import type { ReactNode } from "react";
 import type { DateRange } from "../../../types";
 import { MONTHS } from "../../../utils/payrollUtils";
 import { DateRangeFilter } from "../../shared/DateRangeFilter";
@@ -15,6 +16,7 @@ interface Props {
   setSelectedMonth: (val: number | null) => void;
   dateRange: DateRange | null;
   setDateRange: (val: DateRange | null) => void;
+  exportButton?: ReactNode;
 }
 
 export const EntrepreneursFilters = (props: Props) => {
@@ -28,6 +30,7 @@ export const EntrepreneursFilters = (props: Props) => {
     setSelectedMonth,
     dateRange,
     setDateRange,
+    exportButton,
   } = props;
 
   return (
@@ -106,6 +109,8 @@ export const EntrepreneursFilters = (props: Props) => {
           </button>
         </div>
       )}
+
+      {exportButton}
     </div>
   );
 };

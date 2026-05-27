@@ -1,3 +1,4 @@
+import { Download } from "lucide-react";
 import ConfirmationModal from "../../shared/ConfirmationModal";
 import { AdminConsumersSkeleton } from "../admin-consumers/AdminConsumersSkeleton";
 import { BulkActionBanner } from "./BulkActionBanner";
@@ -6,9 +7,19 @@ import { EntrepreneursFilters } from "./EntrepreneursFilters";
 import { EntrepreneursHeader } from "./EntrepreneursHeader";
 import { useAdminEntrepreneurs } from "./hooks/useAdminEntrepreneurs";
 import { SummaryView } from "./SummaryView";
+import { exportSalesToExcel } from "../../../utils/exportToExcel";
 
 export default function AdminEntrepreneurs() {
   const logic = useAdminEntrepreneurs();
+
+  const handleExport = () => {
+    if (!logic.detailedSales.length) return;
+    exportSalesToExcel(
+      logic.detailedSales,
+      logic.selectedEntrepreneur?.name ?? "ventas",
+      logic.selectedEntId ?? undefined,
+    );
+  };
 
   if (logic.loading) return <AdminConsumersSkeleton />;
 
@@ -30,6 +41,19 @@ export default function AdminEntrepreneurs() {
         setSelectedMonth={logic.setSelectedMonth}
         dateRange={logic.dateRange}
         setDateRange={logic.setDateRange}
+        exportButton={
+          logic.view === "detailed" && (
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={logic.detailedSales.length === 0}
+              className="cursor-pointer flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-primary bg-primary/5 hover:bg-primary/10 rounded-xl border border-primary/20 hover:border-primary/30 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            >
+              <Download size={14} />
+              Exportar Excel
+            </button>
+          )
+        }
       />
 
       {logic.selectedSales.length > 0 && (

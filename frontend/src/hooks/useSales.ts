@@ -108,6 +108,7 @@ export function useSales(entrepreneurshipId?: string) {
   return {
     // Datos
     sales: filteredSales, // Lista ya procesada para la tabla
+    allSales: sales, // Datos crudos sin filtrar (útil para exportación)
     originalSalesCount: sales.length, // Para saber si el emprendimiento tiene ventas en total
     loading,
 

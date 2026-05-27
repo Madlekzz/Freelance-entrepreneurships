@@ -1,4 +1,5 @@
 import { Calendar, Filter, RotateCcw } from "lucide-react";
+import type { ReactNode } from "react";
 import type { DateRange } from "../../../types";
 import { MONTHS } from "../../../utils/payrollUtils";
 import { DateRangeFilter } from "../../shared/DateRangeFilter";
@@ -15,6 +16,7 @@ interface Props {
   setSelectedMonth: (val: number | null) => void;
   dateRange: DateRange | null;
   setDateRange: (val: DateRange | null) => void;
+  exportButton?: ReactNode;
 }
 
 export const ConsumersFilters = ({
@@ -27,6 +29,7 @@ export const ConsumersFilters = ({
   setSelectedMonth,
   dateRange,
   setDateRange,
+  exportButton,
 }: Props) => (
   <div className="flex flex-col lg:flex-row gap-3 items-center bg-white p-4 rounded-4xl md:rounded-2xl border border-gray-100 shadow-sm">
     <SearchInput
@@ -110,5 +113,7 @@ export const ConsumersFilters = ({
         </button>
       </div>
     )}
+
+    {exportButton}
   </div>
 );

@@ -1,21 +1,24 @@
 import { useCallback, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useOutletContext, useParams } from "react-router-dom";
+import { Download } from "lucide-react";
 import { toast } from "react-toastify";
 import { useSales } from "../../../../../hooks/useSales";
 import { refundSale, refundSalesBatch } from "../../../../../services/saleService";
-import type { EntrepreneurshipSale } from "../../../../../types";
+import type { Entrepreneurship, EntrepreneurshipSale } from "../../../../../types";
+import { exportSalesToExcel } from "../../../../../utils/exportToExcel";
 import ConfirmationModal from "../../../../shared/ConfirmationModal";
 import ProductTableSkeleton from "../products/ProductTableSkeleton";
 import { BulkRefundBanner } from "./BulkRefundBanner";
+import RefundSaleModal from "./RefundSaleModal";
 import SalesCardsMobile from "./SalesCardMobile";
 import SalesEmptyState from "./SalesEmptyState";
 import SalesFilters from "./SalesFilters";
 import SalesSummary from "./SalesSummary";
 import SalesTableDesktop from "./SalesTableDesktop";
-import RefundSaleModal from "./RefundSaleModal";
 
 export default function MySales() {
   const { id } = useParams<{ id: string }>();
+  const { biz } = useOutletContext<{ biz: Entrepreneurship | null }>();
   const {
     sales,
     loading,
@@ -25,7 +28,6 @@ export default function MySales() {
     setSortBy,
     statusFilter,
     setStatusFilter,
-    refetch,
   } = useSales(id);
 
   const [refundingSale, setRefundingSale] =
@@ -37,6 +39,13 @@ export default function MySales() {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [bulkModalConfig, setBulkModalConfig] = useState({ title: "", message: "" });
   const [idsToBulkRefund, setIdsToBulkRefund] = useState<string[]>([]);
+
+  const { refetch } = useSales(id);
+
+  const handleExport = () => {
+    if (!sales.length) return;
+    exportSalesToExcel(sales, biz?.name ?? "ventas");
+  };
 
   const refundableSales = useMemo(() => {
     return sales.filter((sale) => {
@@ -165,6 +174,17 @@ export default function MySales() {
         onStatusChange={setStatusFilter}
         sortBy={sortBy}
         onSortChange={setSortBy}
+        exportButton={
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={sales.length === 0}
+            className="cursor-pointer flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-primary bg-primary/5 hover:bg-primary/10 rounded-xl border border-primary/20 hover:border-primary/30 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+          >
+            <Download size={14} />
+            Exportar Excel
+          </button>
+        }
       />
 
       {selectedSales.length > 0 && (

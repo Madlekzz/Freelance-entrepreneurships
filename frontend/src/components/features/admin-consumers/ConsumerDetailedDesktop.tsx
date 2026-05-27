@@ -103,7 +103,7 @@ export const ConsumerDetailedDesktop = ({
                     type="button"
                     onClick={() => onProcessSingle(sale.id)}
                     disabled={isProcessing}
-                    className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition-all cursor-pointer min-w-25 flex items-center justify-center gap-2"
+                    className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition-all cursor-pointer min-w-25 inline-flex items-center justify-center gap-2"
                   >
                     {isProcessing ? (
                       <Loader2 size={14} className="animate-spin" />

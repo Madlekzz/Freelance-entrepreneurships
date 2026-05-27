@@ -1,3 +1,4 @@
+import { Download } from "lucide-react";
 import { SummaryEmptyState } from "../admin-entrepreneurs/SummaryEmptyState";
 import { AdminConsumersSkeleton } from "./AdminConsumersSkeleton";
 import { BulkActionBanner } from "./BulkActionBanner";
@@ -8,6 +9,7 @@ import { ConsumersFilters } from "./ConsumersFilter";
 import { ConsumersHeader } from "./ConsumersHeader";
 import { ConsumersMobile } from "./ConsumersMobile";
 import { useAdminConsumers } from "./hooks/useAdminConsumers";
+import { exportSalesToExcel } from "../../../utils/exportToExcel";
 
 export default function AdminConsumers() {
   const {
@@ -35,6 +37,11 @@ export default function AdminConsumers() {
     handleBackToSummary,
   } = useAdminConsumers();
 
+  const handleExport = () => {
+    if (!detailedSales.length) return;
+    exportSalesToExcel(detailedSales, selectedConsumer?.name ?? "compras");
+  };
+
   if (loading) return <AdminConsumersSkeleton />;
 
   return (
@@ -55,6 +62,19 @@ export default function AdminConsumers() {
         setSelectedMonth={setSelectedMonth}
         dateRange={dateRange}
         setDateRange={setDateRange}
+        exportButton={
+          view === "detailed" && (
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={detailedSales.length === 0}
+              className="cursor-pointer flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-primary bg-primary/5 hover:bg-primary/10 rounded-xl border border-primary/20 hover:border-primary/30 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            >
+              <Download size={14} />
+              Exportar Excel
+            </button>
+          )
+        }
       />
 
       <BulkActionBanner
