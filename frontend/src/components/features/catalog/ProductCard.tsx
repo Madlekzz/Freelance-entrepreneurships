@@ -32,6 +32,13 @@ export default function ProductCard({ product, qty, onAdd }: Props) {
           <ShoppingBag size={40} className="text-primary/20" />
         )}
 
+        {/* Combo Badge */}
+        {product.is_composed && (
+          <span className="absolute top-3 left-3 px-2.5 py-1 bg-purple-600 text-white rounded-full text-[10px] font-bold uppercase shadow-lg">
+            Combo
+          </span>
+        )}
+
         {/* Check de Carrito */}
         {inCart && (
           <span className="absolute top-3 right-3 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-lg border border-primary/10">

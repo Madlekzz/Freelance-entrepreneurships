@@ -18,6 +18,24 @@ export interface Product {
 	current_stock: number;
 	image?: string;
 	is_active: boolean;
+	is_composed?: boolean;
+}
+
+export interface ComposedProductComponent {
+	id?: string;
+	composed_product_id?: string;
+	component_product_id: string;
+	quantity: number;
+}
+
+export interface ComposedProductInput {
+	name: string;
+	price: number;
+	is_active: boolean;
+	entrepreneurship_id: string;
+	image?: string;
+	category_id?: number;
+	components: ComposedProductComponent[];
 }
 
 export interface Sale {

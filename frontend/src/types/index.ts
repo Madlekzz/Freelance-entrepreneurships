@@ -179,6 +179,7 @@ export interface CatalogProduct {
     name: string;
   };
   vendor?: string;
+  is_composed?: boolean;
 }
 
 export interface EntrepreneurshipProduct {
@@ -191,6 +192,7 @@ export interface EntrepreneurshipProduct {
   entrepreneurship_id: string;
   category_id?: number;
   created_at: string;
+  is_composed?: boolean;
 }
 
 export interface ProductInput {
@@ -202,6 +204,26 @@ export interface ProductInput {
   image: string;
   imageFile?: File | null;
   category_id?: number;
+}
+
+export interface ComposedProductComponent {
+  component_product_id: string;
+  quantity: number;
+  name?: string;
+  price?: number;
+  current_stock?: number;
+  image?: string;
+}
+
+export interface ComposedProductInput {
+  name: string;
+  price: number;
+  is_active: boolean;
+  entrepreneurship_id: string;
+  image: string;
+  imageFile?: File | null;
+  category_id?: number;
+  components: ComposedProductComponent[];
 }
 
 export interface CreateSalePayload {

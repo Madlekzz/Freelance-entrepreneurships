@@ -51,9 +51,14 @@ export default function ProductTableDesktop({
                       <Package size={20} />
                     )}
                   </div>
-                  <span className="font-semibold text-gray-700">
-                    {product.name}
-                  </span>
+                      <span className="font-semibold text-gray-700">
+                        {product.name}
+                      </span>
+                      {product.is_composed && (
+                        <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-[10px] font-bold uppercase">
+                          Combo
+                        </span>
+                      )}
                 </div>
               </td>
               <td className="px-6 py-4 font-medium text-gray-600">
