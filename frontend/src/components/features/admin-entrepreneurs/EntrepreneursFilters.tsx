@@ -1,4 +1,5 @@
 import { Calendar, Filter, Layers, RotateCcw } from "lucide-react";
+import type { ReactNode } from "react";
 import type { PayrollCycle } from "../../../types";
 import { MONTHS, PAYROLL_CYCLES } from "../../../utils/payrollUtils";
 import SearchInput from "../../shared/SearchInput";
@@ -14,6 +15,7 @@ interface Props {
   setSelectedMonth: (val: number | null) => void;
   payrollCycle: PayrollCycle | null; // Permitir null aquí también
   setPayrollCycle: (val: PayrollCycle | null) => void;
+  exportButton?: ReactNode;
 }
 
 export const EntrepreneursFilters = (props: Props) => {
@@ -27,6 +29,7 @@ export const EntrepreneursFilters = (props: Props) => {
     setSelectedMonth,
     payrollCycle,
     setPayrollCycle,
+    exportButton,
   } = props;
 
   return (
@@ -122,6 +125,8 @@ export const EntrepreneursFilters = (props: Props) => {
           </button>
         </div>
       )}
+
+      {exportButton}
     </div>
   );
 };

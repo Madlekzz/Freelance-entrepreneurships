@@ -1,5 +1,6 @@
 import { Dropdown } from "antd";
 import { ChevronDown, Filter, RotateCcw } from "lucide-react";
+import type { ReactNode } from "react";
 import SearchInput from "../../shared/SearchInput";
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
   setSearchQuery: (q: string) => void;
   statusFilter: string;
   setStatusFilter: (s: "all" | "pending" | "processed" | "refunded") => void;
+  exportButton?: ReactNode;
 }
 
 export const ConsumersFilters = ({
@@ -16,6 +18,7 @@ export const ConsumersFilters = ({
   setSearchQuery,
   statusFilter,
   setStatusFilter,
+  exportButton,
 }: Props) => (
   <div className="flex flex-col lg:flex-row gap-3 items-center bg-white p-4 rounded-4xl md:rounded-2xl border border-gray-100 shadow-sm">
     <SearchInput
@@ -91,5 +94,7 @@ export const ConsumersFilters = ({
         </button>
       </div>
     )}
+
+    {exportButton}
   </div>
 );

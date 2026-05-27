@@ -6,6 +6,8 @@ import {
 import FilterDropdown from "../../../../shared/FilterDropdown";
 import SearchInput from "../../../../shared/SearchInput";
 
+import type { ReactNode } from "react";
+
 interface Props {
   searchQuery: string;
   onSearchChange: (val: string) => void;
@@ -13,6 +15,7 @@ interface Props {
   onStatusChange: (val: string) => void;
   sortBy: string;
   onSortChange: (val: string) => void;
+  exportButton?: ReactNode;
 }
 
 export default function SalesFilters({
@@ -22,6 +25,7 @@ export default function SalesFilters({
   onStatusChange,
   sortBy,
   onSortChange,
+  exportButton,
 }: Props) {
   return (
     <div className="flex flex-col lg:flex-row gap-3 items-center bg-white p-4 rounded-4xl md:rounded-2xl border border-gray-100 shadow-sm">
@@ -48,6 +52,8 @@ export default function SalesFilters({
           />
         </div>
       </div>
+
+      {exportButton}
     </div>
   );
 }

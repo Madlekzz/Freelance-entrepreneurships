@@ -1,19 +1,18 @@
-import { useCallback, useState } from "react";
-import { useParams } from "react-router-dom";
-import { toast } from "react-toastify";
+import { useOutletContext, useParams } from "react-router-dom";
+import { Download } from "lucide-react";
 import { useSales } from "../../../../../hooks/useSales";
-import { refundSale } from "../../../../../services/saleService";
-import type { EntrepreneurshipSale } from "../../../../../types";
+import type { Entrepreneurship } from "../../../../../types";
+import { exportSalesToExcel } from "../../../../../utils/exportToExcel";
 import ProductTableSkeleton from "../products/ProductTableSkeleton";
 import SalesCardsMobile from "./SalesCardMobile";
 import SalesEmptyState from "./SalesEmptyState";
 import SalesFilters from "./SalesFilters";
 import SalesSummary from "./SalesSummary";
 import SalesTableDesktop from "./SalesTableDesktop";
-import RefundSaleModal from "./RefundSaleModal";
 
 export default function MySales() {
   const { id } = useParams<{ id: string }>();
+  const { biz } = useOutletContext<{ biz: Entrepreneurship | null }>();
   const {
     sales,
     loading,
@@ -23,49 +22,12 @@ export default function MySales() {
     setSortBy,
     statusFilter,
     setStatusFilter,
-    refetch,
   } = useSales(id);
 
-  const [refundingSale, setRefundingSale] =
-    useState<EntrepreneurshipSale | null>(null);
-  const [isRefunding, setIsRefunding] = useState(false);
-
-  const handleRefund = useCallback((sale: EntrepreneurshipSale) => {
-    setRefundingSale(sale);
-  }, []);
-
-  const handleCloseRefund = useCallback(() => {
-    setRefundingSale(null);
-    setIsRefunding(false);
-  }, []);
-
-  const handleConfirmRefund = useCallback(
-    async (itemIds: number[]) => {
-      if (!refundingSale) return;
-      try {
-        setIsRefunding(true);
-        const result = await refundSale(refundingSale.id, {
-          item_ids: itemIds,
-        });
-        if (result.type === "full") {
-          toast.success("Venta reembolsada correctamente");
-        } else {
-          toast.success("Items reembolsados correctamente");
-        }
-        setRefundingSale(null);
-        refetch();
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "Error al procesar el reembolso";
-        toast.error(errorMessage);
-      } finally {
-        setIsRefunding(false);
-      }
-    },
-    [refundingSale, refetch],
-  );
+  const handleExport = () => {
+    if (!sales.length) return;
+    exportSalesToExcel(sales, biz?.name ?? "ventas");
+  };
 
   if (loading) return <ProductTableSkeleton />;
 
@@ -80,6 +42,17 @@ export default function MySales() {
         onStatusChange={setStatusFilter}
         sortBy={sortBy}
         onSortChange={setSortBy}
+        exportButton={
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={sales.length === 0}
+            className="cursor-pointer flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-primary bg-primary/5 hover:bg-primary/10 rounded-xl border border-primary/20 hover:border-primary/30 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+          >
+            <Download size={14} />
+            Exportar Excel
+          </button>
+        }
       />
 
       {sales.length === 0 ? (
@@ -89,30 +62,12 @@ export default function MySales() {
       ) : (
         <>
           <div className="hidden md:block">
-            <SalesTableDesktop
-              sales={sales}
-              onRefund={handleRefund}
-            />
+            <SalesTableDesktop sales={sales} />
           </div>
           <div className="md:hidden">
-            <SalesCardsMobile
-              sales={sales}
-              onRefund={handleRefund}
-            />
+            <SalesCardsMobile sales={sales} />
           </div>
         </>
-      )}
-
-      {refundingSale && (
-        <RefundSaleModal
-          isOpen={true}
-          onClose={handleCloseRefund}
-          onConfirm={handleConfirmRefund}
-          isLoading={isRefunding}
-          saleItems={refundingSale.sale_items}
-          saleTotal={refundingSale.total}
-          saleId={refundingSale.id}
-        />
       )}
     </div>
   );
