@@ -28,8 +28,8 @@ export default function AdminEntrepreneurs() {
         setStatusFilter={logic.setStatusFilter}
         selectedMonth={logic.selectedMonth}
         setSelectedMonth={logic.setSelectedMonth}
-        payrollCycle={logic.payrollCycle}
-        setPayrollCycle={logic.setPayrollCycle}
+        dateRange={logic.dateRange}
+        setDateRange={logic.setDateRange}
       />
 
       {logic.selectedSales.length > 0 && (

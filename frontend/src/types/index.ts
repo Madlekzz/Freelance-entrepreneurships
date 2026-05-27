@@ -286,6 +286,11 @@ export interface PayrollCycle {
   endDay: number;
 }
 
+export interface DateRange {
+  start: Date;
+  end: Date;
+}
+
 export interface GlobalSale {
   id: string;
   created_at: string;

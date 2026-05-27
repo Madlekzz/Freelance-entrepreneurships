@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { updatePayrollStatus, updatePayrollStatusBatch } from "../services/adminService";
+import { updatePayrollStatusBatch } from "../services/adminService";
 import { getAllSales } from "../services/saleService";
 import {
   AppError,
   type ConsumerSummary,
+  type DateRange,
   type EntrepreneurSummary,
   type GlobalSale,
-  type PayrollCycle,
 } from "../types";
 
 /**
@@ -20,7 +20,7 @@ export function useAdminData(enabled: boolean = true) {
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [payrollCycle, setPayrollCycle] = useState<PayrollCycle | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number | null>(
     new Date().getMonth(),
   );
@@ -31,7 +31,7 @@ export function useAdminData(enabled: boolean = true) {
   const [selectedSales, setSelectedSales] = useState<string[]>([]);
 
   // Dentro de useAdminData.ts
-  const fetchData = useCallback(
+  const fetchData = useCallback( 
     async (isSilent = false) => {
       if (!enabled) {
         setLoading(false);
@@ -112,46 +112,10 @@ export function useAdminData(enabled: boolean = true) {
     );
   }, []);
 
-  const isDateInCycle = useCallback(
-    (date: Date, cycle: PayrollCycle | null, refMonth: number | null) => {
-      const currentYear = new Date().getFullYear();
-
-      // 1. Si no hay mes seleccionado, mostramos todo (o filtramos solo por ciclo si existe)
-      if (refMonth === null) {
-        if (!cycle) return true; // Ni mes ni ciclo: mostrar todo
-
-        // Si hay ciclo pero no mes, validamos el ciclo en cualquier mes del año actual
-        return (
-          date.getDate() >=
-            (cycle.startDay <= cycle.endDay ? cycle.startDay : 0) &&
-          date.getFullYear() === currentYear
-        );
-      }
-
-      // 2. Si NO hay ciclo, filtramos por el mes de referencia
-      if (!cycle) {
-        return (
-          date.getMonth() === refMonth && date.getFullYear() === currentYear
-        );
-      }
-
-      // 3. Lógica de ciclos (se mantiene igual)
-      const { startDay, endDay } = cycle;
-      let startDate: Date;
-      let endDate: Date;
-
-      if (startDay <= endDay) {
-        startDate = new Date(currentYear, refMonth, startDay, 0, 0, 0);
-        endDate = new Date(currentYear, refMonth, endDay, 23, 59, 59);
-      } else {
-        startDate = new Date(currentYear, refMonth - 1, startDay, 0, 0, 0);
-        endDate = new Date(currentYear, refMonth, endDay, 23, 59, 59);
-      }
-
-      return date >= startDate && date <= endDate;
-    },
-    [],
-  );
+  const isDateInRange = useCallback((date: Date, range: DateRange | null) => {
+    if (!range) return true;
+    return date >= range.start && date <= range.end;
+  }, []);
 
   // --- Resumen para la sección EMPRENDEDORES ---
   const { fullEntrepreneursSummary, filteredEntrepreneursSummary } =
@@ -180,7 +144,8 @@ export function useAdminData(enabled: boolean = true) {
         });
       });
 
-      // 2. Filtrado base por CICLO y ESTADO (Lo que afecta a la tabla)
+      // 2. Filtrado base por FECHA, CICLO y ESTADO
+      const currentYear = new Date().getFullYear();
       const baseSales = sales.filter((sale) => {
         const saleDate = new Date(sale.created_at);
         const matchesStatus =
@@ -189,12 +154,13 @@ export function useAdminData(enabled: boolean = true) {
             : statusFilter === "pending"
               ? !sale.payroll_processed
               : sale.payroll_processed;
-        const matchesCycle = isDateInCycle(
-          saleDate,
-          payrollCycle,
-          selectedMonth,
-        );
-        return matchesStatus && matchesCycle;
+        const matchesMonth =
+          selectedMonth === null
+            ? true
+            : saleDate.getMonth() === selectedMonth &&
+              saleDate.getFullYear() === currentYear;
+        const matchesDateRange = isDateInRange(saleDate, dateRange);
+        return matchesStatus && matchesMonth && matchesDateRange;
       });
 
       // 3. Agrupación por Emprendimiento para resultados filtrados
@@ -247,8 +213,8 @@ export function useAdminData(enabled: boolean = true) {
       sales,
       searchQuery,
       statusFilter,
-      payrollCycle,
-      isDateInCycle,
+      dateRange,
+      isDateInRange,
       selectedMonth,
     ]);
 
@@ -276,10 +242,18 @@ export function useAdminData(enabled: boolean = true) {
       }
     });
 
-    // 2. Filtramos ventas por ciclo y mes para los cálculos de la tabla
-    const cycleSales = sales.filter((s) =>
-      isDateInCycle(new Date(s.created_at), payrollCycle, selectedMonth),
-    );
+    // 2. Filtramos ventas por rango de fechas y mes
+    const currentYear = new Date().getFullYear();
+    const cycleSales = sales.filter((s) => {
+      const saleDate = new Date(s.created_at);
+      const matchesMonth =
+        selectedMonth === null
+          ? true
+          : saleDate.getMonth() === selectedMonth &&
+            saleDate.getFullYear() === currentYear;
+      const matchesDateRange = isDateInRange(saleDate, dateRange);
+      return matchesMonth && matchesDateRange;
+    });
 
     // 3. Agrupamos los datos reales del ciclo en el mapa que se mostrará
     cycleSales.forEach((s) => {
@@ -319,7 +293,7 @@ export function useAdminData(enabled: boolean = true) {
       fullConsumersSummary: Object.values(staticMap),
       consumersSummary: filteredList,
     };
-  }, [sales, searchQuery, payrollCycle, isDateInCycle, selectedMonth]);
+  }, [sales, searchQuery, dateRange, isDateInRange, selectedMonth]);
 
   const filteredSales = useMemo(() => {
     return sales.filter((sale) => {
@@ -350,16 +324,21 @@ export function useAdminData(enabled: boolean = true) {
             ? !sale.payroll_processed
             : sale.payroll_processed;
 
-      const matchesCycle = isDateInCycle(saleDate, payrollCycle, selectedMonth);
+      const matchesMonth =
+        selectedMonth === null
+          ? true
+          : saleDate.getMonth() === selectedMonth &&
+            saleDate.getFullYear() === new Date().getFullYear();
+      const matchesDateRange = isDateInRange(saleDate, dateRange);
 
-      return matchesSearch && matchesStatus && matchesCycle;
+      return matchesSearch && matchesStatus && matchesMonth && matchesDateRange;
     });
   }, [
     sales,
     searchQuery,
     statusFilter,
-    payrollCycle,
-    isDateInCycle,
+    dateRange,
+    isDateInRange,
     selectedMonth,
   ]);
 
@@ -381,8 +360,8 @@ export function useAdminData(enabled: boolean = true) {
     setSearchQuery,
     statusFilter,
     setStatusFilter,
-    payrollCycle,
-    setPayrollCycle,
+    dateRange,
+    setDateRange,
     setSelectedMonth,
     selectedMonth,
     sortOrder,

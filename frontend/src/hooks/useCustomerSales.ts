@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify/unstyled";
 import { supabase } from "../config/supabaseClient";
 import { getConsumerPurchases } from "../services/saleService";
-import type { ConsumerSale, PayrollCycle } from "../types";
+import type { ConsumerSale, DateRange } from "../types";
 
 export const useConsumerSales = () => {
   const [sales, setSales] = useState<ConsumerSale[]>([]);
@@ -10,7 +10,7 @@ export const useConsumerSales = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
-  const [payrollCycle, setPayrollCycle] = useState<PayrollCycle | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
 
   const fetchMySales = useCallback(async () => {
     try {
@@ -38,21 +38,20 @@ export const useConsumerSales = () => {
     let result = sales;
 
     if (selectedMonth !== null) {
+      const currentYear = new Date().getFullYear();
       result = result.filter((sale) => {
         const saleDate = new Date(sale.created_at);
-        return saleDate.getMonth() === selectedMonth;
+        return (
+          saleDate.getMonth() === selectedMonth &&
+          saleDate.getFullYear() === currentYear
+        );
       });
     }
 
-    if (payrollCycle !== null) {
+    if (dateRange !== null) {
       result = result.filter((sale) => {
         const saleDate = new Date(sale.created_at);
-        const day = saleDate.getDate();
-        if (payrollCycle.startDay < payrollCycle.endDay) {
-          return day >= payrollCycle.startDay && day <= payrollCycle.endDay;
-        } else {
-          return day >= payrollCycle.startDay || day <= payrollCycle.endDay;
-        }
+        return saleDate >= dateRange.start && saleDate <= dateRange.end;
       });
     }
 
@@ -73,7 +72,7 @@ export const useConsumerSales = () => {
 
       return matchesItem || matchesId;
     });
-  }, [sales, searchQuery, selectedMonth, payrollCycle]);
+  }, [sales, searchQuery, selectedMonth, dateRange]);
 
   useEffect(() => {
     fetchMySales();
@@ -88,8 +87,8 @@ export const useConsumerSales = () => {
     setSearchQuery,
     selectedMonth,
     setSelectedMonth,
-    payrollCycle,
-    setPayrollCycle,
+    dateRange,
+    setDateRange,
     refresh: fetchMySales,
   };
 };
