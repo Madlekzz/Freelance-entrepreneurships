@@ -1,8 +1,9 @@
-import { Calendar, Filter, Layers, RotateCcw } from "lucide-react";
-import type { PayrollCycle } from "../../../types";
-import { MONTHS, PAYROLL_CYCLES } from "../../../utils/payrollUtils";
+import { Calendar, Filter, RotateCcw } from "lucide-react";
+import type { DateRange } from "../../../types";
+import { MONTHS } from "../../../utils/payrollUtils";
+import { DateRangeFilter } from "../../shared/DateRangeFilter";
 import SearchInput from "../../shared/SearchInput";
-import FilterSelector from "./FilterSelector"; // El componente que creamos arriba
+import FilterSelector from "./FilterSelector";
 
 interface Props {
   view: "summary" | "detailed";
@@ -12,8 +13,8 @@ interface Props {
   setStatusFilter: (val: string) => void;
   selectedMonth: number | null;
   setSelectedMonth: (val: number | null) => void;
-  payrollCycle: PayrollCycle | null; // Permitir null aquí también
-  setPayrollCycle: (val: PayrollCycle | null) => void;
+  dateRange: DateRange | null;
+  setDateRange: (val: DateRange | null) => void;
 }
 
 export const EntrepreneursFilters = (props: Props) => {
@@ -25,8 +26,8 @@ export const EntrepreneursFilters = (props: Props) => {
     setStatusFilter,
     selectedMonth,
     setSelectedMonth,
-    payrollCycle,
-    setPayrollCycle,
+    dateRange,
+    setDateRange,
   } = props;
 
   return (
@@ -88,31 +89,14 @@ export const EntrepreneursFilters = (props: Props) => {
             ]}
           />
 
-          <FilterSelector
-            label={payrollCycle ? payrollCycle.label : "Ciclos"}
-            icon={Layers}
-            items={[
-              {
-                key: "all",
-                label: "Todos los ciclos",
-                onClick: () => setPayrollCycle(null),
-              },
-              ...PAYROLL_CYCLES.filter(
-                (c): c is PayrollCycle => c !== null,
-              ).map((c) => ({
-                key: c.label,
-                label: c.label,
-                onClick: () => setPayrollCycle(c),
-              })),
-            ]}
-          />
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
 
           <button
             type="button"
             onClick={() => {
               setSearchQuery("");
               setStatusFilter("all");
-              setPayrollCycle(null);
+              setDateRange(null);
               setSelectedMonth(new Date().getMonth());
             }}
             className="p-2.5 text-gray-400 hover:text-primary rounded-xl cursor-pointer transition-colors"
