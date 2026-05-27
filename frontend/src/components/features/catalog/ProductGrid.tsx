@@ -50,7 +50,9 @@ export const ProductGrid = ({
           price: p.price,
           current_stock: p.current_stock,
           image: p.image,
-          vendor: p.entrepreneurships.name, // "Aplanamos" el objeto aquí
+          category_id: p.category_id,
+          vendor: p.entrepreneurships.name,
+          is_composed: p.is_composed,
         };
 
         return (

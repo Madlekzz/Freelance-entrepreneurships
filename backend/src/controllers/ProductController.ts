@@ -2,9 +2,10 @@ import type { Request, Response } from "express";
 import { supabaseAdmin } from "../db.js";
 import { uploadProductImage } from "../services/uploadImageService.js";
 import { checkAndNotifyLowStock } from "../services/slackService.js";
+import { enrichComposedStock } from "./ComposedProductController.js";
 
 // [PÚBLICO] Obtener todos los productos activos de emprendimientos activos
-export async function getActiveProducts(req: Request, res: Response) {
+export async function getActiveProducts(_req: Request, res: Response) {
   const { data, error } = await supabaseAdmin
     .from("products")
     .select("*, entrepreneurships(id, name)")
@@ -12,17 +13,31 @@ export async function getActiveProducts(req: Request, res: Response) {
     .eq("entrepreneurships.is_active", true);
 
   if (error) return res.status(400).json({ error: error.message });
-  res.status(200).json(data);
+
+  const enriched = await enrichComposedStock(data);
+  const       result = enriched.map((p) => ({
+    ...p,
+    current_stock: p.computed_stock ?? p.current_stock,
+  }));
+
+  res.status(200).json(result);
 }
 
 // [ADMIN/IT] Obtener todos los productos
-export async function getAllProducts(req: Request, res: Response) {
+export async function getAllProducts(_req: Request, res: Response) {
   const { data, error } = await supabaseAdmin
     .from("products")
     .select("*, entrepreneurships(id, name)");
 
   if (error) return res.status(400).json({ error: error.message });
-  res.status(200).json(data);
+
+  const enriched = await enrichComposedStock(data);
+  const result = enriched.map((p) => ({
+    ...p,
+    current_stock: p.computed_stock ?? p.current_stock,
+  }));
+
+  res.status(200).json(result);
 }
 
 // Obtener todos los productos de un emprendimiento específico
@@ -33,7 +48,6 @@ export async function getProductsByEntrepreneurship(
   const { entrepreneurship_id } = req.params;
   const requestingUser = req.user;
 
-  // Si es PROVEEDOR, verificamos que el emprendimiento le pertenezca
   if (requestingUser?.user_metadata.roles.includes("PROVEEDOR")) {
     const { data: entrepreneurship } = await supabaseAdmin
       .from("entrepreneurships")
@@ -59,7 +73,14 @@ export async function getProductsByEntrepreneurship(
     .eq("entrepreneurship_id", entrepreneurship_id);
 
   if (error) return res.status(400).json({ error: error.message });
-  res.status(200).json(data);
+
+  const enriched = await enrichComposedStock(data);
+  const result = enriched.map((p) => ({
+    ...p,
+    current_stock: p.computed_stock ?? p.current_stock,
+  }));
+
+  res.status(200).json(result);
 }
 
 // Obtener un producto por ID
@@ -73,7 +94,18 @@ export async function getProductById(req: Request, res: Response) {
     .single();
 
   if (error) return res.status(404).json({ error: "Producto no encontrado" });
-  res.status(200).json(data);
+
+  const enriched = await enrichComposedStock([data]);
+  const enrichedProduct = enriched[0];
+  if (!enrichedProduct) {
+    return res.status(500).json({ error: "Error al procesar el producto" });
+  }
+  const result = {
+    ...enrichedProduct,
+    current_stock: enrichedProduct.computed_stock ?? enrichedProduct.current_stock,
+  };
+
+  res.status(200).json(result);
 }
 
 // [PROVEEDOR] Crear un producto
@@ -287,7 +319,7 @@ export async function deleteProduct(req: Request, res: Response) {
 
     if (error) return res.status(400).json({ error: error.message });
     res.status(200).json({ message: "Producto eliminado correctamente" });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: "Error interno" });
   }
 }

@@ -27,22 +27,28 @@ import { sendUserNotification, checkAndNotifyLowStock } from "../services/notifi
 import { sendSlackWebhookNotification } from "../services/slackService.js";
 
 interface ProductInfo {
-  product_id: string;
-  name: string;
-  quantity: number;
-  unit_price: number;
-  price: number;
+	product_id: string;
+	name: string;
+	quantity: number;
+	unit_price: number;
+	price: number;
 }
 
 interface ProcessedItem extends ProductInfo {
-  product_id: string;
-  quantity: number;
-  unit_price: number;
-  name: string;
-  price: number;
-  owner_id: string;
-  owner_email: string;
-  owner_name: string;
+	product_id: string;
+	quantity: number;
+	unit_price: number;
+	name: string;
+	price: number;
+	owner_id: string;
+	owner_email: string;
+	owner_name: string;
+	is_composed?: boolean;
+}
+
+interface StockDeduction {
+	product_id: string;
+	quantity: number;
 }
 
 interface SellerGroup {
@@ -228,16 +234,19 @@ export async function createSale(req: Request, res: Response) {
     const processedItems: ProcessedItem[] = [];
 
     // 1. Validar todos los productos, traer info de los emprendedores y calcular total
+    const stockDeductions: StockDeduction[] = [];
+
     for (const item of items) {
       const { data: product, error: prodError } = await supabaseAdmin
         .from("products")
         .select(
           `
-          id, 
-          name, 
-          price, 
-          current_stock, 
+          id,
+          name,
+          price,
+          current_stock,
           is_active,
+          is_composed,
           entrepreneurship:entrepreneurship_id (
             id,
             name,
@@ -252,18 +261,85 @@ export async function createSale(req: Request, res: Response) {
         .eq("id", item.product_id)
         .single();
 
-      if (
-        prodError ||
-        !product ||
-        !product.is_active ||
-        product.current_stock < item.quantity
-      ) {
+      if (prodError || !product || !product.is_active) {
         return res.status(400).json({
-          error: `Producto ${item.product_id} no disponible o sin stock`,
+          error: `Producto ${item.product_id} no disponible`,
         });
       }
 
-      const subtotal = product.price * item.quantity;
+      const isComposed = product.is_composed === true;
+      const unitPrice = product.price;
+
+      if (isComposed) {
+        // Es un producto compuesto: validar stock de los componentes
+        const { data: components } = await supabaseAdmin
+          .from("composed_product_components")
+          .select("component_product_id, quantity")
+          .eq("composed_product_id", item.product_id);
+
+        if (!components || components.length === 0) {
+          return res.status(400).json({
+            error: `El producto compuesto ${item.product_id} no tiene componentes definidos`,
+          });
+        }
+
+        const componentIds = components.map((c) => c.component_product_id);
+        const { data: compProducts } = await supabaseAdmin
+          .from("products")
+          .select("id, current_stock")
+          .in("id", componentIds);
+
+        if (!compProducts || compProducts.length !== components.length) {
+          return res.status(400).json({
+            error: `No se encontraron todos los componentes del producto compuesto`,
+          });
+        }
+
+        const compStockMap = new Map(
+          compProducts.map((p) => [p.id, p.current_stock]),
+        );
+
+        for (const comp of components) {
+          const available = compStockMap.get(comp.component_product_id) || 0;
+          const needed = comp.quantity * item.quantity;
+          if (available < needed) {
+            return res.status(400).json({
+              error: `Stock insuficiente para uno de los componentes del producto ${product.name}`,
+            });
+          }
+        }
+
+        // Acumular deducciones de stock para los componentes
+        for (const comp of components) {
+          const existingIdx = stockDeductions.findIndex(
+            (sd) => sd.product_id === comp.component_product_id,
+          );
+          const deductionQty = comp.quantity * item.quantity;
+          const existingDeduction = stockDeductions[existingIdx];
+          if (existingDeduction) {
+            existingDeduction.quantity += deductionQty;
+          } else {
+            stockDeductions.push({
+              product_id: comp.component_product_id,
+              quantity: deductionQty,
+            });
+          }
+        }
+      } else {
+        // Producto simple: validar stock
+        if (product.current_stock < item.quantity) {
+          return res.status(400).json({
+            error: `Producto ${item.product_id} no disponible o sin stock`,
+          });
+        }
+
+        stockDeductions.push({
+          product_id: item.product_id,
+          quantity: item.quantity,
+        });
+      }
+
+      const subtotal = unitPrice * item.quantity;
       totalAmount += subtotal;
 
       const entData = product.entrepreneurship as unknown as {
@@ -274,12 +350,13 @@ export async function createSale(req: Request, res: Response) {
       processedItems.push({
         product_id: item.product_id,
         quantity: item.quantity,
-        unit_price: product.price,
+        unit_price: unitPrice,
         name: product.name,
-        price: product.price,
+        price: unitPrice,
         owner_id: owner.id,
         owner_email: owner.email,
         owner_name: owner.name,
+        is_composed: isComposed,
       });
     }
 
@@ -319,6 +396,8 @@ export async function createSale(req: Request, res: Response) {
       .insert(itemsToInsert);
 
     if (itemsError) throw itemsError;
+
+    // 4. Stock deduction is handled by the reduce_stock_on_sale trigger on sale_items INSERT
 
     // --- PROCESO DE NOTIFICACIONES ---
     // Separamos en try-catch para que errores en notificaciones no fallen toda la venta
@@ -437,27 +516,20 @@ export async function createSale(req: Request, res: Response) {
     }
 
     try {
-      const stockCheckItems = processedItems.map((item) => ({
-        product_id: item.product_id,
-        quantity: item.quantity,
-      }));
-
+      const productIds = stockDeductions.map((d) => d.product_id);
       const { data: products } = await supabaseAdmin
         .from("products")
         .select("id, current_stock")
-        .in(
-          "id",
-          stockCheckItems.map((i) => i.product_id),
-        );
+        .in("id", productIds);
 
       if (products) {
         const productsToCheck = products.map((p) => {
-          const soldItem = stockCheckItems.find(
-            (i) => i.product_id === p.id,
+          const deducted = stockDeductions.find(
+            (d) => d.product_id === p.id,
           );
           return {
             product_id: p.id,
-            new_stock: p.current_stock - (soldItem?.quantity || 0),
+            new_stock: p.current_stock - (deducted?.quantity || 0),
           };
         });
 
@@ -835,18 +907,52 @@ export async function refundSale(req: Request, res: Response) {
 
   // 5. Restaurar stock de cada producto reembolsado y notificar low stock
   for (const item of refundItems) {
-    const newStock = item.products.current_stock + item.quantity;
-
-    const { error: stockError } = await supabaseAdmin
+    // Verificar si el producto es compuesto
+    const { data: prodData } = await supabaseAdmin
       .from("products")
-      .update({ current_stock: newStock })
-      .eq("id", item.product_id);
+      .select("is_composed")
+      .eq("id", item.product_id)
+      .single();
 
-    if (stockError) {
-      console.error(
-        `Error restoring stock for product ${item.product_id}:`,
-        stockError,
-      );
+    if (prodData?.is_composed) {
+      // Restaurar stock de los componentes
+      const { data: components } = await supabaseAdmin
+        .from("composed_product_components")
+        .select("component_product_id, quantity")
+        .eq("composed_product_id", item.product_id);
+
+      if (components) {
+        for (const comp of components) {
+          const { data: compProduct } = await supabaseAdmin
+            .from("products")
+            .select("current_stock")
+            .eq("id", comp.component_product_id)
+            .single();
+
+          if (compProduct) {
+            const restoredStock = compProduct.current_stock + comp.quantity * item.quantity;
+            await supabaseAdmin
+              .from("products")
+              .update({ current_stock: restoredStock })
+              .eq("id", comp.component_product_id);
+          }
+        }
+      }
+    } else {
+      // Producto simple: restaurar stock directamente
+      const newStock = item.products.current_stock + item.quantity;
+
+      const { error: stockError } = await supabaseAdmin
+        .from("products")
+        .update({ current_stock: newStock })
+        .eq("id", item.product_id);
+
+      if (stockError) {
+        console.error(
+          `Error restoring stock for product ${item.product_id}:`,
+          stockError,
+        );
+      }
     }
   }
 

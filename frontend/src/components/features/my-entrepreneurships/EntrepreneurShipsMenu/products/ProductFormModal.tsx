@@ -1,20 +1,31 @@
-import { Switch } from "antd";
-import { ChevronDown, DollarSign, List, Package } from "lucide-react";
+import { Select, Switch } from "antd";
+import {
+  ChevronDown,
+  DollarSign,
+  List,
+  Package,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import type {
   Category,
+  ComposedProductInput,
   EntrepreneurshipProduct,
   ProductInput,
 } from "../../../../../types";
 import { getCategories } from "../../../../../services/categoryService";
+import { getComposedProductById } from "../../../../../services/composedProductService";
+import { getEntrepreneurshipProducts } from "../../../../../services/productService";
 import BaseFormModal from "../../../../shared/BaseFormModal";
 import ImageUpload from "../../../../shared/ImageUpload";
+import { useComposedProductForm } from "./hooks/useComposedProductForm";
 import { useProductForm } from "./hooks/useProductForm";
 
 interface ProductFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (formData: ProductInput) => Promise<void>;
+  onSave: (formData: ProductInput | ComposedProductInput) => Promise<void>;
   product: EntrepreneurshipProduct | null;
   isLoading?: boolean;
   entrepreneurshipId: string;
@@ -30,31 +41,86 @@ export default function ProductFormModal({
 }: ProductFormModalProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [simpleProducts, setSimpleProducts] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [userComposedToggle, setUserComposedToggle] = useState(false);
+
+  const isEditing = !!product;
+  const isComposed = isEditing
+    ? (product?.is_composed ?? false)
+    : userComposedToggle;
+
+  const [composedInitialData, setComposedInitialData] =
+    useState<ComposedProductInput | null>(null);
+
+  const simpleForm = useProductForm(
+    isComposed ? null : product,
+  );
+  const composedForm = useComposedProductForm(
+    isComposed ? composedInitialData : null,
+  );
 
   useEffect(() => {
     if (isOpen) {
-      setLoadingCategories(true);
-      getCategories()
-        .then(setCategories)
+      Promise.all([
+        getCategories(),
+        getEntrepreneurshipProducts(entrepreneurshipId),
+      ])
+        .then(([cats, prods]) => {
+          setCategories(cats);
+          setSimpleProducts(
+            prods
+              .filter((p) => !p.is_composed)
+              .map((p) => ({ id: p.id, name: p.name })),
+          );
+        })
         .finally(() => setLoadingCategories(false));
     }
   }, [isOpen]);
 
-  // Integramos el hook refactorizado
-  const { formData, selectedFile, setSelectedFile, updateField } =
-    useProductForm(product);
+  // Si es edición de un producto compuesto, cargar los componentes
+  useEffect(() => {
+    if (isOpen && product?.is_composed && product?.id) {
+      getComposedProductById(product.id).then((data) => {
+        setComposedInitialData({
+          name: data.name,
+          price: data.price,
+          is_active: data.is_active,
+          entrepreneurship_id: data.entrepreneurship_id,
+          image: data.image,
+          category_id: data.category_id,
+          components: (data.components || []).map(
+            (c: { component_product_id: string; quantity: number }) => ({
+              component_product_id: c.component_product_id,
+              quantity: c.quantity,
+            }),
+          ),
+        });
+      });
+    }
+  }, [isOpen, product?.is_composed, product?.id]);
 
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
 
-    const dataToSend: ProductInput = {
-      ...formData,
-      entrepreneurship_id: entrepreneurshipId,
-      imageFile: selectedFile,
-    };
-
-    await onSave(dataToSend);
-    setSelectedFile(null);
+    if (isComposed) {
+      const dataToSend: ComposedProductInput = {
+        ...composedForm.formData,
+        entrepreneurship_id: entrepreneurshipId,
+        imageFile: composedForm.selectedFile,
+      };
+      await onSave(dataToSend);
+      composedForm.setSelectedFile(null);
+    } else {
+      const dataToSend: ProductInput = {
+        ...simpleForm.formData,
+        entrepreneurship_id: entrepreneurshipId,
+        imageFile: simpleForm.selectedFile,
+      };
+      await onSave(dataToSend);
+      simpleForm.setSelectedFile(null);
+    }
   };
 
   return (
@@ -62,18 +128,36 @@ export default function ProductFormModal({
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title={product ? "Editar Producto" : "Nuevo Producto"}
-      confirmText={product ? "Guardar Cambios" : "Crear Producto"}
+      title={isEditing ? "Editar Producto" : "Nuevo Producto"}
+      confirmText={isEditing ? "Guardar Cambios" : "Crear Producto"}
       isLoading={isLoading}
+      maxWidth="xl"
     >
       <div className="space-y-4">
+        {/* Toggle: Es un combo? (solo al crear) */}
+        {!isEditing && (
+          <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100">
+            <div>
+              <p className="text-sm font-bold text-gray-700">¿Es un combo?</p>
+              <p className="text-xs text-gray-500">
+                Agrupa varios productos en uno con precio especial
+              </p>
+            </div>
+            <Switch
+              checked={isComposed}
+              onChange={(checked) => setUserComposedToggle(checked)}
+              className={isComposed ? "bg-primary" : ""}
+            />
+          </div>
+        )}
+
         {/* Nombre del Producto */}
         <div>
           <label
             htmlFor="name"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Nombre del Producto
+            Nombre del {isComposed ? "Combo" : "Producto"}
           </label>
           <div className="relative">
             <Package
@@ -84,10 +168,20 @@ export default function ProductFormModal({
               id="name"
               required
               type="text"
-              placeholder="Ej: Café Artesanal 500g"
+              placeholder={isComposed ? "Ej: Combo 5 Chupetas" : "Ej: Café Artesanal 500g"}
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm"
-              value={formData.name}
-              onChange={(e) => updateField("name", e.target.value)}
+              value={
+                isComposed
+                  ? composedForm.formData.name
+                  : simpleForm.formData.name
+              }
+              onChange={(e) => {
+                if (isComposed) {
+                  composedForm.updateField("name", e.target.value);
+                } else {
+                  simpleForm.updateField("name", e.target.value);
+                }
+              }}
             />
           </div>
         </div>
@@ -99,7 +193,7 @@ export default function ProductFormModal({
               htmlFor="price"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Precio
+              Precio del {isComposed ? "Combo" : "Producto"}
             </label>
             <div className="relative">
               <DollarSign
@@ -114,45 +208,149 @@ export default function ProductFormModal({
                 step="0.01"
                 placeholder="0.00"
                 className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm"
-                value={formData.price}
-                onChange={(e) =>
-                  updateField("price", parseFloat(e.target.value) || 0)
+                value={
+                  isComposed
+                    ? composedForm.formData.price
+                    : simpleForm.formData.price
                 }
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value) || 0;
+                  if (isComposed) {
+                    composedForm.updateField("price", val);
+                  } else {
+                    simpleForm.updateField("price", val);
+                  }
+                }}
               />
             </div>
           </div>
 
-          {/* Stock */}
-          <div>
-            <label
-              htmlFor="stock"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Stock
-            </label>
-            <div className="relative">
-              <List
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                size={18}
-              />
-              <input
-                id="stock"
-                required
-                type="number"
-                min="0"
-                placeholder="0"
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm"
-                value={formData.current_stock}
-                onChange={(e) =>
-                  updateField(
-                    "current_stock",
-                    parseInt(e.target.value, 10) || 0,
-                  )
-                }
-              />
+          {/* Stock (solo para productos simples) */}
+          {!isComposed && (
+            <div>
+              <label
+                htmlFor="stock"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Stock
+              </label>
+              <div className="relative">
+                <List
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={18}
+                />
+                <input
+                  id="stock"
+                  required
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm"
+                  value={simpleForm.formData.current_stock}
+                  onChange={(e) =>
+                    simpleForm.updateField(
+                      "current_stock",
+                      parseInt(e.target.value, 10) || 0,
+                    )
+                  }
+                />
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Stock informativo para combos */}
+          {isComposed && (
+            <div>
+              <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-1">
+                Stock (calculado)
+              </label>
+              <div className="relative">
+                <List
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={18}
+                />
+                <div className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-500">
+                  Se calcula autom&aacute;ticamente del stock de componentes
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Componentes del Combo */}
+        {isComposed && (
+          <div className="space-y-3">
+            <label htmlFor="components" className="block text-sm font-medium text-gray-700">
+              Componentes del Combo
+            </label>
+            <div className="space-y-2">
+              {composedForm.formData.components.map((comp, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100"
+                >
+                  <Select
+                    showSearch
+                    className="flex-1"
+                    placeholder="Seleccionar producto..."
+                    value={comp.component_product_id || undefined}
+                    onChange={(value) =>
+                      composedForm.updateComponent(
+                        index,
+                        "component_product_id",
+                        value,
+                      )
+                    }
+                    options={simpleProducts.map((p) => ({
+                      value: p.id,
+                      label: p.name,
+                    }))}
+                    filterOption={(input, option) =>
+                      (option?.label ?? "")
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }
+                    style={{ width: "100%" }}
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Cant."
+                    className="w-20 px-3 py-2 border border-gray-200 rounded-xl text-sm text-center"
+                    value={comp.quantity}
+                    onChange={(e) =>
+                      composedForm.updateComponent(
+                        index,
+                        "quantity",
+                        parseInt(e.target.value, 10) || 1,
+                      )
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => composedForm.removeComponent(index)}
+                    className="p-2 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                composedForm.addComponent({
+                  component_product_id: "",
+                  quantity: 1,
+                })
+              }
+              className="w-full py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Plus size={16} />
+              Agregar componente
+            </button>
+          </div>
+        )}
 
         {/* Categoría */}
         <div>
@@ -160,22 +358,30 @@ export default function ProductFormModal({
             htmlFor="category"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Categoría
+            Categor&iacute;a
           </label>
           <div className="relative">
             <select
               id="category"
-              value={formData.category_id || ""}
-              onChange={(e) =>
-                updateField(
-                  "category_id",
-                  e.target.value ? parseInt(e.target.value, 10) : undefined,
-                )
+              value={
+                isComposed
+                  ? composedForm.formData.category_id || ""
+                  : simpleForm.formData.category_id || ""
               }
+              onChange={(e) => {
+                const val = e.target.value
+                  ? parseInt(e.target.value, 10)
+                  : undefined;
+                if (isComposed) {
+                  composedForm.updateField("category_id", val);
+                } else {
+                  simpleForm.updateField("category_id", val);
+                }
+              }}
               disabled={loadingCategories}
               className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm appearance-none bg-white"
             >
-              <option value="">Seleccionar categoría</option>
+              <option value="">Seleccionar categor&iacute;a</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
@@ -191,22 +397,51 @@ export default function ProductFormModal({
 
         {/* Carga de Imagen */}
         <ImageUpload
-          value={formData.image}
-          onChange={(file) => setSelectedFile(file)}
+          value={
+            isComposed
+              ? composedForm.formData.image
+              : simpleForm.formData.image
+          }
+          onChange={(file) => {
+            if (isComposed) {
+              composedForm.setSelectedFile(file);
+            } else {
+              simpleForm.setSelectedFile(file);
+            }
+          }}
         />
 
         {/* Estado Activo */}
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
           <div>
-            <p className="text-sm font-bold text-gray-700">Producto Activo</p>
+            <p className="text-sm font-bold text-gray-700">
+              {isComposed ? "Combo Activo" : "Producto Activo"}
+            </p>
             <p className="text-xs text-gray-400">
-              ¿Estará visible en el catálogo inmediatamente?
+              &iquest;Estar&aacute; visible en el cat&aacute;logo inmediatamente?
             </p>
           </div>
           <Switch
-            checked={formData.is_active}
-            onChange={(checked) => updateField("is_active", checked)}
-            className={formData.is_active ? "bg-primary" : ""}
+            checked={
+              isComposed
+                ? composedForm.formData.is_active
+                : simpleForm.formData.is_active
+            }
+            onChange={(checked) => {
+              if (isComposed) {
+                composedForm.updateField("is_active", checked);
+              } else {
+                simpleForm.updateField("is_active", checked);
+              }
+            }}
+            className={
+              (isComposed
+                ? composedForm.formData.is_active
+                : simpleForm.formData.is_active
+              )
+                ? "bg-primary"
+                : ""
+            }
           />
         </div>
       </div>

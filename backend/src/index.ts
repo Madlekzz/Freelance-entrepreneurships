@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express from "express";
 import authRouter from "./routes/authRoutes.js";
 import categoryRouter from "./routes/categoryRoutes.js";
+import composedProductRouter from "./routes/composedProductRoutes.js";
 import configRouter from "./routes/configRoutes.js";
 import entrepreneurshipRouter from "./routes/entrepreneurshipRoutes.js";
 import productRouter from "./routes/productRoutes.js";
@@ -29,6 +30,7 @@ app.use("/api/categories", categoryRouter);
 app.use("/api/config", configRouter);
 app.use("/api/entrepreneurships", entrepreneurshipRouter);
 app.use("/api/products", productRouter);
+app.use("/api/composed-products", composedProductRouter);
 app.use("/api/sales", saleRouter);
 
 // Server Startup

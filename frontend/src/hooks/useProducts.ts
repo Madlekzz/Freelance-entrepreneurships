@@ -1,22 +1,36 @@
-// hooks/useProducts.ts
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
+import {
+  createComposedProduct,
+  deleteComposedProduct,
+  updateComposedProduct,
+} from "../services/composedProductService";
 import {
   createProduct,
   deleteProduct,
   getEntrepreneurshipProducts,
   updateProduct,
 } from "../services/productService";
-import type { EntrepreneurshipProduct, ProductInput } from "../types";
+import type {
+  ComposedProductInput,
+  EntrepreneurshipProduct,
+  ProductInput,
+} from "../types";
+
+function isComposedInput(
+  data: ProductInput | ComposedProductInput,
+): data is ComposedProductInput {
+  return "components" in data;
+}
 
 export function useProducts(entrepreneurshipId?: string) {
   const [products, setProducts] = useState<EntrepreneurshipProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("name-asc"); // name-asc, name-desc, price-asc, price-desc, stock-asc, stock-desc
-  const [statusFilter, setStatusFilter] = useState("all"); // all, active, inactive
-  const [stockFilter, setStockFilter] = useState("all"); // all, low-stock
+  const [sortBy, setSortBy] = useState("name-asc");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
 
   const [formModal, setFormModal] = useState<{
     isOpen: boolean;
@@ -32,8 +46,6 @@ export function useProducts(entrepreneurshipId?: string) {
     name: "",
   });
 
-  // 1. Envolvemos la función en useCallback para que su referencia no cambie
-  // a menos que cambie el entrepreneurshipId.
   const fetchProducts = useCallback(async () => {
     if (!entrepreneurshipId) return;
 
@@ -43,38 +55,53 @@ export function useProducts(entrepreneurshipId?: string) {
       setProducts(data);
     } catch (error) {
       console.error(error);
-      const errorMessage = error instanceof Error ? error.message : "No se pudieron cargar los productos. Verifica tu conexión e intenta de nuevo.";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "No se pudieron cargar los productos. Verifica tu conexión e intenta de nuevo.";
       toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [entrepreneurshipId]); // Dependencia del callback
+  }, [entrepreneurshipId]);
 
-  // 2. Ahora fetchProducts es una dependencia estable y segura para el useEffect.
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  const saveProduct = async (data: ProductInput) => {
+  const saveProduct = async (
+    data: ProductInput | ComposedProductInput,
+  ) => {
     if (!entrepreneurshipId) return;
 
     setIsSaving(true);
     try {
       if (formModal.product?.id) {
-        // Actualización
-        await updateProduct(formModal.product.id, data);
-        toast.success("Producto actualizado correctamente");
+        if (isComposedInput(data)) {
+          await updateComposedProduct(formModal.product.id, data);
+          toast.success("Combo actualizado correctamente");
+        } else {
+          await updateProduct(formModal.product.id, data);
+          toast.success("Producto actualizado correctamente");
+        }
       } else {
-        // Creación
-        await createProduct(data);
-        toast.success("Producto creado correctamente");
+        if (isComposedInput(data)) {
+          await createComposedProduct(data);
+          toast.success("Combo creado correctamente");
+        } else {
+          await createProduct(data);
+          toast.success("Producto creado correctamente");
+        }
       }
 
-      await fetchProducts(); // Recargamos la lista
-      setFormModal({ isOpen: false }); // Cerramos modal
+      await fetchProducts();
+      setFormModal({ isOpen: false });
     } catch (error) {
       console.error(error);
-      const errorMessage = error instanceof Error ? error.message : "Error al guardar el producto. Verifica los datos e intenta de nuevo.";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Error al guardar el producto. Verifica los datos e intenta de nuevo.";
       toast.error(errorMessage);
     } finally {
       setIsSaving(false);
@@ -83,7 +110,7 @@ export function useProducts(entrepreneurshipId?: string) {
 
   const openFormModal = useCallback((product?: EntrepreneurshipProduct) => {
     setFormModal({ isOpen: true, product });
-  }, []); // Arreglo vacío porque setFormModal es estable por sí misma
+  }, []);
 
   const closeFormModal = useCallback(() => {
     setFormModal({ isOpen: false });
@@ -97,12 +124,21 @@ export function useProducts(entrepreneurshipId?: string) {
   const confirmDelete = async () => {
     setIsSaving(true);
     try {
-      await deleteProduct(deleteModal.id);
-      toast.success("Producto eliminado");
+      const product = products.find((p) => p.id === deleteModal.id);
+      if (product?.is_composed) {
+        await deleteComposedProduct(deleteModal.id);
+        toast.success("Combo eliminado");
+      } else {
+        await deleteProduct(deleteModal.id);
+        toast.success("Producto eliminado");
+      }
       fetchProducts();
       closeDeleteModal();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "No se pudo eliminar el producto. Intenta de nuevo más tarde.";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "No se pudo eliminar el producto. Intenta de nuevo más tarde.";
       toast.error(errorMessage);
     } finally {
       setIsSaving(false);
@@ -112,27 +148,23 @@ export function useProducts(entrepreneurshipId?: string) {
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    // 1. Busqueda
     if (searchQuery) {
       result = result.filter((p) =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
-    // 2. Filtro de Estado
     if (statusFilter !== "all") {
       const isActive = statusFilter === "active";
       result = result.filter((p) => p.is_active === isActive);
     }
 
-    // 3. Filtro de Stock
     if (stockFilter === "low-stock") {
       result = result.filter((p) => p.current_stock < 5);
     } else if (stockFilter === "normal-stock") {
       result = result.filter((p) => p.current_stock >= 5);
     }
 
-    // 4. Ordenamiento
     result.sort((a, b) => {
       switch (sortBy) {
         case "name-asc":

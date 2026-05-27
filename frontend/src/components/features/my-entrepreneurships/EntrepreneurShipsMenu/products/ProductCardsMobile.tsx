@@ -29,9 +29,16 @@ export default function ProductCardsMobile({ products, getActionMenu }: Props) {
           </div>
           <div className="flex flex-col justify-between flex-1 min-w-0">
             <div>
-              <h3 className="font-bold text-gray-900 text-sm truncate uppercase tracking-tight pr-8">
-                {product.name}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-gray-900 text-sm truncate uppercase tracking-tight">
+                  {product.name}
+                </h3>
+                {product.is_composed && (
+                  <span className="shrink-0 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-[10px] font-bold uppercase">
+                    Combo
+                  </span>
+                )}
+              </div>
               <p className="text-primary font-black text-base mt-0.5">
                 {formatCurrency(product.price)}
               </p>
