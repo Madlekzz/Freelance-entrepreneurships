@@ -15,18 +15,25 @@ export function useOverviewStats(
 
     const outOfStock = products.filter((p) => p.current_stock === 0).length;
 
-    const averageTicket = sales.length > 0 ? totalRevenue / sales.length : 0;
-
     const pendingPayrollCount = sales.filter(
       (s) => !s.payroll_processed,
     ).length;
+
+    const processedPayrollTotal = sales
+      .filter((s) => s.payroll_processed)
+      .reduce((acc, s) => acc + s.total, 0);
+
+    const pendingPayrollTotal = sales
+      .filter((s) => !s.payroll_processed)
+      .reduce((acc, s) => acc + s.total, 0);
 
     return {
       totalRevenue,
       totalProducts,
       lowStockProducts,
       outOfStock,
-      averageTicket,
+      processedPayrollTotal,
+      pendingPayrollTotal,
       totalSalesCount: sales.length,
       pendingPayrollCount,
     };

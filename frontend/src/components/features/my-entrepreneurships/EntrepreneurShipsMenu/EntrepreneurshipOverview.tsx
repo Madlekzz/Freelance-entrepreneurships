@@ -24,9 +24,8 @@ export default function EntrepreneurshipOverview() {
 
       <StatsGrid
         revenue={stats.totalRevenue}
-        salesCount={stats.totalSalesCount}
-        pendingPayroll={stats.pendingPayrollCount}
-        averageTicket={stats.averageTicket}
+        pendingPayrollTotal={stats.pendingPayrollTotal}
+        processedPayrollTotal={stats.processedPayrollTotal}
       />
 
       <InventoryAndTips
