@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import {
   getSalesByEntrepreneurship,
 } from "../services/saleService";
-import type { EntrepreneurshipSale } from "../types";
+import type { DateRange, EntrepreneurshipSale } from "../types";
 
 export function useSales(entrepreneurshipId?: string) {
   const [sales, setSales] = useState<EntrepreneurshipSale[]>([]);
@@ -13,9 +13,38 @@ export function useSales(entrepreneurshipId?: string) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("date-desc"); // date-desc, date-asc, total-desc, total-asc
   const [statusFilter, setStatusFilter] = useState("all"); // all, processed, pending
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
 
   // 1. Carga de datos desde la API
-  const fetchSales = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!entrepreneurshipId) return;
+
+      try {
+        setLoading(true);
+        const data = await getSalesByEntrepreneurship(entrepreneurshipId);
+        if (!cancelled) setSales(data);
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Error fetching sales:", error);
+          const errorMessage = error instanceof Error ? error.message : "Error al cargar las ventas. Intenta de nuevo más tarde.";
+          toast.error(errorMessage);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [entrepreneurshipId]);
+
+  const refetch = useCallback(async () => {
     if (!entrepreneurshipId) return;
 
     try {
@@ -30,10 +59,6 @@ export function useSales(entrepreneurshipId?: string) {
       setLoading(false);
     }
   }, [entrepreneurshipId]);
-
-  useEffect(() => {
-    fetchSales();
-  }, [fetchSales]);
 
   // 2. Lógica de Filtrado y Ordenamiento (Computed State)
   // Usamos useMemo para que solo se recalcule cuando cambien los datos o los filtros
@@ -59,7 +84,15 @@ export function useSales(entrepreneurshipId?: string) {
       });
     }
 
-    // --- B. Filtro por Estado (payroll_processed / refunded) ---
+    // --- B. Filtro por Rango de Fechas ---
+    if (dateRange) {
+      result = result.filter((sale) => {
+        const saleDate = new Date(sale.created_at);
+        return saleDate >= dateRange.start && saleDate <= dateRange.end;
+      });
+    }
+
+    // --- C. Filtro por Estado (payroll_processed / refunded) ---
     if (statusFilter !== "all") {
       if (statusFilter === "refunded") {
         result = result.filter(
@@ -82,7 +115,7 @@ export function useSales(entrepreneurshipId?: string) {
       }
     }
 
-    // --- C. Ordenamiento ---
+    // --- D. Ordenamiento ---
     result.sort((a, b) => {
       switch (sortBy) {
         case "date-desc":
@@ -103,7 +136,7 @@ export function useSales(entrepreneurshipId?: string) {
     });
 
     return result;
-  }, [sales, searchQuery, sortBy, statusFilter]);
+  }, [sales, searchQuery, sortBy, statusFilter, dateRange]);
 
   return {
     // Datos
@@ -119,8 +152,10 @@ export function useSales(entrepreneurshipId?: string) {
     setSortBy,
     statusFilter,
     setStatusFilter,
+    dateRange,
+    setDateRange,
 
     // Acciones
-    refetch: fetchSales,
+    refetch,
   };
 }
