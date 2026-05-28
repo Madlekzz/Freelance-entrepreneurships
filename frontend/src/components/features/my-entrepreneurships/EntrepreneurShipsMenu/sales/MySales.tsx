@@ -163,11 +163,19 @@ export default function MySales() {
     [refundingSale, refetch],
   );
 
+  const filteredTotalRevenue = useMemo(
+    () => sales.reduce((acc, s) => acc + s.total, 0),
+    [sales],
+  );
+
   if (loading) return <ProductTableSkeleton />;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20 md:pb-0">
-      <SalesSummary totalSales={sales.length} />
+      <SalesSummary
+        totalSales={sales.length}
+        totalRevenue={filteredTotalRevenue}
+      />
 
       <SalesFilters
         searchQuery={searchQuery}
