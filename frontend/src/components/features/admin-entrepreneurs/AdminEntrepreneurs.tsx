@@ -1,5 +1,6 @@
 import { Download } from "lucide-react";
 import ConfirmationModal from "../../shared/ConfirmationModal";
+import DetailedSalesStats from "../../shared/DetailedSalesStats";
 import { AdminConsumersSkeleton } from "../admin-consumers/AdminConsumersSkeleton";
 import { BulkActionBanner } from "./BulkActionBanner";
 import { DetailedView } from "./DetailedView";
@@ -30,6 +31,10 @@ export default function AdminEntrepreneurs() {
         entrepreneurName={logic.selectedEntrepreneur?.name}
         onBack={logic.handleBackToSummary}
       />
+
+      {logic.view === "detailed" && logic.detailedSales.length > 0 && (
+        <DetailedSalesStats sales={logic.detailedSales} />
+      )}
 
       <EntrepreneursFilters
         view={logic.view}

@@ -1,5 +1,6 @@
 import { Download } from "lucide-react";
 import { SummaryEmptyState } from "../admin-entrepreneurs/SummaryEmptyState";
+import DetailedSalesStats from "../../shared/DetailedSalesStats";
 import { AdminConsumersSkeleton } from "./AdminConsumersSkeleton";
 import { BulkActionBanner } from "./BulkActionBanner";
 import { ConsumerDetailedDesktop } from "./ConsumerDetailedDesktop";
@@ -51,6 +52,10 @@ export default function AdminConsumers() {
         selectedConsumerName={selectedConsumer?.name}
         onBack={handleBackToSummary}
       />
+
+      {view === "detailed" && detailedSales.length > 0 && (
+        <DetailedSalesStats sales={detailedSales} />
+      )}
 
       <ConsumersFilters
         view={view}
