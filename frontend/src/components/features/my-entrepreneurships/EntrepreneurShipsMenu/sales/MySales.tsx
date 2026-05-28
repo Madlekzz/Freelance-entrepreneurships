@@ -28,6 +28,8 @@ export default function MySales() {
     setSortBy,
     statusFilter,
     setStatusFilter,
+    dateRange,
+    setDateRange,
   } = useSales(id);
 
   const [refundingSale, setRefundingSale] =
@@ -174,6 +176,8 @@ export default function MySales() {
         onStatusChange={setStatusFilter}
         sortBy={sortBy}
         onSortChange={setSortBy}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
         exportButton={
           <button
             type="button"
@@ -197,7 +201,7 @@ export default function MySales() {
 
       {sales.length === 0 ? (
         <SalesEmptyState
-          isFiltering={!!searchQuery || statusFilter !== "all"}
+          isFiltering={!!searchQuery || statusFilter !== "all" || !!dateRange}
         />
       ) : (
         <>
