@@ -1,18 +1,16 @@
-import { DollarSign, Store, TrendingUp } from "lucide-react";
+import { CircleCheck, Clock, DollarSign } from "lucide-react";
 import { formatCurrency } from "../../../../utils/format";
 
 interface Props {
   revenue: number;
-  salesCount: number;
-  pendingPayroll: number;
-  averageTicket: number;
+  pendingPayrollTotal: number;
+  processedPayrollTotal: number;
 }
 
 export default function StatsGrid({
   revenue,
-  salesCount,
-  pendingPayroll,
-  averageTicket,
+  pendingPayrollTotal,
+  processedPayrollTotal,
 }: Props) {
   const stats = [
     {
@@ -23,18 +21,18 @@ export default function StatsGrid({
       description: "Suma de todas las ventas",
     },
     {
-      label: "Ventas Realizadas",
-      value: salesCount.toString(),
-      icon: TrendingUp,
+      label: "Pendiente de Nómina",
+      value: formatCurrency(pendingPayrollTotal),
+      icon: Clock,
       color: "bg-blue-500",
-      description: `${pendingPayroll} pendientes de nómina`,
+      description: "Total por liquidar",
     },
     {
-      label: "Ticket Promedio",
-      value: formatCurrency(averageTicket),
-      icon: Store,
+      label: "Ventas Procesadas",
+      value: formatCurrency(processedPayrollTotal),
+      icon: CircleCheck,
       color: "bg-purple-500",
-      description: "Gasto medio por cliente",
+      description: "Total liquidadas en nómina",
     },
   ];
 

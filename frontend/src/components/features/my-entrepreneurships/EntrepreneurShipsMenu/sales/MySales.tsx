@@ -28,6 +28,8 @@ export default function MySales() {
     setSortBy,
     statusFilter,
     setStatusFilter,
+    dateRange,
+    setDateRange,
   } = useSales(id);
 
   const [refundingSale, setRefundingSale] =
@@ -161,11 +163,19 @@ export default function MySales() {
     [refundingSale, refetch],
   );
 
+  const filteredTotalRevenue = useMemo(
+    () => sales.reduce((acc, s) => acc + s.total, 0),
+    [sales],
+  );
+
   if (loading) return <ProductTableSkeleton />;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20 md:pb-0">
-      <SalesSummary totalSales={sales.length} />
+      <SalesSummary
+        totalSales={sales.length}
+        totalRevenue={filteredTotalRevenue}
+      />
 
       <SalesFilters
         searchQuery={searchQuery}
@@ -174,6 +184,8 @@ export default function MySales() {
         onStatusChange={setStatusFilter}
         sortBy={sortBy}
         onSortChange={setSortBy}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
         exportButton={
           <button
             type="button"
@@ -197,7 +209,7 @@ export default function MySales() {
 
       {sales.length === 0 ? (
         <SalesEmptyState
-          isFiltering={!!searchQuery || statusFilter !== "all"}
+          isFiltering={!!searchQuery || statusFilter !== "all" || !!dateRange}
         />
       ) : (
         <>
