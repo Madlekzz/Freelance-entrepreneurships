@@ -114,6 +114,7 @@ export default function MyProducts() {
         key={formModal.product?.id || "new-product"}
         isOpen={formModal.isOpen}
         product={formModal.product || null}
+        composedData={formModal.composedData}
         isLoading={isSaving}
         onClose={closeFormModal}
         onSave={saveProduct}

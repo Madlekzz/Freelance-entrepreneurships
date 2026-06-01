@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import {
   createComposedProduct,
   deleteComposedProduct,
+  getComposedProductById,
   updateComposedProduct,
 } from "../services/composedProductService";
 import {
@@ -35,6 +36,7 @@ export function useProducts(entrepreneurshipId?: string) {
   const [formModal, setFormModal] = useState<{
     isOpen: boolean;
     product?: EntrepreneurshipProduct;
+    composedData?: ComposedProductInput;
   }>({ isOpen: false });
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
@@ -66,8 +68,35 @@ export function useProducts(entrepreneurshipId?: string) {
   }, [entrepreneurshipId]);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    let cancelled = false;
+
+    const load = async () => {
+      if (!entrepreneurshipId) return;
+
+      try {
+        setLoading(true);
+        const data = await getEntrepreneurshipProducts(entrepreneurshipId);
+        if (!cancelled) setProducts(data);
+      } catch (error) {
+        if (!cancelled) {
+          console.error(error);
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "No se pudieron cargar los productos. Verifica tu conexión e intenta de nuevo.";
+          toast.error(errorMessage);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [entrepreneurshipId]);
 
   const saveProduct = async (
     data: ProductInput | ComposedProductInput,
@@ -110,6 +139,31 @@ export function useProducts(entrepreneurshipId?: string) {
 
   const openFormModal = useCallback((product?: EntrepreneurshipProduct) => {
     setFormModal({ isOpen: true, product });
+
+    if (product?.is_composed) {
+      getComposedProductById(product.id).then((data) => {
+        setFormModal((prev) => {
+          if (!prev.isOpen || prev.product?.id !== product.id) return prev;
+          return {
+            ...prev,
+            composedData: {
+              name: data.name,
+              price: data.price,
+              is_active: data.is_active,
+              entrepreneurship_id: data.entrepreneurship_id,
+              image: data.image,
+              category_id: data.category_id,
+              components: (data.components || []).map(
+                (c: { component_product_id: string; quantity: number }) => ({
+                  component_product_id: c.component_product_id,
+                  quantity: c.quantity,
+                }),
+              ),
+            },
+          };
+        });
+      });
+    }
   }, []);
 
   const closeFormModal = useCallback(() => {

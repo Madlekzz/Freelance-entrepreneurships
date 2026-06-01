@@ -1,4 +1,4 @@
-import { Select, Switch } from "antd";
+import { Select, Spin, Switch } from "antd";
 import {
   ChevronDown,
   DollarSign,
@@ -15,7 +15,6 @@ import type {
   ProductInput,
 } from "../../../../../types";
 import { getCategories } from "../../../../../services/categoryService";
-import { getComposedProductById } from "../../../../../services/composedProductService";
 import { getEntrepreneurshipProducts } from "../../../../../services/productService";
 import BaseFormModal from "../../../../shared/BaseFormModal";
 import ImageUpload from "../../../../shared/ImageUpload";
@@ -27,6 +26,7 @@ interface ProductFormModalProps {
   onClose: () => void;
   onSave: (formData: ProductInput | ComposedProductInput) => Promise<void>;
   product: EntrepreneurshipProduct | null;
+  composedData?: ComposedProductInput | null;
   isLoading?: boolean;
   entrepreneurshipId: string;
 }
@@ -36,6 +36,7 @@ export default function ProductFormModal({
   onClose,
   onSave,
   product,
+  composedData,
   isLoading,
   entrepreneurshipId,
 }: ProductFormModalProps) {
@@ -51,14 +52,11 @@ export default function ProductFormModal({
     ? (product?.is_composed ?? false)
     : userComposedToggle;
 
-  const [composedInitialData, setComposedInitialData] =
-    useState<ComposedProductInput | null>(null);
-
   const simpleForm = useProductForm(
     isComposed ? null : product,
   );
   const composedForm = useComposedProductForm(
-    isComposed ? composedInitialData : null,
+    isComposed ? (composedData ?? null) : null,
   );
 
   useEffect(() => {
@@ -77,29 +75,7 @@ export default function ProductFormModal({
         })
         .finally(() => setLoadingCategories(false));
     }
-  }, [isOpen]);
-
-  // Si es edición de un producto compuesto, cargar los componentes
-  useEffect(() => {
-    if (isOpen && product?.is_composed && product?.id) {
-      getComposedProductById(product.id).then((data) => {
-        setComposedInitialData({
-          name: data.name,
-          price: data.price,
-          is_active: data.is_active,
-          entrepreneurship_id: data.entrepreneurship_id,
-          image: data.image,
-          category_id: data.category_id,
-          components: (data.components || []).map(
-            (c: { component_product_id: string; quantity: number }) => ({
-              component_product_id: c.component_product_id,
-              quantity: c.quantity,
-            }),
-          ),
-        });
-      });
-    }
-  }, [isOpen, product?.is_composed, product?.id]);
+  }, [isOpen, entrepreneurshipId]);
 
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
@@ -123,6 +99,8 @@ export default function ProductFormModal({
     }
   };
 
+  const loadingComposedData = isComposed && isEditing && !composedData;
+
   return (
     <BaseFormModal
       isOpen={isOpen}
@@ -130,9 +108,14 @@ export default function ProductFormModal({
       onSubmit={handleSubmit}
       title={isEditing ? "Editar Producto" : "Nuevo Producto"}
       confirmText={isEditing ? "Guardar Cambios" : "Crear Producto"}
-      isLoading={isLoading}
+      isLoading={isLoading || loadingComposedData}
       maxWidth="xl"
     >
+      {loadingComposedData ? (
+        <div className="flex items-center justify-center py-16">
+          <Spin size="large" />
+        </div>
+      ) : (
       <div className="space-y-4">
         {/* Toggle: Es un combo? (solo al crear) */}
         {!isEditing && (
@@ -445,6 +428,7 @@ export default function ProductFormModal({
           />
         </div>
       </div>
+      )}
     </BaseFormModal>
   );
 }
