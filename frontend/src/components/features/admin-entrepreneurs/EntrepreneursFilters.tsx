@@ -100,7 +100,7 @@ export const EntrepreneursFilters = (props: Props) => {
               setSearchQuery("");
               setStatusFilter("all");
               setDateRange(null);
-              setSelectedMonth(new Date().getMonth());
+              setSelectedMonth(null);
             }}
             className="p-2.5 text-gray-400 hover:text-primary rounded-xl cursor-pointer transition-colors"
             title="Limpiar filtros"

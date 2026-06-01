@@ -21,17 +21,14 @@ export function useAdminData(enabled: boolean = true) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(
-    new Date().getMonth(),
-  );
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [idsToProcess, setIdsToProcess] = useState<string[]>([]);
   const [modalConfig, setModalConfig] = useState({ title: "", message: "" });
   const [selectedSales, setSelectedSales] = useState<string[]>([]);
 
-  // Dentro de useAdminData.ts
-  const fetchData = useCallback( 
+  const fetchData = useCallback(
     async (isSilent = false) => {
       if (!enabled) {
         setLoading(false);
@@ -43,15 +40,12 @@ export function useAdminData(enabled: boolean = true) {
         const data = await getAllSales();
         setSales(data);
       } catch (err: unknown) {
-        // Verificamos si es nuestro error personalizado
         if (err instanceof AppError) {
-          // Evitamos el toast si es 403
           if (err.status !== 403) {
             toast.error(err.message);
           }
           console.error(`[${err.status}] ${err.message}`);
         } else {
-          // Error genérico no controlado
           const errorMessage = err instanceof Error ? err.message : "Error al cargar los datos del panel. Verifica tu conexión e intenta de nuevo.";
           toast.error(errorMessage);
         }
@@ -63,8 +57,38 @@ export function useAdminData(enabled: boolean = true) {
   );
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let cancelled = false;
+
+    const load = async () => {
+      if (!enabled) return;
+
+      try {
+        setLoading(true);
+        const data = await getAllSales();
+        if (!cancelled) setSales(data);
+      } catch (err: unknown) {
+        if (!cancelled) {
+          if (err instanceof AppError) {
+            if (err.status !== 403) {
+              toast.error(err.message);
+            }
+            console.error(`[${err.status}] ${err.message}`);
+          } else {
+            const errorMessage = err instanceof Error ? err.message : "Error al cargar los datos del panel. Verifica tu conexión e intenta de nuevo.";
+            toast.error(errorMessage);
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
 
   const openProcessPayroll = useCallback((ids: string[]) => {
     if (ids.length === 0) return;
