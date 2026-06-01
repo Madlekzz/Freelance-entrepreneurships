@@ -221,15 +221,16 @@ export function useAdminData(enabled: boolean = true) {
       const fullList = Object.values(map);
       const searchLower = searchQuery.toLowerCase();
 
-      const filteredList = fullList.filter(
-        (ent) =>
-          !searchQuery ||
-          ent.name.toLowerCase().includes(searchLower) ||
-          ent.ownerName.toLowerCase().includes(searchLower),
-      );
+      const filteredList = fullList
+        .filter(
+          (ent) =>
+            !searchQuery ||
+            ent.name.toLowerCase().includes(searchLower) ||
+            ent.ownerName.toLowerCase().includes(searchLower),
+        )
+        .sort((a, b) => a.name.localeCompare(b.name));
 
       return {
-        // Retornamos staticMap para que el .find() en el componente siempre encuentre el objeto
         fullEntrepreneursSummary: Object.values(staticMap),
         filteredEntrepreneursSummary: filteredList,
       };
@@ -303,17 +304,17 @@ export function useAdminData(enabled: boolean = true) {
     const searchLower = searchQuery.toLowerCase();
 
     // 4. Aplicamos el filtro de búsqueda para la vista de tabla
-    const filteredList = fullListForCycle.filter((consumer) => {
-      if (!searchQuery) return true;
-      return (
-        consumer.name.toLowerCase().includes(searchLower) ||
-        consumer.email.toLowerCase().includes(searchLower)
-      );
-    });
+    const filteredList = fullListForCycle
+      .filter((consumer) => {
+        if (!searchQuery) return true;
+        return (
+          consumer.name.toLowerCase().includes(searchLower) ||
+          consumer.email.toLowerCase().includes(searchLower)
+        );
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     return {
-      // fullConsumersSummary ahora tiene TODOS los usuarios de la base de datos de ventas
-      // Esto previene el error de 'undefined' al buscar el nombre en el encabezado
       fullConsumersSummary: Object.values(staticMap),
       consumersSummary: filteredList,
     };
