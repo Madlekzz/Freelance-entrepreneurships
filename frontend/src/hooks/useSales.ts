@@ -134,7 +134,7 @@ export function useSales(entrepreneurshipId?: string) {
     }
 
     // --- D. Ordenamiento ---
-    result.sort((a, b) => {
+    result = result.toSorted((a, b) => {
       switch (sortBy) {
         case "date-desc":
           return (

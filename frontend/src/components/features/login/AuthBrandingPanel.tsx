@@ -29,7 +29,7 @@ export const AuthBrandingPanel = ({
         >
           <img
             src={freelanceLogo}
-            alt="Logo"
+            alt="Freelance Latin America"
             className="h-10 w-auto object-contain mb-6"
           />
         </button>

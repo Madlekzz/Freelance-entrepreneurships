@@ -31,6 +31,7 @@ export default function Sidebar({
       {isOpenMobile && (
         <button
           type="button"
+          aria-label="Cerrar menú"
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-55 md:hidden transition-opacity cursor-pointer"
           onClick={closeMobile}
         />
@@ -41,6 +42,7 @@ export default function Sidebar({
         <button
           type="button"
           onClick={openMobile}
+          aria-label="Abrir menú de navegación"
           className="md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-60 bg-primary text-white py-4 rounded-r-2xl shadow-lg border-y border-r border-white/20 animate-pulse"
         >
           <ChevronRight size={20} />
@@ -72,7 +74,7 @@ export default function Sidebar({
             >
               <img
                 src={freelanceLogo}
-                alt="Logo"
+                alt="Freelance Latin America"
                 className="w-8 h-8 object-contain"
               />
             </Link>

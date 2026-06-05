@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import {
-  type Entrepreneurship,
   getEntrepreneurshipById,
 } from "../services/entrepreneurshipService";
+import type { Entrepreneurship } from "../types";
 
-// hooks/useEntrepreneurshipDetail.ts (o dentro del mismo archivo)
 export function useEntrepreneurshipDetail(id: string | undefined) {
   const [data, setData] = useState<Entrepreneurship | null>(null);
   const [loading, setLoading] = useState(true);

@@ -5,7 +5,7 @@ export default function CatalogHero() {
     <div className="relative h-80 overflow-hidden">
       <img
         src={bannerImg}
-        alt="Banner catálogo"
+        alt="Catálogo de productos - Emprendimientos internos Freelance Latin America"
         className="w-full h-full object-cover"
       />
 

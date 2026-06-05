@@ -3,10 +3,10 @@ import { toast } from "react-toastify";
 import {
   createEntrepreneurship,
   deleteEntrepreneurship,
-  type Entrepreneurship,
   getMyEntrepreneurships,
   updateEntrepreneurship,
 } from "../services/entrepreneurshipService";
+import type { Entrepreneurship } from "../types";
 
 export function useEntrepreneurships() {
   const [items, setItems] = useState<Entrepreneurship[]>([]);
@@ -46,9 +46,26 @@ export function useEntrepreneurships() {
     }
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: false positive
   useEffect(() => {
-    fetchData();
+    let cancelled = false;
+
+    getMyEntrepreneurships()
+      .then((data) => {
+        if (cancelled) return;
+        setItems(data);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        const errorMessage = error instanceof Error ? error.message : "No se pudieron cargar los emprendimientos. Verifica tu conexión e intenta de nuevo.";
+        toast.error(errorMessage);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const openDeleteModal = (id: string, name: string) => {

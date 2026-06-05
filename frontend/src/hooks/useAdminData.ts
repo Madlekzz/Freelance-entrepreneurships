@@ -246,7 +246,7 @@ export function useAdminData(enabled: boolean = true) {
             ent.name.toLowerCase().includes(searchLower) ||
             ent.ownerName.toLowerCase().includes(searchLower),
         )
-        .sort((a, b) => a.name.localeCompare(b.name));
+        .toSorted((a, b) => a.name.localeCompare(b.name));
 
       return {
         fullEntrepreneursSummary: Object.values(staticMap),

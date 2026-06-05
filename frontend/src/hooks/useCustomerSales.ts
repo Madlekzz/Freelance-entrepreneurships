@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify/unstyled";
 import { supabase } from "../config/supabaseClient";
 import { getConsumerPurchases } from "../services/saleService";
@@ -12,7 +12,7 @@ export const useConsumerSales = () => {
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
 
-  const fetchMySales = useCallback(async () => {
+  const fetchMySales = async () => {
     try {
       setLoading(true);
       const {
@@ -31,7 +31,7 @@ export const useConsumerSales = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   // 2. Lógica de filtrado con useMemo para optimizar rendimiento
   const filteredSales = useMemo(() => {
@@ -75,8 +75,34 @@ export const useConsumerSales = () => {
   }, [sales, searchQuery, selectedMonth, dateRange]);
 
   useEffect(() => {
-    fetchMySales();
-  }, [fetchMySales]);
+    let cancelled = false;
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (cancelled || !session?.user) return;
+        return getConsumerPurchases(session.user.id);
+      })
+      .then((data) => {
+        if (cancelled || !data) return;
+        setSales(data);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "No se pudieron cargar tus compras. Verifica tu conexión e intenta de nuevo.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 3. Retornamos los nuevos estados
   return {

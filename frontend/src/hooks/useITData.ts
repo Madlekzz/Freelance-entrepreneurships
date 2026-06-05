@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { getPendingRequests } from "../services/authService";
 import { getActiveSessions, getAllUsers } from "../services/usersService";
 
@@ -14,10 +14,10 @@ export function useITData(enabled: boolean) {
     pendingRequests: 0,
     activeSessions: 0,
   });
-  const [loading, setLoading] = useState<boolean>(enabled);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchITDashboardData = useCallback(async () => {
+  const fetchITDashboardData = async () => {
     if (!enabled) {
       setLoading(false);
       return;
@@ -27,7 +27,6 @@ export function useITData(enabled: boolean) {
       setLoading(true);
       setError(null);
 
-      // Ejecución paralela de servicios reales
       const [users, requests, activeCount] = await Promise.all([
         getAllUsers(),
         getPendingRequests(),
@@ -49,11 +48,45 @@ export function useITData(enabled: boolean) {
     } finally {
       setLoading(false);
     }
-  }, [enabled]);
+  };
 
   useEffect(() => {
-    fetchITDashboardData();
-  }, [fetchITDashboardData]);
+    if (!enabled) return;
+
+    let cancelled = false;
+
+    Promise.resolve()
+      .then(() => {
+        if (cancelled) return;
+        setLoading(true);
+        setError(null);
+        return Promise.all([getAllUsers(), getPendingRequests(), getActiveSessions()]);
+      })
+      .then((result) => {
+        if (cancelled || !result) return;
+        setMetrics({
+          totalUsers: result[0].length,
+          pendingRequests: result[1].length,
+          activeSessions: result[2],
+        });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const msg =
+          err instanceof Error
+            ? err.message
+            : "No se pudieron cargar las métricas del sistema. Verifica tu conexión e intenta de nuevo.";
+        setError(msg);
+        console.error("[useITData] Error:", msg);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
 
   return {
     ...metrics,

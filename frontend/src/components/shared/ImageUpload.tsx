@@ -32,7 +32,7 @@ export default function ImageUpload({ value, onChange }: ImageUploadProps) {
           <div className="relative h-40 w-full rounded-2xl overflow-hidden border-2 border-dashed border-gray-200">
             <img
               src={preview}
-              alt="Preview"
+              alt="Vista previa de la imagen del producto"
               className="w-full h-full object-cover"
             />
             <button

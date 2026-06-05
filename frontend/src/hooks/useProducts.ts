@@ -219,7 +219,7 @@ export function useProducts(entrepreneurshipId?: string) {
       result = result.filter((p) => p.current_stock >= 5);
     }
 
-    result.sort((a, b) => {
+    result = result.toSorted((a, b) => {
       switch (sortBy) {
         case "name-asc":
           return a.name.localeCompare(b.name);

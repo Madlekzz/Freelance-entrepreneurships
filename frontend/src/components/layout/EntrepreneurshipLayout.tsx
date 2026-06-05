@@ -61,6 +61,7 @@ export default function EntrepreneurshipLayout() {
             <button
               type="button"
               onClick={logout}
+              aria-label="Cerrar sesión"
               className="group flex cursor-pointer items-center justify-center w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 shadow-sm active:scale-95"
             >
               <LogOut

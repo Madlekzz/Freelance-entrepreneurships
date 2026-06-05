@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getCategories } from "../services/categoryService";
 import { getActiveProducts } from "../services/productService";
 import type { CatalogProduct, Category } from "../types";
@@ -18,16 +18,43 @@ export function useCatalog() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
-  // Usamos useCallback para poder pasarlo a otros hooks sin causar re-renders
-  const fetchProducts = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all([getActiveProducts(), getCategories()])
+      .then(([productsData, categoriesData]) => {
+        if (cancelled) return;
+        setProducts(
+          productsData.toSorted((a, b) => a.name.localeCompare(b.name)),
+        );
+        setCategories(categoriesData);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setError(
+          err instanceof Error
+            ? err.message
+            : "No se pudieron cargar los productos. Verifica tu conexión e intenta de nuevo.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const refreshProducts = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const [productsData, categoriesData] = await Promise.all([
         getActiveProducts(),
         getCategories(),
       ]);
       setProducts(
-        [...productsData].sort((a, b) => a.name.localeCompare(b.name)),
+        productsData.toSorted((a, b) => a.name.localeCompare(b.name)),
       );
       setCategories(categoriesData);
     } catch (err: unknown) {
@@ -39,11 +66,7 @@ export function useCatalog() {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  };
 
   const filteredAndSorted = useMemo(() => {
     const result = products.filter(
@@ -56,7 +79,7 @@ export function useCatalog() {
         (!selectedCategory || p.category_id === Number(selectedCategory)),
     );
 
-    return result.sort((a, b) => {
+    return result.toSorted((a, b) => {
       switch (sortBy) {
         case "name-asc":
           return a.name.localeCompare(b.name);
@@ -96,7 +119,7 @@ export function useCatalog() {
     categories,
     paginatedProducts,
     filteredAndSorted,
-    refreshProducts: fetchProducts,
+    refreshProducts,
     loading,
     error,
     page,

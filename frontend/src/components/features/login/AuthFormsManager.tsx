@@ -22,7 +22,7 @@ export const AuthFormsManager = () => {
           >
             <img
               src={freelanceLogoColored}
-              alt="Logo"
+              alt="Freelance Latin America"
               className="h-12 w-auto object-contain"
             />
             <div className="text-center">

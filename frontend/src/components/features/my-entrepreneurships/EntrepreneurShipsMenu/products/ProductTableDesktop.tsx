@@ -45,7 +45,8 @@ export default function ProductTableDesktop({
                       <img
                         src={product.image}
                         className="object-cover w-full h-full"
-                        alt=""
+                        alt={product.name}
+                        loading="lazy"
                       />
                     ) : (
                       <Package size={20} />

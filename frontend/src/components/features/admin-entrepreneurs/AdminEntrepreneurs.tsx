@@ -57,7 +57,7 @@ export default function AdminEntrepreneurs() {
         logic.setProcessingIds((prev: string[]) => prev.filter((id) => id !== refundingSale?.id));
       }
     },
-    [refundingSale, logic.markItemsRefunded, logic.refetch, logic.setProcessingIds, logic.setSelectedSales],
+    [refundingSale, logic],
   );
 
   const handleExport = () => {
