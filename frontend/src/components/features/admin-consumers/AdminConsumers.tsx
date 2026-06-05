@@ -1,4 +1,6 @@
+import { useCallback, useState } from "react";
 import { Download } from "lucide-react";
+import { toast } from "react-toastify";
 import { SummaryEmptyState } from "../admin-entrepreneurs/SummaryEmptyState";
 import DetailedSalesStats from "../../shared/DetailedSalesStats";
 import { AdminConsumersSkeleton } from "./AdminConsumersSkeleton";
@@ -10,6 +12,9 @@ import { ConsumersFilters } from "./ConsumersFilter";
 import { ConsumersHeader } from "./ConsumersHeader";
 import { ConsumersMobile } from "./ConsumersMobile";
 import { useAdminConsumers } from "./hooks/useAdminConsumers";
+import RefundSaleModal from "../my-entrepreneurships/EntrepreneurShipsMenu/sales/RefundSaleModal";
+import { refundSale } from "../../../services/saleService";
+import type { GlobalSale } from "../../../types";
 import { exportSalesToExcel } from "../../../utils/exportToExcel";
 
 export default function AdminConsumers() {
@@ -24,7 +29,10 @@ export default function AdminConsumers() {
     setSelectedUserEmail,
     loading,
     processingIds,
+    setProcessingIds,
     processPayroll,
+    markItemsRefunded,
+    refetch,
     searchQuery,
     setSearchQuery,
     statusFilter,
@@ -37,6 +45,48 @@ export default function AdminConsumers() {
     toggleAllVisible,
     handleBackToSummary,
   } = useAdminConsumers();
+
+  const [refundingSale, setRefundingSale] = useState<GlobalSale | null>(null);
+  const [isRefunding, setIsRefunding] = useState(false);
+
+  const handleRefund = useCallback((sale: GlobalSale) => {
+    setRefundingSale(sale);
+  }, []);
+
+  const handleCloseRefund = useCallback(() => {
+    setRefundingSale(null);
+    setIsRefunding(false);
+  }, []);
+
+  const handleConfirmRefund = useCallback(
+    async (itemIds: number[]) => {
+      if (!refundingSale) return;
+      try {
+        setIsRefunding(true);
+        setProcessingIds((prev: string[]) => [...prev, refundingSale.id]);
+        const result = await refundSale(refundingSale.id, { item_ids: itemIds });
+        if (result.type === "full") {
+          toast.success("Venta reembolsada correctamente");
+        } else {
+          toast.success("Items reembolsados correctamente");
+        }
+        markItemsRefunded(refundingSale.id, itemIds);
+        setRefundingSale(null);
+        setSelectedSales((prev: string[]) => prev.filter((id) => id !== refundingSale.id));
+        refetch(true);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Error al procesar el reembolso";
+        toast.error(errorMessage);
+      } finally {
+        setIsRefunding(false);
+        setProcessingIds((prev: string[]) => prev.filter((id) => id !== refundingSale?.id));
+      }
+    },
+    [refundingSale, markItemsRefunded, refetch, setProcessingIds, setSelectedSales],
+  );
 
   const handleExport = () => {
     if (!detailedSales.length) return;
@@ -129,6 +179,7 @@ export default function AdminConsumers() {
                   toggleSelection={toggleSaleSelection}
                   toggleAll={toggleAllVisible}
                   onProcessSingle={(id) => processPayroll([id])}
+                  onRefund={handleRefund}
                   processingIds={processingIds}
                 />
                 <ConsumerDetailedMobile
@@ -136,6 +187,7 @@ export default function AdminConsumers() {
                   selectedSales={selectedSales}
                   toggleSelection={toggleSaleSelection}
                   onProcessSingle={(id) => processPayroll([id])}
+                  onRefund={handleRefund}
                   processingIds={processingIds}
                 />
               </>
@@ -143,6 +195,18 @@ export default function AdminConsumers() {
           </div>
         )}
       </div>
+
+      {refundingSale && (
+        <RefundSaleModal
+          isOpen={true}
+          onClose={handleCloseRefund}
+          onConfirm={handleConfirmRefund}
+          isLoading={isRefunding}
+          saleItems={refundingSale.sale_items}
+          saleTotal={refundingSale.total}
+          saleId={refundingSale.id}
+        />
+      )}
     </div>
   );
 }

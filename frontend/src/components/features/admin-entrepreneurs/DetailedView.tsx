@@ -9,6 +9,7 @@ interface Props {
   toggleSelection: (id: string) => void;
   toggleAll: () => void;
   onProcessSingle: (id: string) => void;
+  onRefund: (sale: GlobalSale) => void;
   sortOrder: "asc" | "desc";
   setSortOrder: (order: "asc" | "desc") => void;
   processingIds: string[];
@@ -31,6 +32,7 @@ export const DetailedView = (props: Props) => {
         selectedSales={props.selectedSales}
         toggleSelection={props.toggleSelection}
         onProcessSingle={props.onProcessSingle}
+        onRefund={props.onRefund}
         processingIds={props.processingIds}
         selectedEntId={props.selectedEntId}
       />

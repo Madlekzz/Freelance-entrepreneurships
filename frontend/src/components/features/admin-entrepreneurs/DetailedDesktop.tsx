@@ -8,6 +8,7 @@ interface Props {
   toggleSelection: (id: string) => void;
   toggleAll: () => void;
   onProcessSingle: (id: string) => void;
+  onRefund: (sale: GlobalSale) => void;
   sortOrder: "asc" | "desc";
   setSortOrder: (order: "asc" | "desc") => void;
   processingIds: string[];
@@ -21,6 +22,7 @@ export const DetailedDesktop = (props: Props) => {
     toggleSelection,
     toggleAll,
     onProcessSingle,
+    onRefund,
     sortOrder,
     setSortOrder,
     processingIds,
@@ -127,14 +129,24 @@ export const DetailedDesktop = (props: Props) => {
                     <RotateCcw size={14} /> REEMBOLSADO
                   </span>
                 ) : !sale.payroll_processed ? (
-                  <button
-                    type="button"
-                    onClick={() => onProcessSingle(sale.id)}
-                    disabled={processingIds.includes(sale.id)}
-                    className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 disabled:opacity-50 cursor-pointer transition-all"
-                  >
-                    {processingIds.includes(sale.id) ? "..." : "Liquidar"}
-                  </button>
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onProcessSingle(sale.id)}
+                      disabled={processingIds.includes(sale.id)}
+                      className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 disabled:opacity-50 cursor-pointer transition-all"
+                    >
+                      {processingIds.includes(sale.id) ? "..." : "Liquidar"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRefund(sale)}
+                      disabled={processingIds.includes(sale.id)}
+                      className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-600 disabled:opacity-50 cursor-pointer transition-all"
+                    >
+                      Reembolsar
+                    </button>
+                  </div>
                 ) : (
                   <CheckCircle2
                     size={18}

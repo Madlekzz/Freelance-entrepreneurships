@@ -136,6 +136,24 @@ export function useAdminData(enabled: boolean = true) {
     );
   }, []);
 
+  const markItemsRefunded = useCallback((saleId: string, itemIds: number[]) => {
+    setSales((prev) =>
+      prev.map((sale) => {
+        if (sale.id !== saleId) return sale;
+        const updatedItems = sale.sale_items.map((item) =>
+          itemIds.includes(item.id) ? { ...item, refunded: true } : item,
+        );
+        const allRefunded = updatedItems.every((item) => item.refunded);
+        return {
+          ...sale,
+          sale_items: updatedItems,
+          refunded: allRefunded ? true : sale.refunded,
+          total: allRefunded ? 0 : sale.total,
+        };
+      }),
+    );
+  }, []);
+
   const isDateInRange = useCallback((date: Date, range: DateRange | null) => {
     if (!range) return true;
     return date >= range.start && date <= range.end;
@@ -378,8 +396,10 @@ export function useAdminData(enabled: boolean = true) {
     consumersSummary,
     loading,
     processingIds,
+    setProcessingIds,
     processPayroll,
     openProcessPayroll,
+    markItemsRefunded,
     refetch: fetchData,
     searchQuery,
     setSearchQuery,

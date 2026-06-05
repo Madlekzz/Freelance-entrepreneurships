@@ -8,6 +8,7 @@ interface Props {
   toggleSelection: (id: string) => void;
   toggleAll: () => void;
   onProcessSingle: (id: string) => void;
+  onRefund: (sale: GlobalSale) => void;
   processingIds: string[];
 }
 
@@ -17,6 +18,7 @@ export const ConsumerDetailedDesktop = ({
   toggleSelection,
   toggleAll,
   onProcessSingle,
+  onRefund,
   processingIds,
 }: Props) => (
   <div className="hidden md:block overflow-x-auto">
@@ -52,12 +54,14 @@ export const ConsumerDetailedDesktop = ({
       <tbody className="divide-y divide-gray-50">
         {sales.map((sale) => {
           const isProcessing = processingIds.includes(sale.id);
+          const allItemsRefunded = sale.sale_items.every((item: SaleItemDetail) => item.refunded);
+          const isEffectivelyRefunded = sale.refunded || allItemsRefunded;
           return (
             <tr key={sale.id} className="hover:bg-gray-50/50 transition-colors">
               <td className="px-6 py-4">
                 <input
                   type="checkbox"
-                  disabled={sale.payroll_processed || sale.refunded || isProcessing}
+                  disabled={sale.payroll_processed || isEffectivelyRefunded || isProcessing}
                   checked={selectedSales.includes(sale.id)}
                   onChange={() => toggleSelection(sale.id)}
                   className="rounded border-gray-300 text-primary cursor-pointer disabled:opacity-30"
@@ -90,7 +94,7 @@ export const ConsumerDetailedDesktop = ({
                 {new Date(sale.created_at).toLocaleDateString()}
               </td>
               <td className="px-6 py-4 text-center">
-                {sale.refunded ? (
+                {isEffectivelyRefunded ? (
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-50 text-red-600 text-[10px] font-bold border border-red-100">
                     <RotateCcw size={12} /> REEMBOLSADA
                   </span>
@@ -99,18 +103,28 @@ export const ConsumerDetailedDesktop = ({
                     DESCONTADO
                   </span>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => onProcessSingle(sale.id)}
-                    disabled={isProcessing}
-                    className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition-all cursor-pointer min-w-25 inline-flex items-center justify-center gap-2"
-                  >
-                    {isProcessing ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      "Descontar"
-                    )}
-                  </button>
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onProcessSingle(sale.id)}
+                      disabled={isProcessing}
+                      className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition-all cursor-pointer min-w-25 inline-flex items-center justify-center gap-2"
+                    >
+                      {isProcessing ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        "Descontar"
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRefund(sale)}
+                      disabled={isProcessing}
+                      className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-600 transition-all cursor-pointer"
+                    >
+                      Reembolsar
+                    </button>
+                  </div>
                 )}
               </td>
               <td className="px-6 py-4 text-right font-bold text-gray-900">
