@@ -7,6 +7,7 @@ interface Props {
   selectedSales: string[];
   toggleSelection: (id: string) => void;
   onProcessSingle: (id: string) => void;
+  onRefund: (sale: GlobalSale) => void;
   processingIds: string[];
 }
 
@@ -15,11 +16,14 @@ export const ConsumerDetailedMobile = ({
   selectedSales,
   toggleSelection,
   onProcessSingle,
+  onRefund,
   processingIds,
 }: Props) => (
   <div className="md:hidden space-y-4">
     {sales.map((sale) => {
       const isProcessing = processingIds.includes(sale.id);
+      const allItemsRefunded = sale.sale_items.every((item: SaleItemDetail) => item.refunded);
+      const isEffectivelyRefunded = sale.refunded || allItemsRefunded;
       return (
         <div
           key={sale.id}
@@ -29,7 +33,7 @@ export const ConsumerDetailedMobile = ({
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
-                disabled={sale.payroll_processed || sale.refunded || isProcessing}
+                disabled={sale.payroll_processed || isEffectivelyRefunded || isProcessing}
                 checked={selectedSales.includes(sale.id)}
                 onChange={() => toggleSelection(sale.id)}
                 className="w-5 h-5 rounded-lg border-gray-200 text-primary cursor-pointer"
@@ -43,7 +47,7 @@ export const ConsumerDetailedMobile = ({
                 </p>
               </div>
             </div>
-            {sale.refunded ? (
+            {isEffectivelyRefunded ? (
               <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 px-2.5 py-1 rounded-lg text-[9px] font-black italic">
                 <RotateCcw size={12} /> REEMBOLSADA
               </span>
@@ -52,18 +56,28 @@ export const ConsumerDetailedMobile = ({
                 DESCONTADO
               </span>
             ) : (
-              <button
-                type="button"
-                onClick={() => onProcessSingle(sale.id)}
-                disabled={isProcessing}
-                className="bg-blue-600 text-white px-3 py-1.5 rounded-xl text-[10px] font-black shadow-sm active:scale-95 transition-all cursor-pointer"
-              >
-                {isProcessing ? (
-                  <Loader2 size={12} className="animate-spin" />
-                ) : (
-                  "DESCONTAR"
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onProcessSingle(sale.id)}
+                  disabled={isProcessing}
+                  className="bg-blue-600 text-white px-3 py-1.5 rounded-xl text-[10px] font-black shadow-sm active:scale-95 transition-all cursor-pointer"
+                >
+                  {isProcessing ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    "DESCONTAR"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRefund(sale)}
+                  disabled={isProcessing}
+                  className="bg-red-500 text-white px-3 py-1.5 rounded-xl text-[10px] font-black shadow-sm active:scale-95 transition-all cursor-pointer"
+                >
+                  REEMBOLSAR
+                </button>
+              </div>
             )}
           </div>
 

@@ -30,6 +30,7 @@ export default function MySales() {
     setStatusFilter,
     dateRange,
     setDateRange,
+    markItemsRefunded,
   } = useSales(id);
 
   const [refundingSale, setRefundingSale] =
@@ -110,7 +111,7 @@ export default function MySales() {
         toast.success(`${successCount} venta${successCount === 1 ? "" : "s"} reembolsada${successCount === 1 ? "" : "s"} correctamente`);
       }
 
-      await refetch();
+      refetch();
       setSelectedSales((prev) => prev.filter((id) => !idsToBulkRefund.includes(id)));
       setIsBulkModalOpen(false);
     } catch (error: unknown) {
@@ -146,9 +147,10 @@ export default function MySales() {
         } else {
           toast.success("Items reembolsados correctamente");
         }
+        markItemsRefunded(refundingSale.id, itemIds);
         setRefundingSale(null);
         setSelectedSales((prev) => prev.filter((id) => id !== refundingSale.id));
-        await refetch();
+        refetch();
       } catch (error) {
         const errorMessage =
           error instanceof Error
@@ -160,7 +162,7 @@ export default function MySales() {
         setProcessingIds((prev) => prev.filter((id) => id !== refundingSale?.id));
       }
     },
-    [refundingSale, refetch],
+    [refundingSale, markItemsRefunded, refetch],
   );
 
   const filteredTotalRevenue = useMemo(

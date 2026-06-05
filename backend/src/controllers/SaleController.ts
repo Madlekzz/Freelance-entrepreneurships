@@ -835,64 +835,78 @@ export async function refundSale(req: Request, res: Response) {
       .json({ error: "La venta ya fue reembolsada" });
   }
 
-  // 2. Obtener los emprendimientos del usuario solicitante
-  const { data: entrepreneurships } = await supabaseAdmin
-    .from("entrepreneurships")
-    .select("id")
-    .eq("owner_id", requestingUser?.id);
+  // 2. Determinar si el usuario es ADMIN (puede reembolsar cualquier item)
+  const userRoles: string[] = (requestingUser as any)?.user_metadata?.roles || [];
+  const isAdmin = userRoles.includes("ADMIN");
 
-  if (!entrepreneurships || entrepreneurships.length === 0) {
-    return res
-      .status(403)
-      .json({ error: "No tienes emprendimientos registrados" });
-  }
-
-  const userEntIds = entrepreneurships.map((e: { id: string }) => e.id);
-
-  // 3. Filtrar items que pertenecen a los emprendimientos del usuario
-  const saleData = sale as unknown as {
+  let userItems: Array<{
+    id: number;
+    product_id: string;
+    quantity: number;
+    unit_price: number;
+    subtotal: number;
+    products: {
+      id: string;
+      name: string;
+      entrepreneurship_id: string;
+      current_stock: number;
+      entrepreneurships:
+        | { id: string; owner_id: string }
+        | Array<{ id: string; owner_id: string }>;
+    };
+  }>;
+  let saleData: {
     id: string;
     total: number;
     payroll_processed: boolean;
     refunded: boolean;
-    sale_items: Array<{
-      id: number;
-      product_id: string;
-      quantity: number;
-      unit_price: number;
-      subtotal: number;
-      products: {
-        id: string;
-        name: string;
-        entrepreneurship_id: string;
-        current_stock: number;
-        entrepreneurships:
-          | { id: string; owner_id: string }
-          | Array<{ id: string; owner_id: string }>;
-      };
-    }>;
+    sale_items: typeof userItems;
   };
 
-  const userItems = saleData.sale_items.filter((item) => {
-    const entData = item.products.entrepreneurships;
-    const entId = Array.isArray(entData) ? entData[0]?.id : entData?.id;
-    return entId ? userEntIds.includes(entId) : false;
-  });
+  if (isAdmin) {
+    // ADMIN: puede reembolsar cualquier item de la venta
+    saleData = sale as unknown as typeof saleData;
+    userItems = saleData.sale_items;
+  } else {
+    // PROVEEDOR: filtrar items que pertenecen a sus emprendimientos
+    const { data: entrepreneurships } = await supabaseAdmin
+      .from("entrepreneurships")
+      .select("id")
+      .eq("owner_id", requestingUser?.id);
 
-  if (userItems.length === 0) {
-    return res
-      .status(400)
-      .json({ error: "No hay items de tus emprendimientos en esta venta" });
+    if (!entrepreneurships || entrepreneurships.length === 0) {
+      return res
+        .status(403)
+        .json({ error: "No tienes emprendimientos registrados" });
+    }
+
+    const userEntIds = entrepreneurships.map((e: { id: string }) => e.id);
+
+    saleData = sale as unknown as typeof saleData;
+
+    userItems = saleData.sale_items.filter((item) => {
+      const entData = item.products.entrepreneurships;
+      const entId = Array.isArray(entData) ? entData[0]?.id : entData?.id;
+      return entId ? userEntIds.includes(entId) : false;
+    });
+
+    if (userItems.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "No hay items de tus emprendimientos en esta venta" });
+    }
   }
 
-  // 4. Determinar qué items reembolsar
+  // 3. Determinar qué items reembolsar
   let refundItems: typeof userItems;
 
   if (item_ids && Array.isArray(item_ids) && item_ids.length > 0) {
     refundItems = userItems.filter((item) => item_ids.includes(item.id));
     if (refundItems.length !== item_ids.length) {
       return res.status(400).json({
-        error: "Uno o más items no pertenecen a tus emprendimientos o no existen",
+        error: isAdmin
+          ? "Uno o más items no existen en esta venta"
+          : "Uno o más items no pertenecen a tus emprendimientos o no existen",
       });
     }
   } else {
@@ -1125,22 +1139,29 @@ export async function refundSaleBatch(req: Request, res: Response) {
   }
 
   try {
-    const { data: entrepreneurships } = await supabaseAdmin
-      .from("entrepreneurships")
-      .select("id")
-      .eq("owner_id", requestingUser?.id);
+    const userRoles: string[] = (requestingUser as any)?.user_metadata?.roles || [];
+    const isAdmin = userRoles.includes("ADMIN");
 
-    if (!entrepreneurships || entrepreneurships.length === 0) {
-      return res.status(403).json({ error: "No tienes emprendimientos registrados" });
+    let userEntIds: string[] = [];
+    if (!isAdmin) {
+      const { data: entrepreneurships } = await supabaseAdmin
+        .from("entrepreneurships")
+        .select("id")
+        .eq("owner_id", requestingUser?.id);
+
+      if (!entrepreneurships || entrepreneurships.length === 0) {
+        return res.status(403).json({ error: "No tienes emprendimientos registrados" });
+      }
+
+      userEntIds = entrepreneurships.map((e: { id: string }) => e.id);
     }
 
-    const userEntIds = entrepreneurships.map((e: { id: string }) => e.id);
     const results: { saleId: string; success: boolean; error?: string; type?: "full" | "partial" }[] = [];
     const successNotifications: RefundNotificationData[] = [];
 
     for (const saleId of saleIds) {
       try {
-        const result = await processSingleRefund(saleId, userEntIds);
+        const result = await processSingleRefund(saleId, userEntIds, isAdmin);
         results.push({ saleId, success: true, type: result.type });
         successNotifications.push(result);
       } catch (err) {
@@ -1207,7 +1228,7 @@ interface RefundNotificationData {
   type: "full" | "partial";
 }
 
-async function processSingleRefund(saleId: string, userEntIds: string[]): Promise<RefundNotificationData> {
+async function processSingleRefund(saleId: string, userEntIds: string[], isAdmin = false): Promise<RefundNotificationData> {
   const { data: sale, error: saleError } = await supabaseAdmin
     .from("sales")
     .select(
@@ -1285,13 +1306,14 @@ async function processSingleRefund(saleId: string, userEntIds: string[]): Promis
 
   const userItems = saleData.sale_items.filter((item) => {
     if (item.refunded) return false;
+    if (isAdmin) return true;
     const entData = item.products.entrepreneurships;
     const entId = Array.isArray(entData) ? entData[0]?.id : entData?.id;
     return entId ? userEntIds.includes(entId) : false;
   });
 
   if (userItems.length === 0) {
-    throw new Error("No hay items de tus emprendimientos para reembolsar en esta venta");
+    throw new Error(isAdmin ? "No hay items para reembolsar en esta venta" : "No hay items de tus emprendimientos para reembolsar en esta venta");
   }
 
   for (const item of userItems) {

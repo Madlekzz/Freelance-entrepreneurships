@@ -33,9 +33,27 @@ export function useSystemUsers() {
     }
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: false positive
   useEffect(() => {
-    fetchUsers();
+    let cancelled = false;
+
+    getAllUsers()
+      .then((data) => {
+        if (cancelled) return;
+        setUsers(data);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Error al cargar usuarios", error);
+        const errorMessage = error instanceof Error ? error.message : "No se pudieron cargar los usuarios. Verifica tu conexión e intenta de nuevo.";
+        toast.error(errorMessage);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filteredUsers = useMemo(() => {

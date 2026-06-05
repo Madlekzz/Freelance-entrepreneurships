@@ -36,8 +36,8 @@ saleRouter.get(
 saleRouter.get("/:id", authorize("ADMIN"), getSaleById);
 saleRouter.patch("/batch/payroll", authorize("ADMIN"), updatePayrollStatusBatch);
 saleRouter.patch("/:id/payroll", authorize("ADMIN"), updatePayrollStatus);
-saleRouter.post("/batch/refund", authorize("PROVEEDOR"), refundSaleBatch);
-saleRouter.post("/:id/refund", authorize("PROVEEDOR"), refundSale);
+saleRouter.post("/batch/refund", authorize("ADMIN", "PROVEEDOR"), refundSaleBatch);
+saleRouter.post("/:id/refund", authorize("ADMIN", "PROVEEDOR"), refundSale);
 saleRouter.delete("/:id", authorize("IT"), deleteSale);
 
 export default saleRouter;

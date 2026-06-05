@@ -7,11 +7,12 @@ interface Props {
   selectedSales: string[];
   toggleSelection: (id: string) => void;
   onProcessSingle: (id: string) => void;
+  onRefund: (sale: GlobalSale) => void;
   processingIds: string[];
   selectedEntId?: string | null;
 }
 
-export const DetailedMobile = ({ sales, selectedSales, toggleSelection, onProcessSingle, processingIds, selectedEntId }: Props) => (
+export const DetailedMobile = ({ sales, selectedSales, toggleSelection, onProcessSingle, onRefund, processingIds, selectedEntId }: Props) => (
   <div className="md:hidden space-y-4 p-4">
     {sales.map((sale) => {
       const visibleItems = sale.sale_items.filter(
@@ -36,10 +37,16 @@ export const DetailedMobile = ({ sales, selectedSales, toggleSelection, onProces
           ) : sale.payroll_processed ? (
             <span className="bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg text-[9px] font-black italic">LIQUIDADO</span>
           ) : (
-            <button type="button" onClick={() => onProcessSingle(sale.id)} disabled={processingIds.includes(sale.id)}
-              className="bg-green-500 text-white px-3 py-1.5 rounded-xl text-[10px] font-black cursor-pointer disabled:opacity-50">
-              {processingIds.includes(sale.id) ? "..." : "LIQUIDAR"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => onProcessSingle(sale.id)} disabled={processingIds.includes(sale.id)}
+                className="bg-green-500 text-white px-3 py-1.5 rounded-xl text-[10px] font-black cursor-pointer disabled:opacity-50">
+                {processingIds.includes(sale.id) ? "..." : "LIQUIDAR"}
+              </button>
+              <button type="button" onClick={() => onRefund(sale)} disabled={processingIds.includes(sale.id)}
+                className="bg-red-500 text-white px-3 py-1.5 rounded-xl text-[10px] font-black cursor-pointer disabled:opacity-50">
+                REEMBOLSAR
+              </button>
+            </div>
           )}
         </div>
         <div className="space-y-1.5 bg-gray-50/50 p-3 rounded-2xl">

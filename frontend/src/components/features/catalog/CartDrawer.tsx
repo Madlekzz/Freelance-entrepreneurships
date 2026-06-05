@@ -84,6 +84,9 @@ export default function CartDrawer({
 
       {/* Drawer */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Carrito de compras"
         className={`fixed top-0 right-0 bottom-0 w-95 bg-white z-30 flex flex-col transition-transform duration-200 shadow-2xl ${
           isOpen ? "translate-x-0" : "translate-x-full"
         } w-full md:w-[30%] pb-20 md:pb-0`}
@@ -99,6 +102,7 @@ export default function CartDrawer({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Cerrar carrito"
             className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 cursor-pointer flex items-center justify-center text-white transition-colors"
           >
             <X size={16} />
@@ -125,6 +129,7 @@ export default function CartDrawer({
                       <img
                         src={product.image}
                         alt={product.name}
+                        loading="lazy"
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -146,6 +151,7 @@ export default function CartDrawer({
                       <button
                         type="button"
                         onClick={() => onChangeQty(product.id, -1)}
+                        aria-label="Reducir cantidad"
                         className="w-7 h-7 border cursor-pointer border-gray-200 rounded-lg flex items-center justify-center text-gray-500 hover:border-primary hover:text-primary transition-colors"
                       >
                         <Minus size={12} />
@@ -157,6 +163,7 @@ export default function CartDrawer({
                         type="button"
                         onClick={() => onChangeQty(product.id, 1)}
                         disabled={qty >= product.current_stock}
+                        aria-label="Aumentar cantidad"
                         className="w-7 h-7 border cursor-pointer border-gray-200 rounded-lg flex items-center justify-center text-gray-500 hover:border-primary hover:text-primary transition-colors disabled:opacity-30"
                       >
                         <Plus size={12} />
@@ -169,13 +176,14 @@ export default function CartDrawer({
                     <span className="font-display text-sm font-bold text-primary">
                       {fmt(product.price * qty)}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => onRemove(product.id)}
-                      className="text-gray-300 cursor-pointer hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                          <button
+                            type="button"
+                            onClick={() => onRemove(product.id)}
+                            aria-label="Eliminar producto"
+                            className="text-red-400 hover:text-red-600 transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                   </div>
                 </div>
               ))}

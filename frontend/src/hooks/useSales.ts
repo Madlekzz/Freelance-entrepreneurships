@@ -60,6 +60,24 @@ export function useSales(entrepreneurshipId?: string) {
     }
   }, [entrepreneurshipId]);
 
+  const markItemsRefunded = useCallback((saleId: string, itemIds: number[]) => {
+    setSales((prev) =>
+      prev.map((sale) => {
+        if (sale.id !== saleId) return sale;
+        const updatedItems = sale.sale_items.map((item) =>
+          itemIds.includes(item.id) ? { ...item, refunded: true } : item,
+        );
+        const allRefunded = updatedItems.every((item) => item.refunded);
+        return {
+          ...sale,
+          sale_items: updatedItems,
+          refunded: allRefunded ? true : sale.refunded,
+          total: allRefunded ? 0 : sale.total,
+        };
+      }),
+    );
+  }, []);
+
   // 2. Lógica de Filtrado y Ordenamiento (Computed State)
   // Usamos useMemo para que solo se recalcule cuando cambien los datos o los filtros
   const filteredSales = useMemo(() => {
@@ -116,7 +134,7 @@ export function useSales(entrepreneurshipId?: string) {
     }
 
     // --- D. Ordenamiento ---
-    result.sort((a, b) => {
+    result = result.toSorted((a, b) => {
       switch (sortBy) {
         case "date-desc":
           return (
@@ -156,6 +174,7 @@ export function useSales(entrepreneurshipId?: string) {
     setDateRange,
 
     // Acciones
+    markItemsRefunded,
     refetch,
   };
 }

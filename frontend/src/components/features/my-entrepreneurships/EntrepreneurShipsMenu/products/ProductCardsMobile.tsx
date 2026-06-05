@@ -21,7 +21,8 @@ export default function ProductCardsMobile({ products, getActionMenu }: Props) {
               <img
                 src={product.image}
                 className="object-cover w-full h-full"
-                alt=""
+                alt={product.name}
+                loading="lazy"
               />
             ) : (
               <Package size={24} />

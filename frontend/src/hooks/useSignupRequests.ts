@@ -1,5 +1,5 @@
 import { message } from "antd";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import {
   approveAccessRequest,
@@ -19,7 +19,7 @@ export const useSignupRequests = () => {
   // 1. Estado para el término de búsqueda
   const [searchQuery, setSearchQuery] = useState("");
 
-  const fetchRequests = useCallback(async () => {
+  const fetchRequests = async () => {
     try {
       setLoading(true);
       const data = await getPendingRequests();
@@ -29,11 +29,28 @@ export const useSignupRequests = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    let cancelled = false;
+
+    getPendingRequests()
+      .then((data) => {
+        if (cancelled) return;
+        setRequests(data);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Error fetching requests:", error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 2. Lógica de filtrado con useMemo
   const filteredRequests = useMemo(() => {
