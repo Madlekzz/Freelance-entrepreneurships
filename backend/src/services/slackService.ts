@@ -6,8 +6,30 @@ import {
 } from "@slack/web-api";
 import { supabaseAdmin } from "../db.js";
 import { lowStockAlertTemplate } from "../schemas/slackTemplates.js";
+import { getSlackBotTokenFromSheet } from "./googleSheetsService.js";
 
-const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
+let slackClient: WebClient | null = null;
+let cachedToken: string | null = null;
+let lastFetchTime = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+const ensureSlackClient = async (): Promise<WebClient | null> => {
+  const now = Date.now();
+  if (slackClient && cachedToken && (now - lastFetchTime) < CACHE_TTL_MS) {
+    return slackClient;
+  }
+
+  const token = await getSlackBotTokenFromSheet();
+  if (!token) {
+    console.error("[SlackService] No se pudo obtener el token de Slack");
+    return null;
+  }
+
+  slackClient = new WebClient(token);
+  cachedToken = token;
+  lastFetchTime = now;
+  return slackClient;
+};
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -70,17 +92,14 @@ export interface SlackNotificationResponse {
   error?: string;
 }
 
-/**
- * Busca el ID de un usuario en Slack utilizando su correo electrónico.
- */
-export const getSlackIdByEmail = async (
+const resolveSlackId = async (
+  client: WebClient,
   email: string,
 ): Promise<string | null> => {
   try {
-    const result = await slackClient.users.lookupByEmail({ email });
+    const result = await client.users.lookupByEmail({ email });
     return result.user?.id || null;
   } catch (error: unknown) {
-    // Verificamos si es un error específico de la plataforma Slack
     const slackError = error as WebAPIPlatformError;
 
     console.error(
@@ -92,6 +111,17 @@ export const getSlackIdByEmail = async (
 };
 
 /**
+ * Busca el ID de un usuario en Slack utilizando su correo electrónico.
+ */
+export const getSlackIdByEmail = async (
+  email: string,
+): Promise<string | null> => {
+  const client = await ensureSlackClient();
+  if (!client) return null;
+  return resolveSlackId(client, email);
+};
+
+/**
  * Envía una notificación de Slack.
  * Retorna los datos necesarios para que el controlador realice el registro en DB.
  */
@@ -99,7 +129,16 @@ export const sendSlackNotification = async (
   email: string,
   content: SlackMessageContent,
 ): Promise<SlackNotificationResponse> => {
-  const slackUserId = await getSlackIdByEmail(email);
+  const client = await ensureSlackClient();
+  if (!client) {
+    return {
+      success: false,
+      slackUserId: null,
+      error: "No se pudo inicializar el cliente de Slack",
+    };
+  }
+
+  const slackUserId = await resolveSlackId(client, email);
 
   if (!slackUserId) {
     return {
@@ -110,7 +149,7 @@ export const sendSlackNotification = async (
   }
 
   try {
-    await slackClient.chat.postMessage({
+    await client.chat.postMessage({
       channel: slackUserId,
       text: "Actualización de pedido", // Fallback para notificaciones push
       blocks: content,

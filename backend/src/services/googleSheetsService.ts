@@ -5,6 +5,50 @@ import {
   sheets,
 } from "./googleSheetsConfig.js";
 
+export async function getSlackBotTokenFromSheet(): Promise<string | null> {
+  const sheetUrl = process.env.SLACK_TOKEN_SHEET_URL;
+  if (!sheetUrl) {
+    console.error("[GoogleSheets] SLACK_TOKEN_SHEET_URL no configurada");
+    return null;
+  }
+
+  const match = sheetUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  const spreadsheetId = match?.[1];
+  if (!spreadsheetId) {
+    console.error(
+      "[GoogleSheets] No se pudo extraer el ID de la hoja desde la URL",
+    );
+    return null;
+  }
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "A2:A2",
+    });
+
+    const value = response.data.values?.[0]?.[0];
+    if (!value) {
+      console.error(
+        "[GoogleSheets] Celda A2 vacía en la hoja de configuración de Slack",
+      );
+      return null;
+    }
+
+    if (!value.startsWith("xoxb-")) {
+      console.error(
+        "[GoogleSheets] El valor en A2 no parece ser un token válido de Slack (debe comenzar con xoxb-)",
+      );
+      return null;
+    }
+
+    return value;
+  } catch (err) {
+    console.error("[GoogleSheets] Error al leer el token de Slack:", err);
+    return null;
+  }
+}
+
 const TOTAL_COLUMN = "TOTAL";
 const NAME_COLUMN_INDEX = 1;
 const EMAIL_COLUMN_INDEX = 2;
