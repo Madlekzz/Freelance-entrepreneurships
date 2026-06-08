@@ -96,7 +96,6 @@ export async function createEntrepreneurship(req: Request, res: Response) {
 // Actualizar un emprendimiento
 export async function updateEntrepreneurship(req: Request, res: Response) {
   const { id } = req.params;
-  const updates = req.body;
   const requestingUser = req.user;
 
   // Siempre verificamos que el emprendimiento exista
@@ -118,6 +117,20 @@ export async function updateEntrepreneurship(req: Request, res: Response) {
     return res
       .status(403)
       .json({ error: "No tienes permiso para editar este emprendimiento" });
+  }
+
+  // Whitelist de campos permitidos para actualización
+  const allowedFields = ["name", "description"];
+  const updates: Record<string, unknown> = {};
+
+  for (const field of allowedFields) {
+    if (req.body[field] !== undefined) {
+      updates[field] = req.body[field];
+    }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: "No hay campos válidos para actualizar" });
   }
 
   const { data, error } = await supabaseAdmin

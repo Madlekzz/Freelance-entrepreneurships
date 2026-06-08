@@ -64,7 +64,7 @@ export async function SignupRequest(req: Request, res: Response) {
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : "Error al procesar la solicitud de registro";
 		console.error("Error en SignupRequest:", errorMessage);
-		res.status(500).json({ error: `Error al crear la solicitud de acceso: ${errorMessage}` });
+		res.status(500).json({ error: "Error al crear la solicitud de acceso" });
 	}
 }
 
@@ -86,7 +86,7 @@ export async function GetPendingRequests(_req: Request, res: Response) {
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : "Error al consultar las solicitudes pendientes";
 		console.error("Error fetching pending requests:", errorMessage);
-		return res.status(500).json({ error: `Error al obtener las solicitudes de registro: ${errorMessage}` });
+		return res.status(500).json({ error: "Error al obtener las solicitudes de registro" });
 	}
 }
 
@@ -101,7 +101,7 @@ export async function ApproveSignup(req: Request, res: Response) {
 			.eq("id", requestId)
 			.single();
 		if (fetchError || !request) {
-			return res.status(404).json({ error: fetchError });
+			return res.status(404).json({ error: "Solicitud no encontrada" });
 		}
 
 		// 2. Crear el usuario en Supabase Auth
@@ -133,7 +133,7 @@ export async function ApproveSignup(req: Request, res: Response) {
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : "Error al aprobar la solicitud e invitar al usuario";
 		console.error("Error en ApproveSignup:", errorMessage);
-		res.status(500).json({ error: `Error al aprobar la solicitud de acceso: ${errorMessage}` });
+		res.status(500).json({ error: "Error al aprobar la solicitud de acceso" });
 	}
 }
 
@@ -161,7 +161,7 @@ export async function RejectSignup(req: Request, res: Response) {
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : "Error al actualizar el estado de la solicitud";
 		console.error("Error en RejectSignup:", errorMessage);
-		res.status(500).json({ error: `Error al rechazar la solicitud: ${errorMessage}` });
+		res.status(500).json({ error: "Error al rechazar la solicitud" });
 	}
 }
 
@@ -183,8 +183,12 @@ export async function Login(req: Request, res: Response) {
 		});
 
 		if (error) {
-			// Error común: "Invalid login credentials"
-			return res.status(401).json({ error: error.message });
+			const isInvalidCreds = error.message?.includes("Invalid login credentials");
+			return res.status(401).json({
+				error: isInvalidCreds
+					? "Credenciales inválidas"
+					: "Error al iniciar sesión",
+			});
 		}
 
 		// 3. Si es exitoso, devolvemos la sesión y el usuario
@@ -197,6 +201,6 @@ export async function Login(req: Request, res: Response) {
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : "Error al verificar las credenciales";
 		console.error("Login error:", errorMessage);
-		return res.status(500).json({ error: `Error al iniciar sesión: ${errorMessage}` });
+		return res.status(500).json({ error: "Error al iniciar sesión" });
 	}
 }

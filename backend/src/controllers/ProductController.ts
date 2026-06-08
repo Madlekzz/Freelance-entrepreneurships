@@ -221,44 +221,33 @@ export async function updateProduct(req: Request, res: Response) {
       }
     }
 
-    // 2. Preparar el objeto de actualización
-    type UpdatesType = {
-      name?: string;
-      price?: string | number;
-      current_stock?: string | number;
-      is_active?: string | boolean;
-      category_id?: string | number;
-      image?: string;
-      entrepreneurships?: unknown;
-      entrepreneurship_id?: unknown;
-    };
-    const updates: UpdatesType = { ...req.body };
+    // 2. Preparar el objeto de actualización con whitelist de campos
+    const allowedFields = ["name", "price", "current_stock", "is_active", "category_id"] as const;
+    const updates: Record<string, unknown> = {};
 
-    if (updates.price) updates.price = parseFloat(updates.price as string);
-    if (updates.current_stock)
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    if (updates.price !== undefined) updates.price = parseFloat(updates.price as string);
+    if (updates.current_stock !== undefined)
       updates.current_stock = parseInt(updates.current_stock as string, 10);
     if (updates.is_active !== undefined) {
       updates.is_active =
         updates.is_active === "true" || updates.is_active === true;
     }
-    if (updates.category_id) {
+    if (updates.category_id !== undefined) {
       updates.category_id = parseInt(updates.category_id as string, 10);
     }
 
     // 3. Manejo de la nueva imagen (si se subió una)
     if (imageFile) {
-      // Usamos el ID del producto para el nombre del archivo para mantener consistencia
       const fileName = `${Date.now()}-${id}`;
       const path = `${product.entrepreneurship_id}/${fileName}`;
-
-      // Subimos y obtenemos la nueva URL
       updates.image = await uploadProductImage(imageFile, path);
     }
-
-    // 4. Limpieza de datos antes de enviar a Supabase
-    // Eliminamos campos que no existen en la tabla 'products' (como los datos unidos del owner)
-    delete updates.entrepreneurships;
-    delete updates.entrepreneurship_id; // Normalmente no permitimos cambiar el producto de dueño/tienda
 
     // 5. Ejecutar la actualización
     const { data: updatedProduct, error: updateError } = await supabaseAdmin
