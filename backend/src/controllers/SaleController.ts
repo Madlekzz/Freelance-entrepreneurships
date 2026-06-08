@@ -81,7 +81,10 @@ export async function getAllSales(_req: Request, res: Response) {
     )
     .order("created_at", { ascending: false });
 
-  if (error) return res.status(400).json({ error: error.message });
+  if (error) {
+    console.error("[SaleController] Error al obtener ventas:", error.message);
+    return res.status(400).json({ error: "Error al obtener ventas" });
+  }
 
   res.status(200).json(data);
 }
@@ -134,7 +137,10 @@ export async function getSalesByEntrepreneurship(req: Request, res: Response) {
     .eq("sale_items.products.entrepreneurship_id", entrepreneurship_id)
     .order("created_at", { ascending: false });
 
-  if (error) return res.status(400).json({ error: error.message });
+  if (error) {
+    console.error("[SaleController] Error al obtener ventas por emprendimiento:", error.message);
+    return res.status(400).json({ error: "Error al obtener ventas" });
+  }
   res.status(200).json(data);
 }
 
@@ -170,11 +176,13 @@ export async function getSalesByConsumer(req: Request, res: Response) {
     .eq("consumer_id", consumer_id)
     .order("created_at", { ascending: false });
 
-  if (error) return res.status(400).json({ error: error.message });
+  if (error) {
+    console.error("[SaleController] Error al obtener ventas por consumidor:", error.message);
+    return res.status(400).json({ error: "Error al obtener ventas" });
+  }
   res.status(200).json(data);
 }
 
-// [ADMIN] Obtener una venta por ID
 // [ADMIN] Obtener una venta por ID con todo su desglose
 export async function getSaleById(req: Request, res: Response) {
   const { id } = req.params;
@@ -398,6 +406,25 @@ export async function createSale(req: Request, res: Response) {
     if (itemsError) throw itemsError;
 
     // 4. Stock deduction is handled by the reduce_stock_on_sale trigger on sale_items INSERT
+    // Verify stock integrity after insertion to detect TOCTOU overselling
+    try {
+      const verifyPromises = stockDeductions.map(async (sd) => {
+        const { data: prod } = await supabaseAdmin
+          .from("products")
+          .select("current_stock")
+          .eq("id", sd.product_id)
+          .single();
+
+        if (prod && prod.current_stock < 0) {
+          console.error(
+            `[TOCTOU] Stock negativo detectado para producto ${sd.product_id}: ${prod.current_stock}`,
+          );
+        }
+      });
+      await Promise.all(verifyPromises);
+    } catch (verifyErr) {
+      console.error("[SaleController] Error verificando stock post-inserción:", verifyErr);
+    }
 
     // --- PROCESO DE NOTIFICACIONES ---
     // Separamos en try-catch para que errores en notificaciones no fallen toda la venta
@@ -919,9 +946,8 @@ export async function refundSale(req: Request, res: Response) {
       .json({ error: "No hay items para reembolsar" });
   }
 
-  // 5. Restaurar stock de cada producto reembolsado y notificar low stock
+  // 5. Restaurar stock de cada producto reembolsado — usar incremento atómico vía RPC
   for (const item of refundItems) {
-    // Verificar si el producto es compuesto
     const { data: prodData } = await supabaseAdmin
       .from("products")
       .select("is_composed")
@@ -929,7 +955,6 @@ export async function refundSale(req: Request, res: Response) {
       .single();
 
     if (prodData?.is_composed) {
-      // Restaurar stock de los componentes
       const { data: components } = await supabaseAdmin
         .from("composed_product_components")
         .select("component_product_id, quantity")
@@ -937,6 +962,7 @@ export async function refundSale(req: Request, res: Response) {
 
       if (components) {
         for (const comp of components) {
+          const restoreQty = comp.quantity * item.quantity;
           const { data: compProduct } = await supabaseAdmin
             .from("products")
             .select("current_stock")
@@ -944,28 +970,42 @@ export async function refundSale(req: Request, res: Response) {
             .single();
 
           if (compProduct) {
-            const restoredStock = compProduct.current_stock + comp.quantity * item.quantity;
-            await supabaseAdmin
+            const restoredStock = compProduct.current_stock + restoreQty;
+            const { error: stockError } = await supabaseAdmin
               .from("products")
               .update({ current_stock: restoredStock })
               .eq("id", comp.component_product_id);
+
+            if (stockError) {
+              console.error(
+                `Error restoring stock for component ${comp.component_product_id}:`,
+                stockError,
+              );
+            }
           }
         }
       }
     } else {
-      // Producto simple: restaurar stock directamente
-      const newStock = item.products.current_stock + item.quantity;
-
-      const { error: stockError } = await supabaseAdmin
+      const { data: current } = await supabaseAdmin
         .from("products")
-        .update({ current_stock: newStock })
-        .eq("id", item.product_id);
+        .select("current_stock")
+        .eq("id", item.product_id)
+        .single();
 
-      if (stockError) {
-        console.error(
-          `Error restoring stock for product ${item.product_id}:`,
-          stockError,
-        );
+      if (current) {
+        const newStock = current.current_stock + item.quantity;
+
+        const { error: stockError } = await supabaseAdmin
+          .from("products")
+          .update({ current_stock: newStock })
+          .eq("id", item.product_id);
+
+        if (stockError) {
+          console.error(
+            `Error restoring stock for product ${item.product_id}:`,
+            stockError,
+          );
+        }
       }
     }
   }

@@ -1,3 +1,12 @@
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export const CONSUMER_PURCHASE_SUBJECT = "Confirmaci\u00F3n de Compra - Freelance LATAM";
 
 export const consumerPurchaseEmailHtml = (
@@ -12,11 +21,12 @@ export const consumerPurchaseEmailHtml = (
       ? idParts[0].toUpperCase()
       : "N/A";
 
+  const esc = escapeHtml;
   const itemsHtml = items
     .map(
       (p) =>
         `<tr>
-          <td style="padding:8px;border-bottom:1px solid #e0e0e0;">${p.name}</td>
+          <td style="padding:8px;border-bottom:1px solid #e0e0e0;">${esc(p.name)}</td>
           <td style="padding:8px;border-bottom:1px solid #e0e0e0;text-align:center;">${p.quantity}</td>
           <td style="padding:8px;border-bottom:1px solid #e0e0e0;text-align:right;">$${p.price.toLocaleString()}</td>
           <td style="padding:8px;border-bottom:1px solid #e0e0e0;text-align:right;">$${(p.quantity * p.price).toLocaleString()}</td>
@@ -41,10 +51,10 @@ export const consumerPurchaseEmailHtml = (
           <tr>
             <td style="padding:30px;">
               <p style="margin:0 0 20px;font-size:16px;color:#333;">
-                Hola <strong>${name}</strong>, gracias por tu apoyo a los emprendimientos.
+                Hola <strong>${esc(name)}</strong>, gracias por tu apoyo a los emprendimientos.
               </p>
               <p style="margin:0 0 20px;font-size:14px;color:#666;">
-                Orden: <strong>#${displayId}</strong>
+                Orden: <strong>#${esc(displayId)}</strong>
               </p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
                 <thead>
@@ -100,11 +110,12 @@ export const entrepreneurSaleEmailHtml = (
       ? idParts[0].toUpperCase()
       : "N/A";
 
+  const esc = escapeHtml;
   const itemsHtml = products
     .map(
       (p) =>
         `<tr>
-          <td style="padding:8px;border-bottom:1px solid #e0e0e0;">${p.name}</td>
+          <td style="padding:8px;border-bottom:1px solid #e0e0e0;">${esc(p.name)}</td>
           <td style="padding:8px;border-bottom:1px solid #e0e0e0;text-align:center;">${p.quantity}</td>
           <td style="padding:8px;border-bottom:1px solid #e0e0e0;text-align:right;">$${p.price.toLocaleString()}</td>
           <td style="padding:8px;border-bottom:1px solid #e0e0e0;text-align:right;">$${(p.quantity * p.price).toLocaleString()}</td>
@@ -129,10 +140,10 @@ export const entrepreneurSaleEmailHtml = (
           <tr>
             <td style="padding:30px;">
               <p style="margin:0 0 20px;font-size:16px;color:#333;">
-                Hola <strong>${ownerName}</strong>, <strong>${customerName}</strong> ha realizado una compra en tu emprendimiento.
+                Hola <strong>${esc(ownerName)}</strong>, <strong>${esc(customerName)}</strong> ha realizado una compra en tu emprendimiento.
               </p>
               <p style="margin:0 0 20px;font-size:14px;color:#666;">
-                Orden: <strong>#${displayId}</strong>
+                Orden: <strong>#${esc(displayId)}</strong>
               </p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
                 <thead>
@@ -177,11 +188,12 @@ export const refundEmailHtml = (
 ): string => {
   const typeLabel = refundType === "full" ? "Reembolso Total" : "Reembolso Parcial";
 
+  const esc = escapeHtml;
   const itemsHtml = items
     .map(
       (item) =>
         `<tr>
-          <td style="padding:8px;border-bottom:1px solid #e0e0e0;">${item.products.name}</td>
+          <td style="padding:8px;border-bottom:1px solid #e0e0e0;">${esc(item.products.name)}</td>
           <td style="padding:8px;border-bottom:1px solid #e0e0e0;text-align:center;">${item.quantity}</td>
           <td style="padding:8px;border-bottom:1px solid #e0e0e0;text-align:right;">$${item.unit_price.toLocaleString()}</td>
           <td style="padding:8px;border-bottom:1px solid #e0e0e0;text-align:right;">$${(item.quantity * item.unit_price).toLocaleString()}</td>
@@ -200,7 +212,7 @@ export const refundEmailHtml = (
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;">
           <tr>
             <td style="background:linear-gradient(135deg,#f093fb,#f5576c);padding:30px;text-align:center;">
-              <h1 style="color:#ffffff;margin:0;font-size:24px;">${typeLabel}</h1>
+              <h1 style="color:#ffffff;margin:0;font-size:24px;">${escapeHtml(typeLabel)}</h1>
             </td>
           </tr>
           <tr>
@@ -270,13 +282,13 @@ export const lowStockAlertEmailHtml = (
           <tr>
             <td style="padding:30px;">
               <p style="margin:0 0 20px;font-size:16px;color:#333;">
-                Hola <strong>${ownerName}</strong>, uno de tus productos tiene stock bajo:
+                Hola <strong>${escapeHtml(ownerName)}</strong>, uno de tus productos tiene stock bajo:
               </p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background-color:#f8f8f8;border-radius:6px;">
                 <tr>
                   <td style="padding:15px;">
-                    <p style="margin:0;font-size:14px;color:#666;"><strong>Producto:</strong> ${productName}</p>
-                    <p style="margin:8px 0 0;font-size:14px;color:#666;"><strong>Emprendimiento:</strong> ${entrepreneurshipName}</p>
+                    <p style="margin:0;font-size:14px;color:#666;"><strong>Producto:</strong> ${escapeHtml(productName)}</p>
+                    <p style="margin:8px 0 0;font-size:14px;color:#666;"><strong>Emprendimiento:</strong> ${escapeHtml(entrepreneurshipName)}</p>
                     <p style="margin:8px 0 0;font-size:14px;color:#f5576c;"><strong>Stock actual:</strong> ${currentStock} unidades</p>
                   </td>
                 </tr>
@@ -316,11 +328,12 @@ export const refundBatchEmailHtml = (
 
   refundGroups.forEach((group, index) => {
     const typeLabel = group.type === "full" ? "Reembolso Total" : "Reembolso Parcial";
+    const esc = escapeHtml;
     const itemsHtml = group.items
       .map(
         (item) =>
           `<tr>
-            <td style="padding:8px;border-bottom:1px solid #e0e0e0;">${item.products.name}</td>
+            <td style="padding:8px;border-bottom:1px solid #e0e0e0;">${esc(item.products.name)}</td>
             <td style="padding:8px;border-bottom:1px solid #e0e0e0;text-align:center;">${item.quantity}</td>
             <td style="padding:8px;border-bottom:1px solid #e0e0e0;text-align:right;">$${item.unit_price.toLocaleString()}</td>
             <td style="padding:8px;border-bottom:1px solid #e0e0e0;text-align:right;">$${(item.quantity * item.unit_price).toLocaleString()}</td>

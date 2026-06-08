@@ -13,7 +13,10 @@ export async function createSystemUser(req: Request, res: Response) {
       user_metadata: { name, roles, departamento }, // Metadatos útiles
     });
 
-  if (authError) return res.status(400).json({ error: authError.message });
+  if (authError) {
+    console.error("[UserController] Error creando usuario:", authError.message);
+    return res.status(400).json({ error: "Error al crear el usuario" });
+  }
 
   res
     .status(201)
@@ -26,7 +29,10 @@ export async function getAllUsers(_req: Request, res: Response) {
     .from("users")
     .select("*")
     .order("name", { ascending: true });
-  if (error) return res.status(400).json({ error: error.message });
+  if (error) {
+    console.error("[UserController] Error al obtener usuarios:", error.message);
+    return res.status(400).json({ error: "Error al obtener usuarios" });
+  }
   res.status(200).json(data);
 }
 
@@ -44,7 +50,7 @@ export async function getPublicConsumers(_req: Request, res: Response) {
     const errorMessage = error instanceof Error ? error.message : "Error desconocido al consultar la base de datos";
     console.error("Error al obtener consumidores:", errorMessage);
     return res.status(500).json({
-      error: `Error al obtener la lista de consumidores: ${errorMessage}`,
+      error: "Error al obtener la lista de consumidores",
     });
   }
 }
@@ -58,7 +64,10 @@ export async function getUserById(req: Request, res: Response) {
     .eq("id", id)
     .single();
 
-  if (error) return res.status(404).json({ error: "Usuario no encontrado" });
+  if (error) {
+    console.error("[UserController] Error al obtener usuario:", error.message);
+    return res.status(404).json({ error: "Usuario no encontrado" });
+  }
   res.status(200).json(data);
 }
 
@@ -85,8 +94,7 @@ export const getActiveSessionsCount = async (_req: Request, res: Response) => {
     console.error("Controlador IT Error:", errorMessage);
 
     return res.status(500).json({
-      error: `Error al obtener el conteo de sesiones activas: ${errorMessage}`,
-      details: errorMessage,
+      error: "Error al obtener el conteo de sesiones activas",
     });
   }
 };
@@ -94,7 +102,6 @@ export const getActiveSessionsCount = async (_req: Request, res: Response) => {
 // Modificar un usuario
 export async function updateUser(req: Request, res: Response) {
   const { id } = req.params;
-  const updates = req.body;
 
   if (!id || typeof id !== "string") {
     return res.status(400).json({ error: "ID de usuario inválido o ausente" });
@@ -111,6 +118,27 @@ export async function updateUser(req: Request, res: Response) {
     return res.status(404).json({ error: "Usuario no encontrado" });
   }
 
+  // Whitelist de campos permitidos para actualización
+  const allowedFields = ["name", "email", "departamento"];
+  const updates: Record<string, unknown> = {};
+
+  for (const field of allowedFields) {
+    if (req.body[field] !== undefined) {
+      updates[field] = req.body[field];
+    }
+  }
+
+  // Solo IT/ADMIN puede modificar roles
+  const userRoles: string[] = req.user?.user_metadata?.roles || [];
+  const isPrivileged = userRoles.includes("IT") || userRoles.includes("ADMIN");
+  if (isPrivileged && req.body.roles !== undefined) {
+    updates.roles = req.body.roles;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: "No hay campos válidos para actualizar" });
+  }
+
   const { data, error } = await supabaseAdmin
     .from("users")
     .update(updates)
@@ -118,7 +146,10 @@ export async function updateUser(req: Request, res: Response) {
     .select()
     .single();
 
-  if (error) return res.status(400).json({ error: error.message });
+  if (error) {
+    console.error("[UserController] Error al actualizar usuario:", error.message);
+    return res.status(400).json({ error: "Error al actualizar usuario" });
+  }
 
   const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
     id,
@@ -131,7 +162,6 @@ export async function updateUser(req: Request, res: Response) {
     return res.status(500).json({
       error:
         "Usuario actualizado en la base de datos pero falló la sincronización con Auth",
-      detail: authError.message,
     });
   }
 
@@ -160,7 +190,7 @@ export async function deleteUser(req: Request, res: Response) {
     const errorMessage = error instanceof Error ? error.message : "Error al procesar la eliminación en la base de datos";
     console.error("Error al eliminar usuario:", errorMessage);
     return res.status(500).json({
-      error: `No se pudo eliminar el usuario del sistema: ${errorMessage}`,
+      error: "No se pudo eliminar el usuario del sistema",
     });
   }
 }
