@@ -30,6 +30,7 @@ export interface SaleItem {
   quantity: number;
   unit_price: number;
   refunded?: boolean;
+  entrepreneur_processed?: boolean;
 }
 
 export interface UserInfo {
@@ -42,6 +43,8 @@ export interface ConsumerSale {
   total: number;
   payroll_processed: boolean;
   refunded?: boolean;
+  payment_type?: PaymentType;
+  payment_method?: PaymentMethod | null;
   users: UserInfo;
   sale_items: SaleItem[];
 }
@@ -226,9 +229,14 @@ export interface ComposedProductInput {
   components: ComposedProductComponent[];
 }
 
+export type PaymentType = "credit" | "immediate";
+export type PaymentMethod = "efectivo" | "binance" | "pago_movil" | null;
+
 export interface CreateSalePayload {
   consumer_id: string;
   items: SaleItemPayload[];
+  payment_type?: PaymentType;
+  payment_method?: PaymentMethod;
 }
 
 export interface SaleItemPayload {
@@ -243,6 +251,8 @@ export interface Sale {
   payroll_processed: boolean;
   refunded?: boolean;
   created_at: string;
+  payment_type: PaymentType;
+  payment_method?: PaymentMethod | null;
 }
 
 export interface SaleItemDetail {
@@ -251,6 +261,8 @@ export interface SaleItemDetail {
   unit_price: number;
   subtotal: number;
   refunded?: boolean;
+  entrepreneur_processed?: boolean;
+  entrepreneur_processed_at?: string;
   products: {
     id: string;
     name: string;
@@ -272,6 +284,8 @@ export interface EntrepreneurshipSale {
   total: number;
   payroll_processed: boolean;
   refunded?: boolean;
+  payment_type: PaymentType;
+  payment_method?: PaymentMethod | null;
   users: {
     id: string;
     name: string;
@@ -319,6 +333,8 @@ export interface GlobalSale {
   total: number;
   payroll_processed: boolean;
   refunded?: boolean;
+  payment_type: PaymentType;
+  payment_method?: PaymentMethod | null;
   users: {
     id: string;
     name: string;
