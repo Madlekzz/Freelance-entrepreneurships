@@ -1,5 +1,6 @@
-import { Calendar } from "lucide-react";
-import { useState } from "react";
+import { Calendar, CheckCircle2, Clock, CreditCard, Filter, Minus, RotateCcw, ShoppingBag } from "lucide-react";
+import { StatCard } from "../../shared/StatCard";
+import { useMemo, useState } from "react";
 import { useConsumerSales } from "../../../hooks/useCustomerSales";
 import { formatCurrency } from "../../../utils/format";
 import { MONTHS } from "../../../utils/payrollUtils";
@@ -9,6 +10,20 @@ import FilterSelector from "../admin-entrepreneurs/FilterSelector";
 import MyPurchasesDesktop from "./MyPurchasesDesktop";
 import MyPurchasesEmpty from "./MyPurchasesEmpty";
 import MyPurchasesMobile from "./MyPurchasesMobile";
+import type { ConsumerSale } from "../../../types";
+
+function getSaleStatus(sale: ConsumerSale) {
+  if (sale.refunded || sale.sale_items.every((item) => item.refunded)) return "refunded";
+  if (sale.payment_type === "immediate") {
+    const allProcessed = sale.sale_items.every((item) => item.entrepreneur_processed || item.refunded);
+    if (allProcessed) return "paid";
+    const someProcessed = sale.sale_items.some((item) => item.entrepreneur_processed);
+    if (someProcessed) return "partial";
+    return "pending";
+  }
+  if (sale.payroll_processed) return "processed";
+  return "pending";
+}
 
 export default function MyPurchases() {
   const {
@@ -16,8 +31,12 @@ export default function MyPurchases() {
     loading,
     searchQuery,
     setSearchQuery,
+    statusFilter,
+    setStatusFilter,
     selectedMonth,
     setSelectedMonth,
+    paymentMethodFilter,
+    setPaymentMethodFilter,
     dateRange,
     setDateRange,
   } = useConsumerSales();
@@ -27,8 +46,34 @@ export default function MyPurchases() {
     setExpandedId(expandedId === id ? null : id);
   const hasNoSales = !loading && sales.length === 0;
 
-  const totalFiltered = sales.reduce((sum, sale) => sum + sale.total, 0);
-  const countFiltered = sales.length;
+  const totalsByStatus = useMemo(() => {
+    const groups: Record<string, { count: number; total: number }> = {
+      pending: { count: 0, total: 0 },
+      processed: { count: 0, total: 0 },
+      paid: { count: 0, total: 0 },
+      partial: { count: 0, total: 0 },
+      refunded: { count: 0, total: 0 },
+      total: { count: sales.length, total: 0 },
+    };
+    for (const sale of sales) {
+      const status = getSaleStatus(sale);
+      if (groups[status]) {
+        groups[status].count += 1;
+        groups[status].total += sale.total;
+      }
+      groups.total.total += sale.total;
+    }
+    return groups;
+  }, [sales]);
+
+  const statusCards = [
+    { key: "pending", label: "Pendiente", icon: Clock, color: "text-amber-600 bg-amber-50 border-amber-100", textColor: "text-amber-700" },
+    { key: "processed", label: "Procesado", icon: CheckCircle2, color: "text-emerald-600 bg-emerald-50 border-emerald-100", textColor: "text-emerald-700" },
+    { key: "paid", label: "Pagado", icon: CheckCircle2, color: "text-emerald-600 bg-emerald-50 border-emerald-100", textColor: "text-emerald-700" },
+    { key: "partial", label: "Parcial", icon: Minus, color: "text-blue-600 bg-blue-50 border-blue-100", textColor: "text-blue-700" },
+    { key: "refunded", label: "Reembolsado", icon: RotateCcw, color: "text-red-600 bg-red-50 border-red-100", textColor: "text-red-700" },
+    { key: "total", label: "Total General", icon: ShoppingBag, color: "text-primary bg-primary/5 border-primary/20", textColor: "text-primary" },
+  ];
 
   return (
     <div className="animate-in fade-in duration-500 pb-20">
@@ -43,17 +88,62 @@ export default function MyPurchases() {
           <FilterSelector
             label={selectedMonth !== null ? MONTHS[selectedMonth] : "Meses"}
             icon={Calendar}
+            selectedKey={selectedMonth ?? "all"}
+            onChange={(key) => setSelectedMonth(key === "all" ? null : (key as number))}
             items={[
-              {
-                key: "all",
-                label: "Todos los meses",
-                onClick: () => setSelectedMonth(null),
-              },
-              ...MONTHS.map((m, i) => ({
-                key: i,
-                label: m,
-                onClick: () => setSelectedMonth(i),
-              })),
+              { key: "all", label: "Todos los meses" },
+              ...MONTHS.map((m, i) => ({ key: i, label: m })),
+            ]}
+          />
+
+          <FilterSelector
+            label={
+              statusFilter === "all"
+                ? "Todos"
+                : statusFilter === "pending"
+                  ? "Pendientes"
+                  : statusFilter === "processed"
+                    ? "Procesados"
+                    : statusFilter === "paid"
+                      ? "Pagados"
+                      : statusFilter === "partial"
+                        ? "Parciales"
+                        : "Reembolsados"
+            }
+            icon={Filter}
+            selectedKey={statusFilter}
+            onChange={(key) => setStatusFilter(key as string)}
+            items={[
+              { key: "all", label: "Todos los estados" },
+              { key: "pending", label: "Pendientes" },
+              { key: "processed", label: "Procesados" },
+              { key: "paid", label: "Pagados" },
+              { key: "partial", label: "Parciales" },
+              { key: "refunded", label: "Reembolsados" },
+            ]}
+          />
+
+          <FilterSelector
+            label={
+              paymentMethodFilter === "all"
+                ? "Todos los pagos"
+                : paymentMethodFilter === "credit"
+                  ? "Crédito"
+                  : paymentMethodFilter === "efectivo"
+                    ? "Efectivo"
+                    : paymentMethodFilter === "binance"
+                      ? "Binance"
+                      : "Pago Móvil"
+            }
+            icon={CreditCard}
+            selectedKey={paymentMethodFilter}
+            onChange={(key) => setPaymentMethodFilter(key as "all" | "credit" | "efectivo" | "binance" | "pago_movil")}
+            items={[
+              { key: "all", label: "Todos los pagos" },
+              { key: "credit", label: "Crédito" },
+              { key: "efectivo", label: "Efectivo" },
+              { key: "binance", label: "Binance" },
+              { key: "pago_movil", label: "Pago Móvil" },
             ]}
           />
 
@@ -64,38 +154,44 @@ export default function MyPurchases() {
       {hasNoSales ? (
         <MyPurchasesEmpty />
       ) : (
-        <div className="bg-white md:border border-gray-100 rounded-4xl md:rounded-2xl overflow-hidden md:shadow-sm">
-          <MyPurchasesDesktop
-            sales={sales}
-            loading={loading}
-            expandedId={expandedId}
-            onToggle={toggleRow}
-            fmt={formatCurrency}
-          />
-          <MyPurchasesMobile
-            sales={sales}
-            loading={loading}
-            expandedId={expandedId}
-            onToggle={toggleRow}
-            fmt={formatCurrency}
-          />
-        </div>
-      )}
-
-      {!hasNoSales && (
-        <div className="mt-4 bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            Total Consumido
-          </h3>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">
-              {countFiltered} {countFiltered === 1 ? "compra" : "compras"}
-            </span>
-            <span className="text-2xl font-bold text-gray-900">
-              {formatCurrency(totalFiltered)}
-            </span>
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+            {statusCards.map(({ key, label, icon, color, textColor }) => {
+              const data = totalsByStatus[key];
+              const total = data?.total ?? 0;
+              const count = data?.count ?? 0;
+              return (
+                <StatCard
+                  key={key}
+                  icon={icon}
+                  label={label}
+                  value={formatCurrency(total)}
+                  color={color}
+                  textColor={textColor}
+                  count={count}
+                  countLabel={count === 1 ? "compra" : "compras"}
+                />
+              );
+            })}
           </div>
-        </div>
+
+          <div className="bg-white md:border border-gray-100 rounded-4xl md:rounded-2xl overflow-hidden md:shadow-sm">
+            <MyPurchasesDesktop
+              sales={sales}
+              loading={loading}
+              expandedId={expandedId}
+              onToggle={toggleRow}
+              fmt={formatCurrency}
+            />
+            <MyPurchasesMobile
+              sales={sales}
+              loading={loading}
+              expandedId={expandedId}
+              onToggle={toggleRow}
+              fmt={formatCurrency}
+            />
+          </div>
+        </>
       )}
     </div>
   );

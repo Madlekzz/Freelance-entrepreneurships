@@ -37,6 +37,8 @@ export default function AdminConsumers() {
     setSearchQuery,
     statusFilter,
     setStatusFilter,
+    paymentMethodFilter,
+    setPaymentMethodFilter,
     selectedMonth,
     setSelectedMonth,
     dateRange,
@@ -113,6 +115,8 @@ export default function AdminConsumers() {
         setSearchQuery={setSearchQuery}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
+        paymentMethodFilter={paymentMethodFilter}
+        setPaymentMethodFilter={setPaymentMethodFilter}
         selectedMonth={selectedMonth}
         setSelectedMonth={setSelectedMonth}
         dateRange={dateRange}

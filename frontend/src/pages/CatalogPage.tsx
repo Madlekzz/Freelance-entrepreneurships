@@ -125,10 +125,14 @@ export default function CatalogPage() {
         consumers={checkout.consumers}
         selectedConsumerId={checkout.selectedConsumerId}
         selectedConsumer={checkout.selectedConsumer}
+        paymentType={checkout.paymentType}
+        paymentMethod={checkout.paymentMethod}
         entries={cart.cartEntries}
         total={cart.cartTotal}
         onClose={checkout.handleCloseModal}
         onConsumerChange={checkout.onConsumerChange}
+        onPaymentTypeChange={checkout.setPaymentType}
+        onPaymentMethodChange={checkout.setPaymentMethod}
         onConfirm={checkout.handleConfirmPurchase}
       />
     </div>

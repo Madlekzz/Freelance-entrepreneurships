@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createSale } from "../services/saleService";
-import { getConsumersList, type Consumer } from "../services/usersService";
-import type { CatalogProduct } from "../services/productService";
+import type { CatalogProduct, Consumer } from "../types";
+import { getConsumersList } from "../services/usersService";
 
 export type ModalStatus = "idle" | "loading" | "success" | "error";
 
@@ -29,6 +29,11 @@ export function useCheckout({
   const [selectedConsumerId, setSelectedConsumerId] = useState<
     string | undefined
   >();
+
+  const [paymentType, setPaymentType] = useState<"credit" | "immediate">("credit");
+  const [paymentMethod, setPaymentMethod] = useState<
+    "efectivo" | "binance" | "pago_movil" | null
+  >(null);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -60,6 +65,8 @@ export function useCheckout({
     setTimeout(() => {
       setStatus("idle");
       setSelectedConsumerId(undefined);
+      setPaymentType("credit");
+      setPaymentMethod(null);
       setError(null);
     }, 300);
   };
@@ -85,6 +92,8 @@ export function useCheckout({
       await createSale({
         consumer_id: selectedConsumerId,
         items: items,
+        payment_type: paymentType,
+        payment_method: paymentType === "immediate" ? paymentMethod : undefined,
       });
 
       // 3. Post-compra
@@ -117,6 +126,10 @@ export function useCheckout({
     consumers: selectOptions,
     selectedConsumer,
     selectedConsumerId,
+    paymentType,
+    setPaymentType,
+    paymentMethod,
+    setPaymentMethod,
     onConsumerChange: setSelectedConsumerId,
     handleOpenCheckout,
     handleCloseModal,

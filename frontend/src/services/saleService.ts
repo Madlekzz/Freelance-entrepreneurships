@@ -23,6 +23,20 @@ export const getConsumerPurchases = async (consumerId: string) => {
 };
 
 /**
+ * Marca items de una venta de pago inmediato como procesados (Pago recibido)
+ */
+export const processSaleItems = async (
+  saleId: string,
+  itemIds: number[],
+): Promise<{ message: string; processed: number }> => {
+  const { data } = await api.patch<{ message: string; processed: number }>(
+    `/sales/${saleId}/items/process`,
+    { item_ids: itemIds },
+  );
+  return data;
+};
+
+/**
  * Obtiene las ventas filtradas por un emprendimiento específico
  */
 export const getSalesByEntrepreneurship = async (

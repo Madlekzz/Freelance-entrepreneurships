@@ -30,7 +30,7 @@ export const useAdminEntrepreneurs = () => {
 
   const toggleAllVisible = () => {
     const pendingSalesIds = detailedSales
-      .filter((s) => !s.payroll_processed && !s.refunded)
+      .filter((s) => s.payment_type !== "immediate" && !s.payroll_processed && !s.refunded)
       .map((s) => s.id);
 
     if (adminData.selectedSales.length === pendingSalesIds.length) {
