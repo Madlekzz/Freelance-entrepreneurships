@@ -4,12 +4,27 @@ import { supabase } from "../config/supabaseClient";
 import { getConsumerPurchases } from "../services/saleService";
 import type { ConsumerSale, DateRange } from "../types";
 
+function getSaleStatus(sale: ConsumerSale) {
+  if (sale.refunded || sale.sale_items.every((item) => item.refunded)) return "refunded";
+  if (sale.payment_type === "immediate") {
+    const allProcessed = sale.sale_items.every((item) => item.entrepreneur_processed || item.refunded);
+    if (allProcessed) return "paid";
+    const someProcessed = sale.sale_items.some((item) => item.entrepreneur_processed);
+    if (someProcessed) return "partial";
+    return "pending";
+  }
+  if (sale.payroll_processed) return "processed";
+  return "pending";
+}
+
 export const useConsumerSales = () => {
   const [sales, setSales] = useState<ConsumerSale[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<"all" | "credit" | "efectivo" | "binance" | "pago_movil">("all");
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
 
   const fetchMySales = async () => {
@@ -55,6 +70,22 @@ export const useConsumerSales = () => {
       });
     }
 
+    if (statusFilter !== "all") {
+      result = result.filter((sale) => getSaleStatus(sale) === statusFilter);
+    }
+
+    if (paymentMethodFilter !== "all") {
+      if (paymentMethodFilter === "credit") {
+        result = result.filter((sale) => sale.payment_type !== "immediate");
+      } else {
+        result = result.filter(
+          (sale) =>
+            sale.payment_type === "immediate" &&
+            sale.payment_method === paymentMethodFilter,
+        );
+      }
+    }
+
     if (!searchQuery.trim()) return result;
 
     const lowerQuery = searchQuery.toLowerCase();
@@ -72,7 +103,7 @@ export const useConsumerSales = () => {
 
       return matchesItem || matchesId;
     });
-  }, [sales, searchQuery, selectedMonth, dateRange]);
+  }, [sales, searchQuery, statusFilter, paymentMethodFilter, selectedMonth, dateRange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,8 +142,12 @@ export const useConsumerSales = () => {
     loading,
     searchQuery,
     setSearchQuery,
+    statusFilter,
+    setStatusFilter,
     selectedMonth,
     setSelectedMonth,
+    paymentMethodFilter,
+    setPaymentMethodFilter,
     dateRange,
     setDateRange,
     refresh: fetchMySales,

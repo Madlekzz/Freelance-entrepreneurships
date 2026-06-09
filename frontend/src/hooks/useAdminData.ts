@@ -20,6 +20,7 @@ export function useAdminData(enabled: boolean = true) {
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<"all" | "credit" | "efectivo" | "binance" | "pago_movil">("all");
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -57,38 +58,9 @@ export function useAdminData(enabled: boolean = true) {
   );
 
   useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      if (!enabled) return;
-
-      try {
-        setLoading(true);
-        const data = await getAllSales();
-        if (!cancelled) setSales(data);
-      } catch (err: unknown) {
-        if (!cancelled) {
-          if (err instanceof AppError) {
-            if (err.status !== 403) {
-              toast.error(err.message);
-            }
-            console.error(`[${err.status}] ${err.message}`);
-          } else {
-            const errorMessage = err instanceof Error ? err.message : "Error al cargar los datos del panel. Verifica tu conexión e intenta de nuevo.";
-            toast.error(errorMessage);
-          }
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchData();
+  }, [enabled, fetchData]);
 
   const openProcessPayroll = useCallback((ids: string[]) => {
     if (ids.length === 0) return;
@@ -148,7 +120,6 @@ export function useAdminData(enabled: boolean = true) {
           ...sale,
           sale_items: updatedItems,
           refunded: allRefunded ? true : sale.refunded,
-          total: allRefunded ? 0 : sale.total,
         };
       }),
     );
@@ -186,7 +157,7 @@ export function useAdminData(enabled: boolean = true) {
         });
       });
 
-      // 2. Filtrado base por FECHA, CICLO y ESTADO
+      // 2. Filtrado base por FECHA, CICLO, ESTADO y TIPO DE PAGO
       const currentYear = new Date().getFullYear();
       const baseSales = sales.filter((sale) => {
         const saleDate = new Date(sale.created_at);
@@ -194,21 +165,33 @@ export function useAdminData(enabled: boolean = true) {
           statusFilter === "all"
             ? true
             : statusFilter === "pending"
-              ? !sale.payroll_processed && !sale.refunded
-              : sale.payroll_processed;
+              ? (sale.payment_type !== "immediate" && !sale.payroll_processed && !sale.refunded) ||
+                (sale.payment_type === "immediate" && !sale.sale_items.every((item) => item.entrepreneur_processed || item.refunded) && !sale.refunded)
+              : statusFilter === "paid"
+                ? sale.payment_type === "immediate" && sale.sale_items.every((item) => item.entrepreneur_processed || item.refunded) && !sale.refunded
+                : statusFilter === "refunded"
+                  ? sale.refunded === true || sale.sale_items.every((item) => item.refunded)
+                  : sale.payment_type !== "immediate" && sale.payroll_processed;
+        const matchesPaymentType =
+          paymentMethodFilter === "all"
+            ? true
+            : paymentMethodFilter === "credit"
+              ? sale.payment_type !== "immediate"
+              : sale.payment_type === "immediate" && sale.payment_method === paymentMethodFilter;
         const matchesMonth =
           selectedMonth === null
             ? true
             : saleDate.getMonth() === selectedMonth &&
               saleDate.getFullYear() === currentYear;
         const matchesDateRange = isDateInRange(saleDate, dateRange);
-        return matchesStatus && matchesMonth && matchesDateRange;
+        return matchesStatus && matchesPaymentType && matchesMonth && matchesDateRange;
       });
 
       // 3. Agrupación por Emprendimiento para resultados filtrados
       // Itera sobre ALL sale_items para distribuir subtotales a cada emprendimiento
       baseSales.forEach((s) => {
         const venturesInSale = new Set<string>();
+        const isCredit = s.payment_type !== "immediate";
 
         s.sale_items.forEach((item) => {
           const entrepreneurship = item.products?.entrepreneurships;
@@ -223,14 +206,15 @@ export function useAdminData(enabled: boolean = true) {
 
           const subtotal = Number(item.subtotal) || 0;
           map[entId].totalRevenue += subtotal;
-          if (!s.payroll_processed && !s.refunded) {
+          // Only credit sales contribute to pending payroll
+          if (isCredit && !s.payroll_processed && !s.refunded) {
             map[entId].pendingPayroll += subtotal;
           }
         });
 
         venturesInSale.forEach((entId) => {
           map[entId].salesCount += 1;
-          if (!s.payroll_processed && !s.refunded) {
+          if (isCredit && !s.payroll_processed && !s.refunded) {
             map[entId].pendingIds.push(s.id);
           }
         });
@@ -256,6 +240,7 @@ export function useAdminData(enabled: boolean = true) {
       sales,
       searchQuery,
       statusFilter,
+      paymentMethodFilter,
       dateRange,
       isDateInRange,
       selectedMonth,
@@ -311,7 +296,8 @@ export function useAdminData(enabled: boolean = true) {
       map[user.email].totalSpent += s.total;
       map[user.email].ordersCount += 1;
 
-      if (!s.payroll_processed && !s.refunded) {
+      // Only credit sales contribute to pending deduction
+      if (s.payment_type !== "immediate" && !s.payroll_processed && !s.refunded) {
         map[user.email].pendingDeduction += s.total;
         map[user.email].pendingIds.push(s.id);
       }
@@ -359,13 +345,25 @@ export function useAdminData(enabled: boolean = true) {
         userName.includes(searchLower) ||
         matchesProduct;
 
-      // 2. Filtro por Estado de Nómina
+      // 2. Filtro por Estado de Nómina (excluye pagos inmediatos)
       const matchesStatus =
         statusFilter === "all"
           ? true
           : statusFilter === "pending"
-            ? !sale.payroll_processed
-            : sale.payroll_processed;
+            ? (sale.payment_type !== "immediate" && !sale.payroll_processed && !sale.refunded) ||
+              (sale.payment_type === "immediate" && !sale.sale_items.every((item) => item.entrepreneur_processed || item.refunded) && !sale.refunded)
+            : statusFilter === "paid"
+              ? sale.payment_type === "immediate" && sale.sale_items.every((item) => item.entrepreneur_processed || item.refunded) && !sale.refunded
+              : statusFilter === "refunded"
+                ? sale.refunded === true || sale.sale_items.every((item) => item.refunded)
+                : sale.payment_type !== "immediate" && sale.payroll_processed;
+
+      const matchesPaymentType =
+        paymentMethodFilter === "all"
+          ? true
+          : paymentMethodFilter === "credit"
+            ? sale.payment_type !== "immediate"
+            : sale.payment_type === "immediate" && sale.payment_method === paymentMethodFilter;
 
       const matchesMonth =
         selectedMonth === null
@@ -374,12 +372,13 @@ export function useAdminData(enabled: boolean = true) {
             saleDate.getFullYear() === new Date().getFullYear();
       const matchesDateRange = isDateInRange(saleDate, dateRange);
 
-      return matchesSearch && matchesStatus && matchesMonth && matchesDateRange;
+      return matchesSearch && matchesStatus && matchesPaymentType && matchesMonth && matchesDateRange;
     });
   }, [
     sales,
     searchQuery,
     statusFilter,
+    paymentMethodFilter,
     dateRange,
     isDateInRange,
     selectedMonth,
@@ -405,6 +404,8 @@ export function useAdminData(enabled: boolean = true) {
     setSearchQuery,
     statusFilter,
     setStatusFilter,
+    paymentMethodFilter,
+    setPaymentMethodFilter,
     dateRange,
     setDateRange,
     setSelectedMonth,
