@@ -1,8 +1,6 @@
-import { Dropdown, type MenuProps } from "antd";
-import { Calendar, CheckCircle2, MoreVertical, RotateCcw } from "lucide-react";
+import { Calendar, Loader2, RotateCcw } from "lucide-react";
 import type { GlobalSale, SaleItemDetail } from "../../../types";
 import { formatCurrency } from "../../../utils/format";
-import StatusBadge, { PaymentTypeLabel } from "../my-purchases/shared/StatusBadge";
 
 interface Props {
   sales: GlobalSale[];
@@ -20,45 +18,13 @@ export const ConsumerDetailedMobile = ({
   onProcessSingle,
   onRefund,
   processingIds,
-}: Props) => {
-  const getActionMenu = (sale: GlobalSale): MenuProps => {
-    const allRefunded = sale.sale_items.every((item) => item.refunded);
-    const isEffectivelyRefunded = sale.refunded || allRefunded;
-    const items: MenuProps["items"] = [];
-
-    if (sale.payment_type !== "immediate" && !sale.payroll_processed && !isEffectivelyRefunded) {
-      items.push({
-        key: "discount",
-        icon: <CheckCircle2 size={14} />,
-        label: "Descontar",
-        onClick: () => onProcessSingle(sale.id),
-      });
-    }
-
-    if (!sale.payroll_processed && !isEffectivelyRefunded) {
-      items.push({
-        key: "refund",
-        icon: <RotateCcw size={14} />,
-        label: "Reembolsar",
-        onClick: () => onRefund(sale),
-      });
-    }
-
-    return { items };
-  };
-
-  return (
-    <div className="md:hidden space-y-4">
-      {sales.map((sale) => {
-        const isProcessing = processingIds.includes(sale.id);
-        const allItemsRefunded = sale.sale_items.every((item: SaleItemDetail) => item.refunded);
-        const isEffectivelyRefunded = sale.refunded || allItemsRefunded;
-        const isImmediate = sale.payment_type === "immediate";
-        const canDiscount = !isImmediate && !sale.payroll_processed && !isEffectivelyRefunded;
-        const canRefund = !sale.payroll_processed && !isEffectivelyRefunded;
-        const showActions = canDiscount || canRefund;
-        const menu = getActionMenu(sale);
-        return (
+}: Props) => (
+  <div className="md:hidden space-y-4">
+    {sales.map((sale) => {
+      const isProcessing = processingIds.includes(sale.id);
+      const allItemsRefunded = sale.sale_items.every((item: SaleItemDetail) => item.refunded);
+      const isEffectivelyRefunded = sale.refunded || allItemsRefunded;
+      return (
         <div
           key={sale.id}
           className="bg-white p-5 rounded-4xl border border-gray-100 shadow-sm space-y-4"
@@ -67,10 +33,10 @@ export const ConsumerDetailedMobile = ({
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
-                disabled={sale.payroll_processed || isEffectivelyRefunded || isProcessing || isImmediate}
+                disabled={sale.payroll_processed || isEffectivelyRefunded || isProcessing}
                 checked={selectedSales.includes(sale.id)}
                 onChange={() => toggleSelection(sale.id)}
-                className="w-5 h-5 rounded-lg border-gray-200 text-primary cursor-pointer disabled:opacity-30"
+                className="w-5 h-5 rounded-lg border-gray-200 text-primary cursor-pointer"
               />
               <div className="min-w-0">
                 <p className="text-xs font-black text-gray-900 uppercase">
@@ -81,27 +47,38 @@ export const ConsumerDetailedMobile = ({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <StatusBadge
-                processed={sale.payroll_processed}
-                refunded={sale.refunded}
-                paymentType={sale.payment_type}
-                saleItems={sale.sale_items}
-                processedLabel="DESCONTADO"
-                refundedLabel="REEMBOLSADA"
-              />
-              {showActions && (
-                <Dropdown menu={menu} trigger={["click"]} placement="bottomRight">
-                  <button
-                    type="button"
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-gray-300 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                  >
-                    <MoreVertical size={16} />
-                  </button>
-                </Dropdown>
-              )}
-            </div>
+            {isEffectivelyRefunded ? (
+              <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 px-2.5 py-1 rounded-lg text-[9px] font-black italic">
+                <RotateCcw size={12} /> REEMBOLSADA
+              </span>
+            ) : sale.payroll_processed ? (
+              <span className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-lg text-[9px] font-black italic">
+                DESCONTADO
+              </span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onProcessSingle(sale.id)}
+                  disabled={isProcessing}
+                  className="bg-blue-600 text-white px-3 py-1.5 rounded-xl text-[10px] font-black shadow-sm active:scale-95 transition-all cursor-pointer"
+                >
+                  {isProcessing ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    "DESCONTAR"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRefund(sale)}
+                  disabled={isProcessing}
+                  className="bg-red-500 text-white px-3 py-1.5 rounded-xl text-[10px] font-black shadow-sm active:scale-95 transition-all cursor-pointer"
+                >
+                  REEMBOLSAR
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-1.5 bg-gray-50/50 p-3 rounded-2xl border border-gray-100/50">
@@ -111,13 +88,10 @@ export const ConsumerDetailedMobile = ({
                 className={`text-[11px] flex justify-between gap-2 ${item.refunded ? 'text-red-400' : 'text-gray-600'}`}
               >
                 <span className="truncate">
-                  <b className={item.refunded ? 'text-red-400' : item.entrepreneur_processed ? 'text-emerald-500' : 'text-primary'}>{item.quantity}x</b>{" "}
+                  <b className={item.refunded ? 'text-red-400' : 'text-primary'}>{item.quantity}x</b>{" "}
                   <span className={item.refunded ? 'line-through' : ''}>{item.products.name}</span>
                   {item.refunded && (
                     <span className="text-[8px] font-bold text-red-500 bg-red-100 px-1 py-0.5 rounded ml-1">REEMBOLSADO</span>
-                  )}
-                  {item.entrepreneur_processed && !item.refunded && (
-                    <span className="text-[8px] font-bold text-emerald-500 bg-emerald-100 px-1 py-0.5 rounded ml-1">PAGADO</span>
                   )}
                 </span>
                 <span className={`font-mono shrink-0 ${item.refunded ? 'text-red-300' : 'text-gray-400'}`}>
@@ -128,21 +102,13 @@ export const ConsumerDetailedMobile = ({
           </div>
 
           <div className="flex justify-between items-end">
-            <div className="flex items-center gap-4">
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-gray-400 font-bold uppercase">
-                  Fecha
-                </p>
-                <div className="flex items-center gap-1.5 text-xs text-gray-700 font-bold">
-                  <Calendar size={13} className="text-primary" />
-                  {new Date(sale.created_at).toLocaleDateString()}
-                </div>
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-gray-400 font-bold uppercase">
-                  Pago
-                </p>
-                <PaymentTypeLabel paymentType={sale.payment_type} paymentMethod={sale.payment_method} />
+            <div className="space-y-0.5">
+              <p className="text-[10px] text-gray-400 font-bold uppercase">
+                Fecha
+              </p>
+              <div className="flex items-center gap-1.5 text-xs text-gray-700 font-bold">
+                <Calendar size={13} className="text-primary" />
+                {new Date(sale.created_at).toLocaleDateString()}
               </div>
             </div>
             <div className="text-right">
@@ -155,8 +121,7 @@ export const ConsumerDetailedMobile = ({
             </div>
           </div>
         </div>
-        );
-      })}
-    </div>
-  );
-};
+      );
+    })}
+  </div>
+);

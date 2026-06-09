@@ -1,13 +1,10 @@
-import { Dropdown, type MenuProps } from "antd";
-import { Calendar, DollarSign, MoreVertical, RotateCcw, User } from "lucide-react";
+import { Calendar, CheckCircle2, Clock, RotateCcw, User } from "lucide-react";
 import type { EntrepreneurshipSale } from "../../../../../types";
 import { formatCurrency } from "../../../../../utils/format";
-import StatusBadge, { PaymentTypeLabel } from "../../../my-purchases/shared/StatusBadge";
 
 interface Props {
   sales: EntrepreneurshipSale[];
   onRefund: (sale: EntrepreneurshipSale) => void;
-  onProcessPayment?: (sale: EntrepreneurshipSale) => void;
   selectedSales: string[];
   toggleSelection: (id: string) => void;
   processingIds: string[];
@@ -16,42 +13,10 @@ interface Props {
 export default function SalesCardsMobile({
   sales,
   onRefund,
-  onProcessPayment,
   selectedSales,
   toggleSelection,
   processingIds,
 }: Props) {
-  const getActionMenu = (sale: EntrepreneurshipSale): MenuProps => {
-    const allRefunded = sale.sale_items.every((item) => item.refunded);
-    const isEffectivelyRefunded = sale.refunded || allRefunded;
-    const items: MenuProps["items"] = [];
-
-    if (
-      sale.payment_type === "immediate" &&
-      !isEffectivelyRefunded &&
-      !sale.payroll_processed &&
-      sale.sale_items.some((item) => !item.entrepreneur_processed && !item.refunded)
-    ) {
-      items.push({
-        key: "process",
-        icon: <DollarSign size={14} />,
-        label: "Pago recibido",
-        onClick: () => onProcessPayment?.(sale),
-      });
-    }
-
-    if (!sale.payroll_processed && !isEffectivelyRefunded) {
-      items.push({
-        key: "refund",
-        icon: <RotateCcw size={14} />,
-        label: "Reembolsar",
-        onClick: () => onRefund(sale),
-      });
-    }
-
-    return { items };
-  };
-
   return (
     <div className="grid grid-cols-1 gap-4 p-4">
       {sales.map((sale) => {
@@ -60,12 +25,6 @@ export default function SalesCardsMobile({
         const canRefund = !sale.payroll_processed && !isEffectivelyRefunded;
         const isProcessing = processingIds.includes(sale.id);
         const itemsTotal = sale.sale_items.reduce((sum, item) => sum + Number(item.subtotal), 0);
-        const hasActions =
-          (sale.payment_type === "immediate" &&
-            !isEffectivelyRefunded &&
-            sale.sale_items.some((item) => !item.entrepreneur_processed && !item.refunded)) ||
-          canRefund;
-        const menu = getActionMenu(sale);
         return (
           <div key={sale.id} className="bg-white p-5 rounded-4xl border border-gray-100 shadow-sm space-y-4">
             <div className="flex justify-between items-start">
@@ -81,50 +40,42 @@ export default function SalesCardsMobile({
                   <User size={18} />
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1">
-                    <p className="text-sm font-bold text-gray-900 truncate uppercase tracking-tight">{sale.users.name}</p>
-                    <PaymentTypeLabel paymentType={sale.payment_type} paymentMethod={sale.payment_method} />
-                  </div>
+                  <p className="text-sm font-bold text-gray-900 truncate uppercase tracking-tight">{sale.users.name}</p>
                   <p className="text-[10px] text-gray-400 font-mono">#{sale.id.slice(0, 8).toUpperCase()}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <StatusBadge
-                  processed={sale.payroll_processed}
-                  refunded={sale.refunded}
-                  paymentType={sale.payment_type}
-                  saleItems={sale.sale_items}
-                />
-                {hasActions && (
-                  <Dropdown menu={menu} trigger={["click"]} placement="bottomRight">
-                    <button
-                      type="button"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-gray-300 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                  </Dropdown>
-                )}
-              </div>
+              {isEffectivelyRefunded ? (
+                <span className="bg-red-50 text-red-600 p-1.5 rounded-lg shrink-0"><RotateCcw size={16} /></span>
+              ) : sale.payroll_processed ? (
+                <span className="bg-emerald-50 text-emerald-600 p-1.5 rounded-lg shrink-0"><CheckCircle2 size={16} /></span>
+              ) : (
+                <span className="bg-amber-50 text-amber-600 p-1.5 rounded-lg shrink-0"><Clock size={16} /></span>
+              )}
             </div>
             <div className="bg-gray-50/50 rounded-2xl p-3 space-y-2">
               {sale.sale_items.map((item) => (
                 <div key={item.id} className="flex justify-between items-center text-[11px]">
                   <span className={`truncate max-w-[70%] ${item.refunded ? 'text-gray-400' : 'text-gray-600'}`}>
-                    <span className={`font-bold mr-1 ${item.refunded ? 'text-red-400' : item.entrepreneur_processed ? 'text-emerald-500' : 'text-primary'}`}>{item.quantity}x</span>
+                    <span className={`font-bold mr-1 ${item.refunded ? 'text-red-400' : 'text-primary'}`}>{item.quantity}x</span>
                     <span className={item.refunded ? 'line-through' : ''}>{item.products.name}</span>
                     {item.refunded && (
                       <span className="text-[8px] font-bold text-red-500 bg-red-100 px-1 py-0.5 rounded ml-1">REEMBOLSADO</span>
-                    )}
-                    {item.entrepreneur_processed && !item.refunded && (
-                      <span className="text-[8px] font-bold text-emerald-500 bg-emerald-100 px-1 py-0.5 rounded ml-1">PAGADO</span>
                     )}
                   </span>
                   <span className={`font-bold italic ${item.refunded ? 'text-red-300' : 'text-gray-400'}`}>{formatCurrency(item.unit_price)}</span>
                 </div>
               ))}
             </div>
+            {canRefund && (
+              <button
+                type="button"
+                onClick={() => onRefund(sale)}
+                disabled={isProcessing}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <RotateCcw size={14} /> {isProcessing ? "Procesando..." : "Reembolsar"}
+              </button>
+            )}
             <div className="flex justify-between items-end pt-2 border-t border-gray-50">
               <div className="flex flex-col gap-0.5">
                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Fecha</span>

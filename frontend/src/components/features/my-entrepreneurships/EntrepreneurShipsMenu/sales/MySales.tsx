@@ -3,13 +3,12 @@ import { useOutletContext, useParams } from "react-router-dom";
 import { Download } from "lucide-react";
 import { toast } from "react-toastify";
 import { useSales } from "../../../../../hooks/useSales";
-import { processSaleItems, refundSale, refundSalesBatch } from "../../../../../services/saleService";
+import { refundSale, refundSalesBatch } from "../../../../../services/saleService";
 import type { Entrepreneurship, EntrepreneurshipSale } from "../../../../../types";
 import { exportSalesToExcel } from "../../../../../utils/exportToExcel";
 import ConfirmationModal from "../../../../shared/ConfirmationModal";
 import ProductTableSkeleton from "../products/ProductTableSkeleton";
 import { BulkRefundBanner } from "./BulkRefundBanner";
-import ProcessItemsModal from "./ProcessItemsModal";
 import RefundSaleModal from "./RefundSaleModal";
 import SalesCardsMobile from "./SalesCardMobile";
 import SalesEmptyState from "./SalesEmptyState";
@@ -29,28 +28,22 @@ export default function MySales() {
     setSortBy,
     statusFilter,
     setStatusFilter,
-    paymentMethodFilter,
-    setPaymentMethodFilter,
     dateRange,
     setDateRange,
     markItemsRefunded,
-    markItemsProcessed,
-    refetch,
   } = useSales(id);
 
   const [refundingSale, setRefundingSale] =
     useState<EntrepreneurshipSale | null>(null);
   const [isRefunding, setIsRefunding] = useState(false);
 
-  const [processingSale, setProcessingSale] =
-    useState<EntrepreneurshipSale | null>(null);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-
   const [selectedSales, setSelectedSales] = useState<string[]>([]);
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [bulkModalConfig, setBulkModalConfig] = useState({ title: "", message: "" });
   const [idsToBulkRefund, setIdsToBulkRefund] = useState<string[]>([]);
+
+  const { refetch } = useSales(id);
 
   const handleExport = () => {
     if (!sales.length) return;
@@ -131,42 +124,6 @@ export default function MySales() {
     }
   }, [idsToBulkRefund, refetch]);
 
-  const handleProcessPayment = useCallback((sale: EntrepreneurshipSale) => {
-    setProcessingSale(sale);
-  }, []);
-
-  const handleCloseProcessPayment = useCallback(() => {
-    setProcessingSale(null);
-    setIsProcessingPayment(false);
-  }, []);
-
-  const handleConfirmProcessPayment = useCallback(
-    async (itemIds: number[]) => {
-      if (!processingSale) return;
-      try {
-        setIsProcessingPayment(true);
-        setProcessingIds((prev) => [...prev, processingSale.id]);
-        await processSaleItems(processingSale.id, itemIds);
-        markItemsProcessed(processingSale.id, itemIds);
-        toast.success("Items marcados como pagados correctamente");
-        setProcessingSale(null);
-        refetch();
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "Error al procesar el pago";
-        toast.error(errorMessage);
-      } finally {
-        setIsProcessingPayment(false);
-        setProcessingIds((prev) =>
-          prev.filter((id) => id !== processingSale?.id),
-        );
-      }
-    },
-    [processingSale, markItemsProcessed, refetch],
-  );
-
   const handleRefund = useCallback((sale: EntrepreneurshipSale) => {
     setRefundingSale(sale);
   }, []);
@@ -209,12 +166,7 @@ export default function MySales() {
   );
 
   const filteredTotalRevenue = useMemo(
-    () =>
-      sales.reduce(
-        (acc, s) =>
-          acc + s.sale_items.reduce((sum, item) => sum + item.subtotal, 0),
-        0,
-      ),
+    () => sales.reduce((acc, s) => acc + s.total, 0),
     [sales],
   );
 
@@ -232,8 +184,6 @@ export default function MySales() {
         onSearchChange={setSearchQuery}
         statusFilter={statusFilter}
         onStatusChange={setStatusFilter}
-        paymentMethodFilter={paymentMethodFilter}
-        onPaymentMethodChange={setPaymentMethodFilter}
         sortBy={sortBy}
         onSortChange={setSortBy}
         dateRange={dateRange}
@@ -261,7 +211,7 @@ export default function MySales() {
 
       {sales.length === 0 ? (
         <SalesEmptyState
-          isFiltering={!!searchQuery || statusFilter !== "all" || paymentMethodFilter !== "all" || !!dateRange}
+          isFiltering={!!searchQuery || statusFilter !== "all" || !!dateRange}
         />
       ) : (
         <>
@@ -269,7 +219,6 @@ export default function MySales() {
             <SalesTableDesktop
               sales={sales}
               onRefund={handleRefund}
-              onProcessPayment={handleProcessPayment}
               selectedSales={selectedSales}
               toggleSelection={toggleSelection}
               toggleAll={toggleAllVisible}
@@ -280,7 +229,6 @@ export default function MySales() {
             <SalesCardsMobile
               sales={sales}
               onRefund={handleRefund}
-              onProcessPayment={handleProcessPayment}
               selectedSales={selectedSales}
               toggleSelection={toggleSelection}
               processingIds={processingIds}
@@ -298,17 +246,6 @@ export default function MySales() {
           saleItems={refundingSale.sale_items}
           saleTotal={refundingSale.total}
           saleId={refundingSale.id}
-        />
-      )}
-
-      {processingSale && (
-        <ProcessItemsModal
-          isOpen={true}
-          onClose={handleCloseProcessPayment}
-          onConfirm={handleConfirmProcessPayment}
-          isLoading={isProcessingPayment}
-          saleItems={processingSale.sale_items}
-          saleId={processingSale.id}
         />
       )}
 

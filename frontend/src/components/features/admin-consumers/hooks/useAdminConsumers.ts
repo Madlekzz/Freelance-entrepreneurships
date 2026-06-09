@@ -4,7 +4,7 @@ import type { SaleItemDetail } from "../../../../types";
 
 export function useAdminConsumers() {
   const adminData = useAdminData();
-  const { fullConsumersSummary, sales, statusFilter, paymentMethodFilter, searchQuery } = adminData;
+  const { fullConsumersSummary, sales, statusFilter, searchQuery } = adminData;
 
   const [view, setView] = useState<"summary" | "detailed">("summary");
   const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(
@@ -25,26 +25,17 @@ export function useAdminConsumers() {
         statusFilter === "all"
           ? true
           : statusFilter === "pending"
-            ? (s.payment_type !== "immediate" && !s.payroll_processed && !s.refunded) ||
-              (s.payment_type === "immediate" && !s.sale_items.every((item) => item.entrepreneur_processed || item.refunded) && !s.refunded)
-            : statusFilter === "paid"
-              ? s.payment_type === "immediate" && s.sale_items.every((item) => item.entrepreneur_processed || item.refunded) && !s.refunded
-              : statusFilter === "refunded"
-                ? s.refunded === true || s.sale_items.every((item) => item.refunded)
-                : s.payment_type !== "immediate" && s.payroll_processed;
-      const matchesPaymentType =
-        paymentMethodFilter === "all"
-          ? true
-          : paymentMethodFilter === "credit"
-            ? s.payment_type !== "immediate"
-            : s.payment_type === "immediate" && s.payment_method === paymentMethodFilter;
+            ? !s.payroll_processed && !s.refunded
+            : statusFilter === "refunded"
+              ? s.refunded === true
+              : s.payroll_processed;
       const matchesSearch =
         s.sale_items.some((item: SaleItemDetail) =>
           item.products.name.toLowerCase().includes(searchQuery.toLowerCase()),
         ) || s.id.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesUser && matchesStatus && matchesPaymentType && matchesSearch;
+      return matchesUser && matchesStatus && matchesSearch;
     });
-  }, [sales, selectedUserEmail, statusFilter, paymentMethodFilter, searchQuery]);
+  }, [sales, selectedUserEmail, statusFilter, searchQuery]);
 
   const toggleSaleSelection = (saleId: string) => {
     setSelectedSales((prev) =>
@@ -56,7 +47,7 @@ export function useAdminConsumers() {
 
   const toggleAllVisible = () => {
     const pendingSalesIds = detailedSales
-      .filter((s) => s.payment_type !== "immediate" && !s.payroll_processed && !s.refunded)
+      .filter((s) => !s.payroll_processed && !s.refunded)
       .map((s) => s.id);
     setSelectedSales(
       selectedSales.length === pendingSalesIds.length ? [] : pendingSalesIds,

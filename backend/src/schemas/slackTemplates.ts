@@ -48,28 +48,11 @@ export const signupRequestTemplate = (
 /**
  * Plantilla para la confirmación de compra del Consumidor
  */
-function paymentTypeLabel(
-  paymentType?: string,
-  paymentMethod?: string,
-): string {
-  if (paymentType === "immediate") {
-    const methodMap: Record<string, string> = {
-      efectivo: "Efectivo",
-      binance: "Binance",
-      pago_movil: "Pago Móvil",
-    };
-    return `⚡ Pago Inmediato - ${methodMap[paymentMethod || ""] || paymentMethod}`;
-  }
-  return "💳 Crédito (nómina)";
-}
-
 export const consumerPurchaseTemplate = (
   name: string,
   orderId: string = "",
   total: number,
   items: any[],
-  paymentType?: string,
-  paymentMethod?: string,
 ): SlackMessageContent => {
   const idParts = orderId.split("-");
 
@@ -96,7 +79,7 @@ export const consumerPurchaseTemplate = (
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `Hola *${name}*, gracias por tu apoyo a los emprendimientos.\n*Orden:* \`#${displayId}\`\n*Tipo de pago:* ${paymentTypeLabel(paymentType, paymentMethod)}`,
+        text: `Hola *${name}*, gracias por tu apoyo a los emprendimientos.\n*Orden:* \`#${displayId}\``,
       },
     },
     { type: "divider" },
@@ -136,8 +119,6 @@ export const entrepreneurSaleTemplate = (
   orderId: string = "",
   products: any[],
   customerName: string,
-  paymentType?: string,
-  paymentMethod?: string,
 ): SlackMessageContent => {
   const subtotal = products.reduce((acc, p) => acc + p.price * p.quantity, 0);
 
@@ -153,9 +134,6 @@ export const entrepreneurSaleTemplate = (
       ? firstPart.toUpperCase()
       : "N/A";
 
-  const isImmediate = paymentType === "immediate";
-  const paymentLabel = paymentTypeLabel(paymentType, paymentMethod);
-
   return [
     {
       type: "header",
@@ -169,20 +147,9 @@ export const entrepreneurSaleTemplate = (
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `Hola *${ownerName}*, *${customerName}* ha realizado una compra en tu emprendimiento.\n*Orden:* \`#${displayId}\`\n*Tipo de pago:* ${paymentLabel}`,
+        text: `Hola *${ownerName}*, *${customerName}* ha realizado una compra en tu emprendimiento.\n*Orden:* \`#${displayId}\``,
       },
     },
-    ...(isImmediate
-      ? [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "⚠️ *Importante:* Este es un pago inmediato. Coordina con el consumidor para recibir el pago y luego marca los items como \"Pago recibido\" desde tu panel de ventas.",
-            },
-          } as const,
-        ]
-      : []),
     { type: "divider" },
     {
       type: "section",
@@ -280,8 +247,6 @@ export const saleNotificationTemplate = (
   total: number,
   items: SaleNotificationProduct[],
   sellers: SaleNotificationSeller[],
-  paymentType?: string,
-  paymentMethod?: string,
 ): SlackMessageContent => {
   const idParts = orderId.split("-");
   const firstPart = idParts[0];
@@ -310,8 +275,6 @@ export const saleNotificationTemplate = (
           .join("\n")
       : "_Sin emprendedores_";
 
-  const paymentLabel = paymentTypeLabel(paymentType, paymentMethod);
-
   return [
     {
       type: "header",
@@ -319,13 +282,6 @@ export const saleNotificationTemplate = (
         type: "plain_text",
         text: "Nueva Venta Realizada 💰",
         emoji: true,
-      },
-    },
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: `Se ha registrado una nueva venta:\n*Consumidor:* ${consumerName}\n*Orden:* \`#${displayId}\`\n*Tipo de pago:* ${paymentLabel}`,
       },
     },
     {

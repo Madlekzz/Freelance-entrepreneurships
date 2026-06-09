@@ -57,19 +57,19 @@ Subagents defined in `.opencode/agents/` can be invoked via `@name`:
 | `@code-reviewer` | Reviews code for quality, best practices, security, and performance | read-only (bash for git/grep) |
 | `@git-committer` | Stages specified files and creates conventional commits | bash (git) |
 
-## Skill Discovery
-
-Before implementing any change, search for relevant skills with the `find-skills` skill or check `available_skills` in the system prompt. Skills provide specialized instructions (accessibility, SEO, Tailwind patterns, Zod validation, Vite config, deployment, etc.) that must be followed when applicable. Always ask "is there a skill for this?" before writing code.
-
 ## Standard Operating Procedure for Code Changes
 
-This procedure must be followed strictly every time code changes are made. **Run independent steps in parallel** whenever possible.
+This procedure must be followed strictly every time code changes are made:
 
 1. **@code-reviewer** — First, review the existing code that will be worked on to verify it is in optimal condition. If issues are found, they must be corrected before proceeding.
 
 2. **@implementer** — Once the existing code is in good shape, proceed to implement the requested changes.
 
-3. **@code-reviewer** + **@security-auditor** — Review the implemented code and audit for security vulnerabilities. These two steps are independent and **must run in parallel**.
+3. **@code-reviewer** — Review the implemented code to ensure it meets the project's current standards.
+
+4. **@security-auditor** — Review the implemented code to ensure no new security vulnerabilities were introduced.
+
+5. **@docs-writer** — Document the implemented changes and present them to the developer.
 
 ### For Commits and PRs
 

@@ -1,8 +1,6 @@
-import { Dropdown, type MenuProps } from "antd";
-import { ArrowDown, ArrowUp, CheckCircle2, MoreVertical, RotateCcw, User } from "lucide-react";
+import { ArrowDown, ArrowUp, CheckCircle2, RotateCcw, User } from "lucide-react";
 import type { GlobalSale, SaleItemDetail } from "../../../types";
 import { formatCurrency } from "../../../utils/format";
-import StatusBadge, { PaymentTypeLabel } from "../my-purchases/shared/StatusBadge";
 
 interface Props {
   sales: GlobalSale[];
@@ -31,32 +29,6 @@ export const DetailedDesktop = (props: Props) => {
     selectedEntId,
   } = props;
 
-  const getActionMenu = (sale: GlobalSale): MenuProps => {
-    const allRefunded = sale.sale_items.every((item) => item.refunded);
-    const isEffectivelyRefunded = sale.refunded || allRefunded;
-    const items: MenuProps["items"] = [];
-
-    if (sale.payment_type !== "immediate" && !sale.payroll_processed && !isEffectivelyRefunded) {
-      items.push({
-        key: "liquidate",
-        icon: <CheckCircle2 size={14} />,
-        label: "Liquidar",
-        onClick: () => onProcessSingle(sale.id),
-      });
-    }
-
-    if (!sale.payroll_processed && !isEffectivelyRefunded) {
-      items.push({
-        key: "refund",
-        icon: <RotateCcw size={14} />,
-        label: "Reembolsar",
-        onClick: () => onRefund(sale),
-      });
-    }
-
-    return { items };
-  };
-
   return (
     <div className="hidden md:block overflow-x-auto">
       <table className="w-full text-left border-collapse">
@@ -75,9 +47,6 @@ export const DetailedDesktop = (props: Props) => {
             <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase">
               Productos
             </th>
-            <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase">
-              Pago
-            </th>
             <th
               className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase cursor-pointer group"
               onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
@@ -92,12 +61,11 @@ export const DetailedDesktop = (props: Props) => {
               </div>
             </th>
             <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase text-center">
-              Estado
+              Acción
             </th>
             <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase text-right">
               Monto
             </th>
-            <th className="px-6 py-4 w-12"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
@@ -108,18 +76,13 @@ export const DetailedDesktop = (props: Props) => {
             const allVisibleItemsRefunded = visibleItems.every((item: SaleItemDetail) => item.refunded);
             const isEffectivelyRefunded = sale.refunded || allVisibleItemsRefunded;
             const visibleItemsTotal = visibleItems.reduce((sum: number, item: SaleItemDetail) => sum + Number(item.subtotal), 0);
-            const isImmediate = sale.payment_type === "immediate";
-            const canLiquidate = !isImmediate && !sale.payroll_processed && !isEffectivelyRefunded;
-            const canRefund = !sale.payroll_processed && !isEffectivelyRefunded;
-            const showActions = canLiquidate || canRefund;
-            const menu = getActionMenu(sale);
             return (
             <tr key={sale.id} className="hover:bg-gray-50/50 transition-colors">
               <td className="px-6 py-4">
                 <input
                   type="checkbox"
                   disabled={
-                    sale.payroll_processed || isEffectivelyRefunded || processingIds.includes(sale.id) || isImmediate
+                    sale.payroll_processed || isEffectivelyRefunded || processingIds.includes(sale.id)
                   }
                   checked={selectedSales.includes(sale.id)}
                   onChange={() => toggleSelection(sale.id)}
@@ -157,39 +120,42 @@ export const DetailedDesktop = (props: Props) => {
                   </p>
                 ))}
               </td>
-              <td className="px-6 py-4">
-                <PaymentTypeLabel paymentType={sale.payment_type} paymentMethod={sale.payment_method} />
-              </td>
               <td className="px-6 py-4 text-xs text-gray-500">
                 {new Date(sale.created_at).toLocaleDateString()}
               </td>
               <td className="px-6 py-4 text-center">
-                <StatusBadge
-                  processed={sale.payroll_processed}
-                  refunded={sale.refunded}
-                  paymentType={sale.payment_type}
-                  saleItems={sale.sale_items}
-                />
+                {isEffectivelyRefunded ? (
+                  <span className="inline-flex items-center gap-1 text-red-500 text-[10px] font-bold">
+                    <RotateCcw size={14} /> REEMBOLSADO
+                  </span>
+                ) : !sale.payroll_processed ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onProcessSingle(sale.id)}
+                      disabled={processingIds.includes(sale.id)}
+                      className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 disabled:opacity-50 cursor-pointer transition-all"
+                    >
+                      {processingIds.includes(sale.id) ? "..." : "Liquidar"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRefund(sale)}
+                      disabled={processingIds.includes(sale.id)}
+                      className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-600 disabled:opacity-50 cursor-pointer transition-all"
+                    >
+                      Reembolsar
+                    </button>
+                  </div>
+                ) : (
+                  <CheckCircle2
+                    size={18}
+                    className="text-emerald-500 opacity-40 mx-auto"
+                  />
+                )}
               </td>
               <td className="px-6 py-4 text-right font-bold text-gray-900">
                 {formatCurrency(visibleItemsTotal)}
-              </td>
-              <td className="px-6 py-4 text-right">
-                {showActions ? (
-                  <Dropdown menu={menu} trigger={["click"]} placement="bottomRight">
-                    <button
-                      type="button"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-gray-300 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                  </Dropdown>
-                ) : (
-                  <span className="text-gray-200 p-1.5 block">
-                    <MoreVertical size={16} className="opacity-30" />
-                  </span>
-                )}
               </td>
             </tr>
             );

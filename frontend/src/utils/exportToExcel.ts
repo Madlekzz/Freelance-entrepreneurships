@@ -7,8 +7,7 @@ interface ExcelRow {
   Email: string;
   Productos: string;
   Fecha: string;
-  "Tipo de Pago": string;
-  "Estado": string;
+  "Estado Nómina": string;
   Total: number;
 }
 
@@ -20,20 +19,6 @@ function formatDate(dateString: string): string {
   });
 }
 
-const METHOD_LABELS: Record<string, string> = {
-  efectivo: "Efectivo",
-  binance: "Binance",
-  pago_movil: "Pago Móvil",
-};
-
-function getPaymentTypeLabel(sale: GlobalSale): string {
-  if (sale.payment_type === "immediate") {
-    const method = METHOD_LABELS[sale.payment_method || ""] || "Pago Inmediato";
-    return `Inmediato (${method})`;
-  }
-  return "Crédito (Nómina)";
-}
-
 function getSaleStatus(sale: GlobalSale, selectedEntId?: string): string {
   const items = selectedEntId
     ? sale.sale_items.filter(
@@ -43,13 +28,6 @@ function getSaleStatus(sale: GlobalSale, selectedEntId?: string): string {
     : sale.sale_items;
   const allItemsRefunded = items.every((item: SaleItemDetail) => item.refunded);
   if (sale.refunded || allItemsRefunded) return "REEMBOLSADO";
-  if (sale.payment_type === "immediate") {
-    const allProcessed = items.every((item: SaleItemDetail) => item.entrepreneur_processed || item.refunded);
-    if (allProcessed) return "PAGO REALIZADO";
-    const someProcessed = items.some((item: SaleItemDetail) => item.entrepreneur_processed);
-    if (someProcessed) return `PARCIAL (${items.filter((i) => i.entrepreneur_processed).length}/${items.length})`;
-    return "PENDIENTE";
-  }
   if (sale.payroll_processed) return "PROCESADO";
   return "PENDIENTE";
 }
@@ -87,8 +65,7 @@ export function exportSalesToExcel(
     Email: sale.users.email,
     Productos: formatProducts(sale, selectedEntId),
     Fecha: formatDate(sale.created_at),
-    "Tipo de Pago": getPaymentTypeLabel(sale),
-    "Estado": getSaleStatus(sale, selectedEntId),
+    "Estado Nómina": getSaleStatus(sale, selectedEntId),
     Total: getSaleTotal(sale, selectedEntId),
   }));
 
@@ -101,8 +78,7 @@ export function exportSalesToExcel(
     { wch: 32 },
     { wch: 50 },
     { wch: 16 },
-    { wch: 22 },
-    { wch: 20 },
+    { wch: 16 },
     { wch: 12 },
   ];
 
