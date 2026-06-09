@@ -1,6 +1,7 @@
-import { Store } from "lucide-react";
+import { Clock, DollarSign, Store } from "lucide-react";
 import type { EntrepreneurSummary } from "../../../types";
 import { formatCurrency } from "../../../utils/format";
+import { StatCard } from "../../shared/StatCard";
 
 interface Props {
   data: EntrepreneurSummary[];
@@ -14,9 +15,9 @@ export const SummaryMobile = ({ data, onSelect }: Props) => (
         type="button"
         key={ent.id}
         onClick={() => onSelect(ent.id)}
-        className="bg-white p-5 rounded-4xl w-full border border-gray-100 shadow-sm space-y-4 active:scale-[0.98] transition-all text-left"
+        className="w-full text-left bg-white p-5 rounded-4xl border border-gray-100 shadow-sm active:scale-[0.98] transition-all"
       >
-        <div className="flex flex-col items-center text-center gap-3">
+        <div className="flex flex-col items-center text-center gap-3 mb-4">
           <div className="p-3 bg-primary/5 rounded-2xl text-primary">
             <Store size={20} />
           </div>
@@ -27,23 +28,21 @@ export const SummaryMobile = ({ data, onSelect }: Props) => (
             <p className="text-[11px] text-gray-400">{ent.ownerName}</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-50">
-          <div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase">
-              Pendiente
-            </p>
-            <p className="text-sm font-black text-amber-600">
-              {formatCurrency(ent.pendingPayroll)}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] text-gray-400 font-bold uppercase">
-              Total Acum.
-            </p>
-            <p className="text-sm font-black text-gray-900">
-              {formatCurrency(ent.totalRevenue)}
-            </p>
-          </div>
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard
+            icon={Clock}
+            label="Pendiente"
+            value={formatCurrency(ent.pendingPayroll)}
+            color="text-amber-600 bg-amber-50 border-amber-100"
+            textColor="text-amber-700"
+          />
+          <StatCard
+            icon={DollarSign}
+            label="Total Acum."
+            value={formatCurrency(ent.totalRevenue)}
+            color="text-primary bg-primary/5 border-primary/20"
+            textColor="text-primary"
+          />
         </div>
       </button>
     ))}

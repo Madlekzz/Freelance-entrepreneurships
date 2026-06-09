@@ -1,4 +1,4 @@
-import { Calendar, Filter, RotateCcw } from "lucide-react";
+import { Calendar, CreditCard, Filter, RotateCcw } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DateRange } from "../../../types";
 import { MONTHS } from "../../../utils/payrollUtils";
@@ -12,6 +12,8 @@ interface Props {
   setSearchQuery: (val: string) => void;
   statusFilter: string;
   setStatusFilter: (val: string) => void;
+  paymentMethodFilter: "all" | "credit" | "efectivo" | "binance" | "pago_movil";
+  setPaymentMethodFilter: (val: "all" | "credit" | "efectivo" | "binance" | "pago_movil") => void;
   selectedMonth: number | null;
   setSelectedMonth: (val: number | null) => void;
   dateRange: DateRange | null;
@@ -24,8 +26,10 @@ export const EntrepreneursFilters = (props: Props) => {
     view,
     searchQuery,
     setSearchQuery,
-    statusFilter,
-    setStatusFilter,
+  statusFilter,
+  setStatusFilter,
+  paymentMethodFilter,
+  setPaymentMethodFilter,
     selectedMonth,
     setSelectedMonth,
     dateRange,
@@ -53,42 +57,56 @@ export const EntrepreneursFilters = (props: Props) => {
                 ? "Todos"
                 : statusFilter === "pending"
                   ? "Pendientes"
-                  : "Procesados"
+                  : statusFilter === "paid"
+                    ? "Pago Realizado"
+                    : statusFilter === "refunded"
+                      ? "Reembolsadas"
+                      : "Procesados"
             }
             icon={Filter}
+            selectedKey={statusFilter}
+            onChange={(key) => setStatusFilter(key as string)}
             items={[
-              {
-                key: "all",
-                label: "Todos los estados",
-                onClick: () => setStatusFilter("all"),
-              },
-              {
-                key: "pending",
-                label: "Pendientes",
-                onClick: () => setStatusFilter("pending"),
-              },
-              {
-                key: "processed",
-                label: "Procesados",
-                onClick: () => setStatusFilter("processed"),
-              },
+              { key: "all", label: "Todos los estados" },
+              { key: "pending", label: "Pendientes" },
+              { key: "paid", label: "Pago Realizado" },
+              { key: "processed", label: "Procesados" },
+              { key: "refunded", label: "Reembolsadas" },
+            ]}
+          />
+
+          <FilterSelector
+            label={
+              paymentMethodFilter === "all"
+                ? "Todos los pagos"
+                : paymentMethodFilter === "credit"
+                  ? "Crédito"
+                  : paymentMethodFilter === "efectivo"
+                    ? "Efectivo"
+                    : paymentMethodFilter === "binance"
+                      ? "Binance"
+                      : "Pago Móvil"
+            }
+            icon={CreditCard}
+            selectedKey={paymentMethodFilter}
+            onChange={(key) => setPaymentMethodFilter(key as "all" | "credit" | "efectivo" | "binance" | "pago_movil")}
+            items={[
+              { key: "all", label: "Todos los pagos" },
+              { key: "credit", label: "Crédito" },
+              { key: "efectivo", label: "Efectivo" },
+              { key: "binance", label: "Binance" },
+              { key: "pago_movil", label: "Pago Móvil" },
             ]}
           />
 
           <FilterSelector
             label={selectedMonth !== null ? MONTHS[selectedMonth] : "Meses"}
             icon={Calendar}
+            selectedKey={selectedMonth ?? "all"}
+            onChange={(key) => setSelectedMonth(key === "all" ? null : (key as number))}
             items={[
-              {
-                key: "all",
-                label: "Todos los meses",
-                onClick: () => setSelectedMonth(null),
-              },
-              ...MONTHS.map((m, i) => ({
-                key: i,
-                label: m,
-                onClick: () => setSelectedMonth(i),
-              })),
+              { key: "all", label: "Todos los meses" },
+              ...MONTHS.map((m, i) => ({ key: i, label: m })),
             ]}
           />
 
@@ -99,6 +117,7 @@ export const EntrepreneursFilters = (props: Props) => {
             onClick={() => {
               setSearchQuery("");
               setStatusFilter("all");
+              setPaymentMethodFilter("all");
               setDateRange(null);
               setSelectedMonth(null);
             }}
