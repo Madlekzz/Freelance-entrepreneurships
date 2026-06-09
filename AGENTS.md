@@ -56,3 +56,21 @@ Subagents defined in `.opencode/agents/` can be invoked via `@name`:
 | `@implementer` | Writes production-ready code following project conventions | write, edit, bash |
 | `@code-reviewer` | Reviews code for quality, best practices, security, and performance | read-only (bash for git/grep) |
 | `@git-committer` | Stages specified files and creates conventional commits | bash (git) |
+
+## Standard Operating Procedure for Code Changes
+
+Cada vez que se realicen cambios en el código, se debe seguir este orden estrictamente:
+
+1. **@code-reviewer** — Revisa primero el código existente sobre el que se va a trabajar para verificar que esté en óptimas condiciones. Si se encuentran problemas, deben corregirse antes de continuar.
+
+2. **@implementer** — Una vez que el código existente está en buen estado, procede a implementar los cambios solicitados.
+
+3. **@code-reviewer** — Revisa el código implementado para asegurarse de que cumpla con los estándares actuales del proyecto.
+
+4. **@security-auditor** — Revisa el código implementado para asegurarse de que no introduzca ninguna falla de seguridad nueva.
+
+5. **@docs-writer** — Documenta los cambios implementados y los presenta al desarrollador.
+
+### Para Commits y PRs
+
+Cuando se le solicite a **@git-committer** realizar un commit o una pull request, este agente únicamente deberá recopilar la información generada durante el proceso anterior (cambios realizados, revisiones, auditorías y documentación) para construir el mensaje de commit o la descripción de la PR. No debe realizar ninguna revisión ni documentación adicional por su cuenta.
