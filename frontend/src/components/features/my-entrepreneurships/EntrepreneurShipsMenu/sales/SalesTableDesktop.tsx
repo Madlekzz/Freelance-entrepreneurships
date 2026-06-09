@@ -1,10 +1,18 @@
-import { CheckCircle2, Clock, RotateCcw, User } from "lucide-react";
+import { Dropdown, type MenuProps } from "antd";
+import {
+  DollarSign,
+  MoreVertical,
+  RotateCcw,
+  User,
+} from "lucide-react";
 import type { EntrepreneurshipSale } from "../../../../../types";
 import { formatCurrency } from "../../../../../utils/format";
+import StatusBadge, { PaymentTypeLabel } from "../../../my-purchases/shared/StatusBadge";
 
 interface Props {
   sales: EntrepreneurshipSale[];
   onRefund: (sale: EntrepreneurshipSale) => void;
+  onProcessPayment?: (sale: EntrepreneurshipSale) => void;
   selectedSales: string[];
   toggleSelection: (id: string) => void;
   toggleAll: () => void;
@@ -14,16 +22,48 @@ interface Props {
 export default function SalesTableDesktop({
   sales,
   onRefund,
+  onProcessPayment,
   selectedSales,
   toggleSelection,
   toggleAll,
   processingIds,
 }: Props) {
   const refundableSales = sales.filter((sale) => {
+    if (sale.payroll_processed) return false;
     const allItemsRefunded = sale.sale_items.every((item) => item.refunded);
-    const isEffectivelyRefunded = sale.refunded || allItemsRefunded;
-    return !sale.payroll_processed && !isEffectivelyRefunded;
+    return !(sale.refunded || allItemsRefunded);
   });
+
+  const getActionMenu = (sale: EntrepreneurshipSale): MenuProps => {
+    const allRefunded = sale.sale_items.every((item) => item.refunded);
+    const isEffectivelyRefunded = sale.refunded || allRefunded;
+    const items: MenuProps["items"] = [];
+
+    if (
+      sale.payment_type === "immediate" &&
+      !isEffectivelyRefunded &&
+      !sale.payroll_processed &&
+      sale.sale_items.some((item) => !item.entrepreneur_processed && !item.refunded)
+    ) {
+      items.push({
+        key: "process",
+        icon: <DollarSign size={14} />,
+        label: "Pago recibido",
+        onClick: () => onProcessPayment?.(sale),
+      });
+    }
+
+    if (!sale.payroll_processed && !isEffectivelyRefunded) {
+      items.push({
+        key: "refund",
+        icon: <RotateCcw size={14} />,
+        label: "Reembolsar",
+        onClick: () => onRefund(sale),
+      });
+    }
+
+    return { items };
+  };
 
   return (
     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
@@ -45,8 +85,8 @@ export default function SalesTableDesktop({
             <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Productos</th>
             <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Fecha</th>
             <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Estado</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center">Acción</th>
             <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-right">Monto</th>
+            <th className="px-6 py-4 w-12"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
@@ -56,6 +96,12 @@ export default function SalesTableDesktop({
             const canRefund = !sale.payroll_processed && !isEffectivelyRefunded;
             const isProcessing = processingIds.includes(sale.id);
             const itemsTotal = sale.sale_items.reduce((sum, item) => sum + Number(item.subtotal), 0);
+            const hasActions =
+              (sale.payment_type === "immediate" &&
+                !isEffectivelyRefunded &&
+                sale.sale_items.some((item) => !item.entrepreneur_processed && !item.refunded)) ||
+              canRefund;
+            const menu = getActionMenu(sale);
             return (
               <tr key={sale.id} className="hover:bg-gray-50/50 transition-colors group">
                 <td className="px-6 py-4">
@@ -73,7 +119,10 @@ export default function SalesTableDesktop({
                       <User size={16} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-gray-900">{sale.users.name}</p>
+                      <div className="flex items-center gap-1">
+                        <p className="text-sm font-bold text-gray-900">{sale.users.name}</p>
+                        <PaymentTypeLabel paymentType={sale.payment_type} paymentMethod={sale.payment_method} />
+                      </div>
                       <p className="text-[11px] text-gray-400">{sale.users.email}</p>
                     </div>
                   </div>
@@ -83,10 +132,13 @@ export default function SalesTableDesktop({
                     {sale.sale_items.map((item) => (
                       <div key={item.id} className="flex justify-between items-center gap-4 text-xs">
                         <div className="flex items-center gap-1.5 text-gray-600 truncate">
-                          <span className={`font-bold shrink-0 px-1 rounded ${item.refunded ? 'text-red-400 bg-red-50' : 'text-primary bg-primary/5'}`}>{item.quantity}x</span>
+                          <span className={`font-bold shrink-0 px-1 rounded ${item.refunded ? 'text-red-400 bg-red-50' : item.entrepreneur_processed ? 'text-emerald-500 bg-emerald-50' : 'text-primary bg-primary/5'}`}>{item.quantity}x</span>
                           <span className={`truncate ${item.refunded ? 'text-gray-400 line-through' : ''}`}>{item.products.name}</span>
                           {item.refunded && (
                             <span className="text-[8px] font-bold text-red-500 bg-red-100 px-1 py-0.5 rounded shrink-0 ml-1">REEMBOLSADO</span>
+                          )}
+                          {item.entrepreneur_processed && !item.refunded && (
+                            <span className="text-[8px] font-bold text-emerald-500 bg-emerald-100 px-1 py-0.5 rounded shrink-0 ml-1">PAGADO</span>
                           )}
                         </div>
                         <span className={`text-[10px] font-bold italic shrink-0 ${item.refunded ? 'text-red-300' : 'text-gray-400'}`}>{formatCurrency(item.unit_price)}</span>
@@ -98,39 +150,35 @@ export default function SalesTableDesktop({
                   {new Date(sale.created_at).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })}
                 </td>
                 <td className="px-6 py-4">
-                  {isEffectivelyRefunded ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-600 text-[10px] font-bold border border-red-100">
-                      <RotateCcw size={12} /> REEMBOLSADO
-                    </span>
-                  ) : sale.payroll_processed ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold border border-emerald-100">
-                      <CheckCircle2 size={12} /> PROCESADO
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold border border-amber-100">
-                      <Clock size={12} /> PENDIENTE
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-center">
-                  {canRefund ? (
-                    <button
-                      type="button"
-                      onClick={() => onRefund(sale)}
-                      disabled={isProcessing}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-[10px] font-bold hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      <RotateCcw size={12} /> {isProcessing ? "..." : "Reembolsar"}
-                    </button>
-                  ) : (
-                    <span className="text-[10px] text-gray-300 italic">—</span>
-                  )}
+                  <StatusBadge
+                    processed={sale.payroll_processed}
+                    refunded={sale.refunded}
+                    paymentType={sale.payment_type}
+                    saleItems={sale.sale_items}
+                  />
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex flex-col items-end">
                     <span className="text-sm font-bold text-gray-900">{formatCurrency(itemsTotal)}</span>
                     <span className="text-[9px] text-gray-400 font-mono">#{sale.id.slice(0, 8).toUpperCase()}</span>
                   </div>
+                </td>
+                <td className="px-6 py-4 text-right">
+                  {hasActions ? (
+                    <Dropdown menu={menu} trigger={["click"]} placement="bottomRight">
+                      <button
+                        type="button"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-gray-300 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    </Dropdown>
+                  ) : (
+                    <span className="text-gray-200 p-1.5 block">
+                      <MoreVertical size={16} className="opacity-30" />
+                    </span>
+                  )}
                 </td>
               </tr>
             );

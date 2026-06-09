@@ -1,4 +1,4 @@
-import { ArrowUpDown, Filter, RotateCcw } from "lucide-react";
+import { ArrowUpDown, CreditCard, Filter, RotateCcw } from "lucide-react";
 import {
   SORT_OPTIONS,
   STATUS_OPTIONS,
@@ -15,6 +15,8 @@ interface Props {
   onSearchChange: (val: string) => void;
   statusFilter: string;
   onStatusChange: (val: string) => void;
+  paymentMethodFilter: "all" | "credit" | "efectivo" | "binance" | "pago_movil";
+  onPaymentMethodChange: (val: "all" | "credit" | "efectivo" | "binance" | "pago_movil") => void;
   sortBy: string;
   onSortChange: (val: string) => void;
   dateRange: DateRange | null;
@@ -27,6 +29,8 @@ export default function SalesFilters({
   onSearchChange,
   statusFilter,
   onStatusChange,
+  paymentMethodFilter,
+  onPaymentMethodChange,
   sortBy,
   onSortChange,
   dateRange,
@@ -38,6 +42,14 @@ export default function SalesFilters({
     "Todos los estados";
   const sortLabel =
     SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? "Ordenar";
+
+  const paymentLabels: Record<string, string> = {
+    all: "Todos los pagos",
+    credit: "Crédito",
+    efectivo: "Efectivo",
+    binance: "Binance",
+    pago_movil: "Pago Móvil",
+  };
 
   return (
     <div className="flex flex-col lg:flex-row gap-3 items-center bg-white p-4 rounded-4xl md:rounded-2xl border border-gray-100 shadow-sm">
@@ -52,11 +64,27 @@ export default function SalesFilters({
           <FilterSelector
             label={statusLabel}
             icon={Filter}
+            selectedKey={statusFilter}
+            onChange={(key) => onStatusChange(key as string)}
             items={STATUS_OPTIONS.map((opt) => ({
               key: opt.value,
               label: opt.label,
-              onClick: () => onStatusChange(opt.value),
             }))}
+          />
+        </div>
+        <div className="w-full lg:w-44 min-w-0">
+          <FilterSelector
+            label={paymentLabels[paymentMethodFilter]}
+            icon={CreditCard}
+            selectedKey={paymentMethodFilter}
+            onChange={(key) => onPaymentMethodChange(key as "all" | "credit" | "efectivo" | "binance" | "pago_movil")}
+            items={[
+              { key: "all", label: "Todos los pagos" },
+              { key: "credit", label: "Crédito" },
+              { key: "efectivo", label: "Efectivo" },
+              { key: "binance", label: "Binance" },
+              { key: "pago_movil", label: "Pago Móvil" },
+            ]}
           />
         </div>
         <div className="w-full lg:w-44 min-w-0">
@@ -66,10 +94,11 @@ export default function SalesFilters({
           <FilterSelector
             label={sortLabel}
             icon={ArrowUpDown}
+            selectedKey={sortBy}
+            onChange={(key) => onSortChange(key as string)}
             items={SORT_OPTIONS.map((opt) => ({
               key: opt.value,
               label: opt.label,
-              onClick: () => onSortChange(opt.value),
             }))}
           />
         </div>
@@ -77,12 +106,13 @@ export default function SalesFilters({
 
       {exportButton}
 
-      {(searchQuery || statusFilter !== "all" || sortBy !== "date-desc" || dateRange) && (
+      {(searchQuery || statusFilter !== "all" || paymentMethodFilter !== "all" || sortBy !== "date-desc" || dateRange) && (
         <button
           type="button"
           onClick={() => {
             onSearchChange("");
             onStatusChange("all");
+            onPaymentMethodChange("all");
             onSortChange("date-desc");
             onDateRangeChange(null);
           }}

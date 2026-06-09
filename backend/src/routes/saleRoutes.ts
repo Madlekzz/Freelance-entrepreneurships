@@ -6,6 +6,7 @@ import {
   getSaleById,
   getSalesByConsumer,
   getSalesByEntrepreneurship,
+  processSaleItems,
   refundSale,
   refundSaleBatch,
   updatePayrollStatus,
@@ -36,6 +37,7 @@ saleRouter.get(
 saleRouter.get("/:id", authorize("ADMIN"), getSaleById);
 saleRouter.patch("/batch/payroll", authorize("ADMIN"), updatePayrollStatusBatch);
 saleRouter.patch("/:id/payroll", authorize("ADMIN"), updatePayrollStatus);
+saleRouter.patch("/:saleId/items/process", authorize("PROVEEDOR"), processSaleItems);
 saleRouter.post("/batch/refund", authorize("ADMIN", "PROVEEDOR"), refundSaleBatch);
 saleRouter.post("/:id/refund", authorize("ADMIN", "PROVEEDOR"), refundSale);
 saleRouter.delete("/:id", authorize("IT"), deleteSale);
