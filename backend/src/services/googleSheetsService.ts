@@ -54,7 +54,7 @@ const NAME_COLUMN_INDEX = 1;
 const EMAIL_COLUMN_INDEX = 2;
 const PAYMENT_NAME_COLUMN_INDEX = 1;
 const PAYMENT_EMAIL_COLUMN_INDEX = 2;
-const PAYMENT_EMPRENDIMIENTO_COLUMN_INDEX = 9;
+const PAYMENT_EMPRENDIMIENTO_HEADER = "Emprendimientos";
 
 function getColumnLetter(index: number): string {
   return String.fromCharCode(65 + index);
@@ -374,7 +374,24 @@ export async function updateEntrepreneurEarnings(
     return;
   }
 
-  const columnLetter = getColumnLetter(PAYMENT_EMPRENDIMIENTO_COLUMN_INDEX);
+  const headersResponse = await sheets.spreadsheets.values.get({
+    spreadsheetId: spreadsheetId,
+    range: `${paymentsSheet}!1:1`,
+  });
+
+  const headers = headersResponse.data.values?.[0] || [];
+  const entrepreneurshipColumnIndex = headers.findIndex(
+    (h: string) => h.toLowerCase().trim() === PAYMENT_EMPRENDIMIENTO_HEADER.toLowerCase(),
+  );
+
+  if (entrepreneurshipColumnIndex === -1) {
+    console.warn(
+      `[GoogleSheets] Columna "${PAYMENT_EMPRENDIMIENTO_HEADER}" no encontrada en ${paymentsSheet}`,
+    );
+    return;
+  }
+
+  const columnLetter = getColumnLetter(entrepreneurshipColumnIndex);
   const cellRef = `${paymentsSheet}!${columnLetter}${rowNumber}`;
 
   const currentValueResponse = await sheets.spreadsheets.values.get({

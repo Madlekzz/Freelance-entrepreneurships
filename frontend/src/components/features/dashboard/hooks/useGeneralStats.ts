@@ -93,7 +93,7 @@ export function useGeneralStats() {
     const adminStats = {
       totalRevenue: sales.reduce((acc, s) => acc + s.total, 0),
       pendingPayroll: sales
-        .filter((s) => !s.payroll_processed)
+        .filter((s) => !s.payroll_processed && !s.refunded)
         .reduce((acc, s) => acc + s.total, 0),
       activeEntrepreneurs: entrepreneursSummary.length,
     };

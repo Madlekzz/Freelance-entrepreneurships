@@ -16,15 +16,15 @@ export function useOverviewStats(
     const outOfStock = products.filter((p) => p.current_stock === 0).length;
 
     const pendingPayrollCount = sales.filter(
-      (s) => !s.payroll_processed,
+      (s) => !s.payroll_processed && !s.refunded,
     ).length;
 
     const processedPayrollTotal = sales
-      .filter((s) => s.payroll_processed)
+      .filter((s) => s.payroll_processed && !s.refunded)
       .reduce((acc, s) => acc + s.total, 0);
 
     const pendingPayrollTotal = sales
-      .filter((s) => !s.payroll_processed)
+      .filter((s) => !s.payroll_processed && !s.refunded)
       .reduce((acc, s) => acc + s.total, 0);
 
     return {
