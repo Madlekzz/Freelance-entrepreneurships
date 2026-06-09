@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronUp, RotateCcw, ShoppingBag, Store } from "lucide-react";
 import type { ConsumerSale } from "../../../types";
-import StatusBadge from "./shared/StatusBadge";
+import StatusBadge, { PaymentMethodBadge, PaymentTypeLabel } from "./shared/StatusBadge";
 
 interface Props {
   sales: ConsumerSale[];
@@ -49,11 +49,19 @@ export default function MyPurchasesMobile({
                 <p className="text-xs font-mono text-gray-400">
                   #{sale.id.slice(0, 8)}
                 </p>
-                <p className="font-bold text-gray-900">{fmt(sale.total)}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <p className="font-bold text-gray-900">{fmt(sale.total)}</p>
+                  <PaymentMethodBadge paymentType={sale.payment_type} paymentMethod={sale.payment_method} />
+                </div>
               </div>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <StatusBadge processed={sale.payroll_processed} refunded={sale.refunded} />
+              <StatusBadge
+                processed={sale.payroll_processed}
+                refunded={sale.refunded}
+                paymentType={sale.payment_type}
+                saleItems={sale.sale_items}
+              />
               {expandedId === sale.id ? (
                 <ChevronUp size={16} className="text-primary" />
               ) : (
@@ -65,7 +73,10 @@ export default function MyPurchasesMobile({
           {expandedId === sale.id && (
             <div className="px-5 pb-5 pt-2 space-y-3 animate-in fade-in slide-in-from-top-4">
               <div className="flex items-center justify-between text-[10px] uppercase font-black text-gray-400 tracking-widest border-t border-gray-50 pt-4 mb-2">
-                <span>Productos</span>
+                <div className="flex items-center gap-2">
+                  <span>Productos</span>
+                  <PaymentTypeLabel paymentType={sale.payment_type} paymentMethod={sale.payment_method} />
+                </div>
                 <span>{new Date(sale.created_at).toLocaleDateString()}</span>
               </div>
               {sale.sale_items.map((item) => (
@@ -81,6 +92,11 @@ export default function MyPurchasesMobile({
                       {item.refunded && (
                         <span className="inline-flex items-center gap-0.5 text-[8px] font-black text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase shrink-0">
                           <RotateCcw size={8} /> Reembolsado
+                        </span>
+                      )}
+                      {item.entrepreneur_processed && !item.refunded && (
+                        <span className="inline-flex items-center gap-0.5 text-[8px] font-black text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded uppercase shrink-0">
+                          Pagado
                         </span>
                       )}
                     </div>
