@@ -38,6 +38,9 @@ export interface ComposedProductInput {
 	components: ComposedProductComponent[];
 }
 
+export type PaymentType = "credit" | "immediate";
+export type PaymentMethod = "efectivo" | "binance" | "pago_movil";
+
 export interface Sale {
 	consumer_id: string;
 	product_id: string;
@@ -46,6 +49,8 @@ export interface Sale {
 	total: number;
 	sale_date: string;
 	payroll_processed: boolean;
+	payment_type: PaymentType;
+	payment_method?: PaymentMethod | null;
 }
 
 export interface Entrepreneurship {
