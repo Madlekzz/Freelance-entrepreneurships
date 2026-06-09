@@ -9,11 +9,28 @@ function escapeHtml(str: string): string {
 
 export const CONSUMER_PURCHASE_SUBJECT = "Confirmaci\u00F3n de Compra - Freelance LATAM";
 
+function emailPaymentTypeLabel(
+  paymentType?: string,
+  paymentMethod?: string,
+): string {
+  if (paymentType === "immediate") {
+    const methodMap: Record<string, string> = {
+      efectivo: "Efectivo",
+      binance: "Binance",
+      pago_movil: "Pago Móvil",
+    };
+    return `Pago Inmediato - ${methodMap[paymentMethod || ""] || paymentMethod}`;
+  }
+  return "Crédito (nómina)";
+}
+
 export const consumerPurchaseEmailHtml = (
   name: string,
   orderId: string,
   total: number,
   items: Array<{ name: string; quantity: number; price: number }>,
+  paymentType?: string,
+  paymentMethod?: string,
 ): string => {
   const idParts = orderId.split("-");
   const displayId =
@@ -33,6 +50,8 @@ export const consumerPurchaseEmailHtml = (
         </tr>`,
     )
     .join("");
+
+  const paymentLabel = emailPaymentTypeLabel(paymentType, paymentMethod);
 
   return `
 <!DOCTYPE html>
@@ -55,6 +74,9 @@ export const consumerPurchaseEmailHtml = (
               </p>
               <p style="margin:0 0 20px;font-size:14px;color:#666;">
                 Orden: <strong>#${esc(displayId)}</strong>
+              </p>
+              <p style="margin:0 0 20px;font-size:13px;color:#888;">
+                Tipo de pago: <strong>${esc(paymentLabel)}</strong>
               </p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
                 <thead>
@@ -98,6 +120,8 @@ export const entrepreneurSaleEmailHtml = (
   orderId: string,
   products: Array<{ name: string; quantity: number; price: number }>,
   customerName: string,
+  paymentType?: string,
+  paymentMethod?: string,
 ): string => {
   const subtotal = products.reduce(
     (acc, p) => acc + p.price * p.quantity,
@@ -123,6 +147,9 @@ export const entrepreneurSaleEmailHtml = (
     )
     .join("");
 
+  const paymentLabel = emailPaymentTypeLabel(paymentType, paymentMethod);
+  const isImmediate = paymentType === "immediate";
+
   return `
 <!DOCTYPE html>
 <html>
@@ -145,6 +172,14 @@ export const entrepreneurSaleEmailHtml = (
               <p style="margin:0 0 20px;font-size:14px;color:#666;">
                 Orden: <strong>#${esc(displayId)}</strong>
               </p>
+              <p style="margin:0 0 20px;font-size:13px;color:#888;">
+                Tipo de pago: <strong>${esc(paymentLabel)}</strong>
+              </p>
+              ${isImmediate ? `<div style="background-color:#fff3e0;border:1px solid #ffcc02;border-radius:6px;padding:12px;margin-bottom:20px;">
+                <p style="margin:0;font-size:13px;color:#e65100;">
+                  <strong>⚠️ Importante:</strong> Este es un pago inmediato. Coordina con el consumidor para recibir el pago y luego marca los items como &quot;Pago recibido&quot; desde tu panel de ventas.
+                </p>
+              </div>` : ""}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
                 <thead>
                   <tr style="background-color:#f8f8f8;">

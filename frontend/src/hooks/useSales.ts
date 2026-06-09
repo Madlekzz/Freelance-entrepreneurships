@@ -13,6 +13,7 @@ export function useSales(entrepreneurshipId?: string) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("date-desc"); // date-desc, date-asc, total-desc, total-asc
   const [statusFilter, setStatusFilter] = useState("all"); // all, processed, pending
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<"all" | "credit" | "efectivo" | "binance" | "pago_movil">("all");
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
 
   // 1. Carga de datos desde la API
@@ -72,7 +73,22 @@ export function useSales(entrepreneurshipId?: string) {
           ...sale,
           sale_items: updatedItems,
           refunded: allRefunded ? true : sale.refunded,
-          total: allRefunded ? 0 : sale.total,
+        };
+      }),
+    );
+  }, []);
+
+  const markItemsProcessed = useCallback((saleId: string, itemIds: number[]) => {
+    setSales((prev) =>
+      prev.map((sale) => {
+        if (sale.id !== saleId) return sale;
+        return {
+          ...sale,
+          sale_items: sale.sale_items.map((item) =>
+            itemIds.includes(item.id)
+              ? { ...item, entrepreneur_processed: true }
+              : item,
+          ),
         };
       }),
     );
@@ -110,7 +126,7 @@ export function useSales(entrepreneurshipId?: string) {
       });
     }
 
-    // --- C. Filtro por Estado (payroll_processed / refunded) ---
+    // --- C. Filtro por Estado ---
     if (statusFilter !== "all") {
       if (statusFilter === "refunded") {
         result = result.filter(
@@ -118,22 +134,46 @@ export function useSales(entrepreneurshipId?: string) {
             sale.refunded === true ||
             sale.sale_items.every((item) => item.refunded),
         );
-      } else {
-        const isProcessed = statusFilter === "processed";
+      } else if (statusFilter === "processed") {
         result = result.filter((sale) => {
-          const allItemsRefunded = sale.sale_items.every(
-            (item) => item.refunded,
-          );
-          return (
-            !sale.refunded &&
-            !allItemsRefunded &&
-            sale.payroll_processed === isProcessed
-          );
+          const allRefunded = sale.sale_items.every((item) => item.refunded);
+          if (sale.refunded || allRefunded) return false;
+          if (sale.payment_type === "immediate") {
+            return sale.sale_items.every(
+              (item) => item.entrepreneur_processed || item.refunded,
+            );
+          }
+          return sale.payroll_processed === true;
+        });
+      } else {
+        // pending
+        result = result.filter((sale) => {
+          const allRefunded = sale.sale_items.every((item) => item.refunded);
+          if (sale.refunded || allRefunded) return false;
+          if (sale.payment_type === "immediate") {
+            return sale.sale_items.some(
+              (item) => !item.entrepreneur_processed && !item.refunded,
+            );
+          }
+          return sale.payroll_processed === false;
         });
       }
     }
 
-    // --- D. Ordenamiento ---
+    // --- D. Filtro por Tipo/Método de Pago ---
+    if (paymentMethodFilter !== "all") {
+      if (paymentMethodFilter === "credit") {
+        result = result.filter((sale) => sale.payment_type !== "immediate");
+      } else {
+        result = result.filter(
+          (sale) =>
+            sale.payment_type === "immediate" &&
+            sale.payment_method === paymentMethodFilter,
+        );
+      }
+    }
+
+    // --- E. Ordenamiento ---
     result = result.toSorted((a, b) => {
       switch (sortBy) {
         case "date-desc":
@@ -154,7 +194,7 @@ export function useSales(entrepreneurshipId?: string) {
     });
 
     return result;
-  }, [sales, searchQuery, sortBy, statusFilter, dateRange]);
+  }, [sales, searchQuery, sortBy, statusFilter, paymentMethodFilter, dateRange]);
 
   return {
     // Datos
@@ -170,11 +210,14 @@ export function useSales(entrepreneurshipId?: string) {
     setSortBy,
     statusFilter,
     setStatusFilter,
+    paymentMethodFilter,
+    setPaymentMethodFilter,
     dateRange,
     setDateRange,
 
     // Acciones
     markItemsRefunded,
+    markItemsProcessed,
     refetch,
   };
 }

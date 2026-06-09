@@ -89,6 +89,8 @@ export default function AdminEntrepreneurs() {
         setSearchQuery={logic.setSearchQuery}
         statusFilter={logic.statusFilter}
         setStatusFilter={logic.setStatusFilter}
+        paymentMethodFilter={logic.paymentMethodFilter}
+        setPaymentMethodFilter={logic.setPaymentMethodFilter}
         selectedMonth={logic.selectedMonth}
         setSelectedMonth={logic.setSelectedMonth}
         dateRange={logic.dateRange}
