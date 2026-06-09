@@ -4,20 +4,52 @@ import { formatCurrency } from "../../utils/format";
 interface SaleWithStats {
   total: number;
   payroll_processed: boolean;
+  refunded?: boolean;
+  sale_items: Array<{
+    subtotal: number;
+    refunded?: boolean;
+    products: {
+      entrepreneurships: {
+        id: string;
+      };
+    };
+  }>;
 }
 
 interface Props {
   sales: SaleWithStats[];
+  selectedEntId?: string;
 }
 
-export default function DetailedSalesStats({ sales }: Props) {
+export default function DetailedSalesStats({ sales, selectedEntId }: Props) {
   const totalSales = sales.length;
-  const processedTotal = sales
-    .filter((s) => s.payroll_processed)
-    .reduce((acc, s) => acc + s.total, 0);
-  const pendingTotal = sales
-    .filter((s) => !s.payroll_processed)
-    .reduce((acc, s) => acc + s.total, 0);
+  const processedFiltered = sales.filter(
+    (s) => s.payroll_processed && !s.refunded,
+  );
+  const pendingFiltered = sales.filter(
+    (s) => !s.payroll_processed && !s.refunded,
+  );
+
+  const processedTotal = selectedEntId
+    ? processedFiltered
+        .flatMap((s) => s.sale_items)
+        .filter(
+          (item) =>
+            !item.refunded &&
+            item.products.entrepreneurships.id === selectedEntId,
+        )
+        .reduce((acc, item) => acc + item.subtotal, 0)
+    : processedFiltered.reduce((acc, s) => acc + s.total, 0);
+  const pendingTotal = selectedEntId
+    ? pendingFiltered
+        .flatMap((s) => s.sale_items)
+        .filter(
+          (item) =>
+            !item.refunded &&
+            item.products.entrepreneurships.id === selectedEntId,
+        )
+        .reduce((acc, item) => acc + item.subtotal, 0)
+    : pendingFiltered.reduce((acc, s) => acc + s.total, 0);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

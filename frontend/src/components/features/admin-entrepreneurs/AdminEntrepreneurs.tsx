@@ -80,7 +80,7 @@ export default function AdminEntrepreneurs() {
       />
 
       {logic.view === "detailed" && logic.detailedSales.length > 0 && (
-        <DetailedSalesStats sales={logic.detailedSales} />
+        <DetailedSalesStats sales={logic.detailedSales} selectedEntId={logic.selectedEntId!} />
       )}
 
       <EntrepreneursFilters
