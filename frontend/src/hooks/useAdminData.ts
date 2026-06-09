@@ -194,7 +194,7 @@ export function useAdminData(enabled: boolean = true) {
           statusFilter === "all"
             ? true
             : statusFilter === "pending"
-              ? !sale.payroll_processed
+              ? !sale.payroll_processed && !sale.refunded
               : sale.payroll_processed;
         const matchesMonth =
           selectedMonth === null
@@ -223,14 +223,14 @@ export function useAdminData(enabled: boolean = true) {
 
           const subtotal = Number(item.subtotal) || 0;
           map[entId].totalRevenue += subtotal;
-          if (!s.payroll_processed) {
+          if (!s.payroll_processed && !s.refunded) {
             map[entId].pendingPayroll += subtotal;
           }
         });
 
         venturesInSale.forEach((entId) => {
           map[entId].salesCount += 1;
-          if (!s.payroll_processed) {
+          if (!s.payroll_processed && !s.refunded) {
             map[entId].pendingIds.push(s.id);
           }
         });
@@ -311,7 +311,7 @@ export function useAdminData(enabled: boolean = true) {
       map[user.email].totalSpent += s.total;
       map[user.email].ordersCount += 1;
 
-      if (!s.payroll_processed) {
+      if (!s.payroll_processed && !s.refunded) {
         map[user.email].pendingDeduction += s.total;
         map[user.email].pendingIds.push(s.id);
       }
