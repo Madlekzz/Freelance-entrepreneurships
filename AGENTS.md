@@ -59,18 +59,18 @@ Subagents defined in `.opencode/agents/` can be invoked via `@name`:
 
 ## Standard Operating Procedure for Code Changes
 
-Cada vez que se realicen cambios en el código, se debe seguir este orden estrictamente:
+This procedure must be followed strictly every time code changes are made:
 
-1. **@code-reviewer** — Revisa primero el código existente sobre el que se va a trabajar para verificar que esté en óptimas condiciones. Si se encuentran problemas, deben corregirse antes de continuar.
+1. **@code-reviewer** — First, review the existing code that will be worked on to verify it is in optimal condition. If issues are found, they must be corrected before proceeding.
 
-2. **@implementer** — Una vez que el código existente está en buen estado, procede a implementar los cambios solicitados.
+2. **@implementer** — Once the existing code is in good shape, proceed to implement the requested changes.
 
-3. **@code-reviewer** — Revisa el código implementado para asegurarse de que cumpla con los estándares actuales del proyecto.
+3. **@code-reviewer** — Review the implemented code to ensure it meets the project's current standards.
 
-4. **@security-auditor** — Revisa el código implementado para asegurarse de que no introduzca ninguna falla de seguridad nueva.
+4. **@security-auditor** — Review the implemented code to ensure no new security vulnerabilities were introduced.
 
-5. **@docs-writer** — Documenta los cambios implementados y los presenta al desarrollador.
+5. **@docs-writer** — Document the implemented changes and present them to the developer.
 
-### Para Commits y PRs
+### For Commits and PRs
 
-Cuando se le solicite a **@git-committer** realizar un commit o una pull request, este agente únicamente deberá recopilar la información generada durante el proceso anterior (cambios realizados, revisiones, auditorías y documentación) para construir el mensaje de commit o la descripción de la PR. No debe realizar ninguna revisión ni documentación adicional por su cuenta.
+When **@git-committer** is asked to make a commit or a pull request, this agent should only gather the information generated during the previous process (changes made, reviews, audits, and documentation) to build the commit message or PR description. It must not perform any additional review or documentation on its own.
