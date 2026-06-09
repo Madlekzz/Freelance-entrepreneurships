@@ -1,7 +1,19 @@
 import { Select } from "antd";
-import { CheckCircle2, Loader2, X } from "lucide-react";
+import {
+  Banknote,
+  CheckCircle2,
+  Landmark,
+  Loader2,
+  Smartphone,
+  X,
+} from "lucide-react";
 import type { ModalStatus } from "../../../hooks/useCheckout";
-import type { CatalogProduct, Consumer } from "../../../types";
+import type {
+  CatalogProduct,
+  Consumer,
+  PaymentMethod,
+  PaymentType,
+} from "../../../types";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -20,8 +32,12 @@ interface Props {
   selectedConsumer?: Consumer;
   entries: { product: CatalogProduct; qty: number }[];
   total: number;
+  paymentType: PaymentType;
+  paymentMethod: PaymentMethod | null;
   onClose: () => void;
   onConsumerChange: (email: string) => void;
+  onPaymentTypeChange: (type: PaymentType) => void;
+  onPaymentMethodChange: (method: PaymentMethod) => void;
   onConfirm: () => void;
 }
 
@@ -89,8 +105,7 @@ export default function CheckoutModal(props: Props) {
         {/* 3. Form State (Idle / Error) */}
         {(props.status === "idle" || props.status === "error") && (
           <>
-            <div className="flex-1 overflow-y-auto px-6  flex flex-col gap-4 overscroll-contain"></div>
-            <div className="px-6 py-5 flex flex-col gap-4">
+            <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4 overscroll-contain">
               <div>
                 <label
                   htmlFor="showSearch"
@@ -134,6 +149,66 @@ export default function CheckoutModal(props: Props) {
                 </div>
               )}
 
+              {/* Payment Type Selector */}
+              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">
+                  Tipo de pago
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => props.onPaymentTypeChange("credit")}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                      props.paymentType === "credit"
+                        ? "bg-primary text-white shadow-sm"
+                        : "bg-white text-gray-500 border border-gray-200 hover:border-primary/30"
+                    }`}
+                  >
+                    Crédito
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => props.onPaymentTypeChange("immediate")}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                      props.paymentType === "immediate"
+                        ? "bg-primary text-white shadow-sm"
+                        : "bg-white text-gray-500 border border-gray-200 hover:border-primary/30"
+                    }`}
+                  >
+                    Pago inmediato
+                  </button>
+                </div>
+
+                {props.paymentType === "immediate" && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                      Método de pago
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { key: "efectivo" as const, label: "Efectivo", icon: Banknote },
+                        { key: "binance" as const, label: "Binance", icon: Landmark },
+                        { key: "pago_movil" as const, label: "Pago Móvil", icon: Smartphone },
+                      ].map(({ key, label, icon: Icon }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => props.onPaymentMethodChange(key)}
+                          className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            props.paymentMethod === key
+                              ? "bg-white border-2 border-primary text-primary shadow-sm"
+                              : "bg-white border border-gray-200 text-gray-400 hover:border-gray-300"
+                          }`}
+                        >
+                          <Icon size={20} />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
                 <p className="text-xs font-semibold text-primary mb-2.5 uppercase tracking-wider">
                   Resumen
@@ -166,7 +241,7 @@ export default function CheckoutModal(props: Props) {
               )}
             </div>
 
-            <div className="px-6 pb-24 flex gap-3">
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
               <button
                 type="button"
                 onClick={props.onClose}
@@ -177,7 +252,10 @@ export default function CheckoutModal(props: Props) {
               <button
                 type="button"
                 onClick={props.onConfirm}
-                disabled={!props.selectedConsumerId}
+                disabled={
+                  !props.selectedConsumerId ||
+                  (props.paymentType === "immediate" && !props.paymentMethod)
+                }
                 className="flex-2 py-3 bg-primary hover:bg-primary-dark disabled:opacity-40 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
               >
                 Confirmar compra

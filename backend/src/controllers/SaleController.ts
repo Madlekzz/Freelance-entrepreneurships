@@ -68,6 +68,8 @@ export async function getAllSales(_req: Request, res: Response) {
         total,
         payroll_processed,
         refunded,
+        payment_type,
+        payment_method,
         users!consumer_id(id, name, email), 
         sale_items(
             id,
@@ -75,6 +77,8 @@ export async function getAllSales(_req: Request, res: Response) {
             unit_price,
             subtotal,
             refunded,
+            entrepreneur_processed,
+            entrepreneur_processed_at,
             products(id, name, entrepreneurships(id, name, owner_id, users(name)))
         )
     `,
@@ -123,6 +127,8 @@ export async function getSalesByEntrepreneurship(req: Request, res: Response) {
             total,
             payroll_processed,
             refunded,
+            payment_type,
+            payment_method,
             users!consumer_id(id, name, email),
             sale_items!inner(
                 id,
@@ -130,6 +136,8 @@ export async function getSalesByEntrepreneurship(req: Request, res: Response) {
                 unit_price,
                 subtotal,
                 refunded,
+                entrepreneur_processed,
+                entrepreneur_processed_at,
                 products!inner(id, name, entrepreneurship_id)
             )
         `,
@@ -162,6 +170,8 @@ export async function getSalesByConsumer(req: Request, res: Response) {
             total,
             payroll_processed,
             refunded,
+            payment_type,
+            payment_method,
             users!consumer_id(name),
             sale_items(
                 id,
@@ -169,6 +179,8 @@ export async function getSalesByConsumer(req: Request, res: Response) {
                 unit_price,
                 subtotal,
                 refunded,
+                entrepreneur_processed,
+                entrepreneur_processed_at,
                 products(name, entrepreneurships(name))
             )
         `,
@@ -231,10 +243,22 @@ export async function getSaleById(req: Request, res: Response) {
 
 // [PÚBLICO] Crear una venta — Flujo de Carrito
 export async function createSale(req: Request, res: Response) {
-  const { consumer_id, items } = req.body; // items: [{ product_id, quantity }]
+  const { consumer_id, items, payment_type, payment_method } = req.body;
 
   if (!consumer_id || !items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: "Datos de compra inválidos" });
+  }
+
+  const normalizedPaymentType: "credit" | "immediate" =
+    payment_type === "immediate" ? "immediate" : "credit";
+  const validMethods = ["efectivo", "binance", "pago_movil"];
+
+  if (normalizedPaymentType === "immediate") {
+    if (!payment_method || !validMethods.includes(payment_method)) {
+      return res.status(400).json({
+        error: "Debes seleccionar un método de pago válido (efectivo, binance, pago_movil)",
+      });
+    }
   }
 
   try {
@@ -375,11 +399,16 @@ export async function createSale(req: Request, res: Response) {
         consumer_id,
         total: totalAmount,
         payroll_processed: false,
+        payment_type: normalizedPaymentType,
+        payment_method:
+          normalizedPaymentType === "immediate" ? payment_method : null,
       })
       .select(
         `
         id,
         total,
+        payment_type,
+        payment_method,
         consumer:consumer_id (
           id,
           email,
@@ -441,6 +470,8 @@ export async function createSale(req: Request, res: Response) {
           sale.id,
           sale.total,
           processedItems,
+          normalizedPaymentType,
+          payment_method,
         );
 
         const consumerHtml = consumerPurchaseEmailHtml(
@@ -448,6 +479,8 @@ export async function createSale(req: Request, res: Response) {
           sale.id,
           sale.total,
           processedItems,
+          normalizedPaymentType,
+          payment_method,
         );
 
         const notificationResult = await sendUserNotification(
@@ -505,6 +538,8 @@ export async function createSale(req: Request, res: Response) {
           sale.id,
           data.products,
           consumerData?.name,
+          normalizedPaymentType,
+          payment_method,
         );
 
         const sellerHtml = entrepreneurSaleEmailHtml(
@@ -512,6 +547,8 @@ export async function createSale(req: Request, res: Response) {
           sale.id,
           data.products,
           consumerData?.name,
+          normalizedPaymentType,
+          payment_method,
         );
 
         const notificationResult = await sendUserNotification(
@@ -621,6 +658,8 @@ export async function createSale(req: Request, res: Response) {
             price: item.price,
           })),
           sellersForNotification,
+          normalizedPaymentType,
+          payment_method,
         );
 
         await sendSlackWebhookNotification(webhookUrl, webhookBlocks);
@@ -640,13 +679,116 @@ export async function createSale(req: Request, res: Response) {
   }
 }
 
+// [PROVEEDOR] Marcar items de una venta de pago inmediato como procesados
+export async function processSaleItems(req: Request, res: Response) {
+  const { saleId } = req.params;
+  const { item_ids } = req.body;
+  const requestingUser = req.user;
+
+  if (!item_ids || !Array.isArray(item_ids) || item_ids.length === 0) {
+    return res.status(400).json({ error: "Debes proporcionar los IDs de los items a procesar" });
+  }
+
+  if (!requestingUser) {
+    return res.status(401).json({ error: "Usuario no autenticado" });
+  }
+
+  try {
+    // 1. Verificar que la venta existe y es de pago inmediato
+    const { data: sale, error: saleError } = await supabaseAdmin
+      .from("sales")
+      .select("id, payment_type")
+      .eq("id", saleId)
+      .single();
+
+    if (saleError || !sale) {
+      return res.status(404).json({ error: "Venta no encontrada" });
+    }
+
+    if (sale.payment_type !== "immediate") {
+      return res.status(400).json({
+        error: "Solo se pueden procesar items de ventas de pago inmediato",
+      });
+    }
+
+    // 2. Obtener los items del emprendimiento del usuario autenticado
+    const { data: entrepreneurship } = await supabaseAdmin
+      .from("entrepreneurships")
+      .select("id")
+      .eq("owner_id", requestingUser.id)
+      .single();
+
+    if (!entrepreneurship) {
+      return res.status(403).json({ error: "No tienes un emprendimiento registrado" });
+    }
+
+    // 3. Verificar que los items pertenecen al emprendimiento del usuario
+    const { data: itemsToProcess, error: itemsError } = await supabaseAdmin
+      .from("sale_items")
+      .select(`
+        id,
+        refunded,
+        entrepreneur_processed,
+        products!inner(id, entrepreneurship_id)
+      `)
+      .in("id", item_ids)
+      .eq("sale_id", saleId)
+      .eq("products.entrepreneurship_id", entrepreneurship.id);
+
+    if (itemsError || !itemsToProcess || itemsToProcess.length === 0) {
+      return res.status(400).json({
+        error: "No se encontraron items válidos para procesar en tu emprendimiento",
+      });
+    }
+
+    // 4. Validar que ninguno esté ya procesado o reembolsado
+    const alreadyProcessed = itemsToProcess.filter((item) => item.entrepreneur_processed);
+    const alreadyRefunded = itemsToProcess.filter((item) => item.refunded);
+
+    if (alreadyProcessed.length > 0) {
+      return res.status(400).json({
+        error: `${alreadyProcessed.length} item(s) ya están procesados`,
+      });
+    }
+
+    if (alreadyRefunded.length > 0) {
+      return res.status(400).json({
+        error: `${alreadyRefunded.length} item(s) están reembolsados y no pueden procesarse`,
+      });
+    }
+
+    // 5. Actualizar los items
+    const processIds = itemsToProcess.map((item) => item.id);
+    const { error: updateError } = await supabaseAdmin
+      .from("sale_items")
+      .update({
+        entrepreneur_processed: true,
+        entrepreneur_processed_at: new Date().toISOString(),
+        entrepreneur_processed_by: requestingUser.id,
+      })
+      .in("id", processIds);
+
+    if (updateError) throw updateError;
+
+    res.status(200).json({
+      message: `${processIds.length} item(s) marcados como pagados correctamente`,
+      processed: processIds.length,
+    });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Error al procesar los items";
+    console.error("[SaleController] Error en processSaleItems:", message);
+    res.status(500).json({ error: `Error al procesar los items: ${message}` });
+  }
+}
+
 // [ADMIN] Marcar una venta como procesada en nómina
 export async function updatePayrollStatus(req: Request, res: Response) {
   const { id } = req.params;
 
   const { data: sale, error: findError } = await supabaseAdmin
     .from("sales")
-    .select("id, refunded, payroll_processed")
+    .select("id, refunded, payroll_processed, payment_type")
     .eq("id", id)
     .single();
 
@@ -656,6 +798,12 @@ export async function updatePayrollStatus(req: Request, res: Response) {
 
   if (sale.refunded) {
     return res.status(400).json({ error: "No se puede liquidar una venta reembolsada" });
+  }
+
+  if (sale.payment_type === "immediate") {
+    return res.status(400).json({
+      error: "No se puede liquidar una venta de pago inmediato en la nómina",
+    });
   }
 
   const { data, error } = await supabaseAdmin
@@ -1037,7 +1185,7 @@ export async function refundSale(req: Request, res: Response) {
     // --- REEMBOLSO TOTAL ---
     const { error: refundError } = await supabaseAdmin
       .from("sales")
-      .update({ refunded: true, total: 0 })
+      .update({ refunded: true })
       .eq("id", id);
 
     if (refundError) {
@@ -1391,7 +1539,7 @@ async function processSingleRefund(saleId: string, userEntIds: string[], isAdmin
   if (isFullRefund) {
     const { error: refundError } = await supabaseAdmin
       .from("sales")
-      .update({ refunded: true, total: 0 })
+      .update({ refunded: true })
       .eq("id", saleId);
 
     if (refundError) {
@@ -1429,7 +1577,7 @@ async function processSingleRefund(saleId: string, userEntIds: string[], isAdmin
 async function processSinglePayroll(saleId: string) {
   const { data: sale, error: findError } = await supabaseAdmin
     .from("sales")
-    .select("id, refunded")
+    .select("id, refunded, payment_type")
     .eq("id", saleId)
     .single();
 
@@ -1439,6 +1587,10 @@ async function processSinglePayroll(saleId: string) {
 
   if (sale.refunded) {
     throw new Error("No se puede liquidar una venta reembolsada");
+  }
+
+  if (sale.payment_type === "immediate") {
+    throw new Error("No se puede liquidar una venta de pago inmediato en la nómina");
   }
 
   const { data, error } = await supabaseAdmin

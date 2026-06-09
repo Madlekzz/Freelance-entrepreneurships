@@ -1,8 +1,8 @@
-import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, ChevronDown, ChevronUp, Store } from "lucide-react";
 import React from "react";
 import type { ConsumerSale } from "../../../types";
 import PurchaseItemDetail from "./shared/PurchaseItemDetail";
-import StatusBadge from "./shared/StatusBadge";
+import StatusBadge, { PaymentTypeLabel } from "./shared/StatusBadge";
 import TableSkeleton from "./TableSkeleton";
 
 interface Props {
@@ -43,6 +43,9 @@ export default function MyPurchasesDesktop({
               Total
             </th>
             <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">
+              Pago
+            </th>
+            <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">
               Estado
             </th>
           </tr>
@@ -74,20 +77,33 @@ export default function MyPurchasesDesktop({
                   {fmt(sale.total)}
                 </td>
                 <td className="px-6 py-4 text-center">
-                  <StatusBadge processed={sale.payroll_processed} refunded={sale.refunded} />
+                  <PaymentTypeLabel paymentType={sale.payment_type} paymentMethod={sale.payment_method} />
+                </td>
+                <td className="px-6 py-4 text-center">
+                  <StatusBadge
+                    processed={sale.payroll_processed}
+                    refunded={sale.refunded}
+                    paymentType={sale.payment_type}
+                    saleItems={sale.sale_items}
+                  />
                 </td>
               </tr>
               {expandedId === sale.id && (
                 <tr className="bg-gray-50/30">
-                  <td colSpan={5} className="px-12 py-6">
-                    <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
-                      {sale.sale_items.map((item) => (
-                        <PurchaseItemDetail
-                          key={item.products.name}
-                          item={item}
-                          fmt={fmt}
-                        />
-                      ))}
+                  <td colSpan={6} className="px-12 py-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
+                        <Store size={12} /> Productos
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        {sale.sale_items.map((item) => (
+                          <PurchaseItemDetail
+                            key={item.products.name}
+                            item={item}
+                            fmt={fmt}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </td>
                 </tr>
