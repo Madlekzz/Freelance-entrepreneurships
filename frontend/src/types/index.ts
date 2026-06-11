@@ -400,6 +400,8 @@ export interface SoftwareUpdate {
   category: "new_feature" | "improvement" | "bugfix" | "style";
   created_at: string;
   version?: string;
+}
+
 // ── Payment Data ──────────────────────────────────────────────────────────
 export interface BinanceData {
   binance_id: string;
