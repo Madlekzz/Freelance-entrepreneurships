@@ -14,7 +14,9 @@ interface UseSoftwareUpdatesReturn {
 export function useSoftwareUpdates(): UseSoftwareUpdatesReturn {
   const [updates, setUpdates] = useState<SoftwareUpdate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [readVersion, setReadVersion] = useState(0);
+  const [lastReadAt, setLastReadAt] = useState<string | null>(() =>
+    localStorage.getItem(LAST_READ_KEY),
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,17 +32,16 @@ export function useSoftwareUpdates(): UseSoftwareUpdatesReturn {
     fetchData();
   }, []);
 
-  const lastReadAt = localStorage.getItem(LAST_READ_KEY);
-
   const unreadCount = useMemo(() => {
     if (!lastReadAt) return updates.length;
     const lastRead = new Date(lastReadAt);
     return updates.filter((u) => new Date(u.created_at) > lastRead).length;
-  }, [updates, lastReadAt, readVersion]);
+  }, [updates, lastReadAt]);
 
   const markAsRead = useCallback(() => {
-    localStorage.setItem(LAST_READ_KEY, new Date().toISOString());
-    setReadVersion((v) => v + 1);
+    const now = new Date().toISOString();
+    localStorage.setItem(LAST_READ_KEY, now);
+    setLastReadAt(now);
   }, []);
 
   return { updates, loading, unreadCount, markAsRead };
