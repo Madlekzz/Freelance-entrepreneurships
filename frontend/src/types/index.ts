@@ -400,4 +400,24 @@ export interface SoftwareUpdate {
   category: "new_feature" | "improvement" | "bugfix" | "style";
   created_at: string;
   version?: string;
+// ── Payment Data ──────────────────────────────────────────────────────────
+export interface BinanceData {
+  binance_id: string;
+  correo_electronico: string;
+}
+
+export interface PagoMovilData {
+  banco: string;
+  numero_telefonico: string;
+  cedula: string;
+}
+
+export interface EntrepreneurPaymentData {
+  id: string;
+  user_id: string;
+  payment_method: "efectivo" | "binance" | "pago_movil";
+  data: BinanceData | PagoMovilData | Record<string, never>;
+  is_active: boolean;
+  updated_at: string;
+  entrepreneurship_names?: string; // server-enriched via batch endpoint
 }
