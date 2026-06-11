@@ -53,9 +53,9 @@ export async function upsertPaymentData(req: Request, res: Response) {
 		return res.status(401).json({ error: "No autorizado" });
 	}
 
-	const { method } = req.params;
+	const method = req.params.method;
 	const validMethods = ["efectivo", "binance", "pago_movil"];
-	if (!validMethods.includes(method)) {
+	if (typeof method !== "string" || !validMethods.includes(method)) {
 		return res.status(400).json({
 			error: `Método de pago inválido. Debe ser uno de: ${validMethods.join(", ")}`,
 		});
