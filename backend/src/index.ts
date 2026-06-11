@@ -1,11 +1,12 @@
 import cors from "cors";
 import dotenv from "dotenv";
-import express from "express";
+import express, { type NextFunction, type Request, type Response } from "express";
 import rateLimit from "express-rate-limit";
 import authRouter from "./routes/authRoutes.js";
 import categoryRouter from "./routes/categoryRoutes.js";
 import composedProductRouter from "./routes/composedProductRoutes.js";
 import configRouter from "./routes/configRoutes.js";
+import entrepreneurPaymentDataRouter from "./routes/entrepreneurPaymentDataRoutes.js";
 import entrepreneurshipRouter from "./routes/entrepreneurshipRoutes.js";
 import productRouter from "./routes/productRoutes.js";
 import saleRouter from "./routes/saleRoutes.js";
@@ -57,10 +58,22 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/config", configRouter);
+app.use("/api/entrepreneur-payment-data", entrepreneurPaymentDataRouter);
 app.use("/api/entrepreneurships", entrepreneurshipRouter);
 app.use("/api/products", productRouter);
 app.use("/api/composed-products", composedProductRouter);
 app.use("/api/sales", saleRouter);
+
+// Global error handler
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Error interno del servidor" });
+});
+
+// 404 catch-all
+app.use((_req, res) => {
+  res.status(404).json({ error: "Ruta no encontrada" });
+});
 
 // Server Startup
 app.listen(PORT, () => {

@@ -1,4 +1,4 @@
-import { FileSpreadsheet, Settings as SettingsIcon } from "lucide-react";
+import { CreditCard, FileSpreadsheet, Settings as SettingsIcon } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../login/hooks/useAuth";
 import { useSettings } from "./hooks/useSettings";
@@ -6,6 +6,7 @@ import { PasswordChangeForm } from "./PasswordChangeForm";
 import { SettingsForm } from "./SettingsForm";
 import { SettingsHelper } from "./SettingsHelper";
 import { SettingsSkeleton } from "./SettingsSkeleton";
+import PaymentDataForm from "./PaymentDataForm";
 
 export default function Settings() {
   const { hasRole } = useAuth();
@@ -30,6 +31,12 @@ export default function Settings() {
       label: "Configuración General",
       icon: SettingsIcon,
       content: <PasswordChangeForm />,
+    },
+    {
+      key: "payment",
+      label: "Datos de Pago",
+      icon: CreditCard,
+      content: <PaymentDataForm />,
     },
     ...(isAdmin
       ? [

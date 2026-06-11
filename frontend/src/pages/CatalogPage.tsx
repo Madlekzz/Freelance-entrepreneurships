@@ -134,6 +134,8 @@ export default function CatalogPage() {
         onPaymentTypeChange={checkout.setPaymentType}
         onPaymentMethodChange={checkout.setPaymentMethod}
         onConfirm={checkout.handleConfirmPurchase}
+        paymentDisplayData={checkout.paymentDisplayData}
+        paymentDataLoading={checkout.paymentDataLoading}
       />
     </div>
   );
