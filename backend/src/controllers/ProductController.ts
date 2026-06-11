@@ -14,8 +14,8 @@ export async function getActiveProducts(_req: Request, res: Response) {
 
   if (error) return res.status(400).json({ error: error.message });
 
-  const enriched = await enrichComposedStock(data ?? []);
-  const result = (enriched ?? []).map((p) => ({
+  const enriched = await enrichComposedStock(data);
+  const       result = enriched.map((p) => ({
     ...p,
     current_stock: p.computed_stock ?? p.current_stock,
   }));
@@ -47,9 +47,8 @@ export async function getProductsByEntrepreneurship(
 ) {
   const { entrepreneurship_id } = req.params;
   const requestingUser = req.user;
-  const roles: string[] = requestingUser?.user_metadata?.roles ?? [];
 
-  if (roles.includes("PROVEEDOR")) {
+  if (requestingUser?.user_metadata.roles.includes("PROVEEDOR")) {
     const { data: entrepreneurship } = await supabaseAdmin
       .from("entrepreneurships")
       .select("owner_id")
