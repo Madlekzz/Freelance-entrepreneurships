@@ -21,6 +21,11 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 		persistSession: false,
 		detectSessionInUrl: false,
 	},
+	global: {
+		headers: {
+			Authorization: `Bearer ${supabaseServiceKey}`,
+		},
+	},
 });
 
 // CLIENTE AUTH: Solo para el middleware de validación
