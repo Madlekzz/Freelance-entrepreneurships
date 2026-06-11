@@ -11,6 +11,7 @@ import type { ModalStatus } from "../../../hooks/useCheckout";
 import type {
   CatalogProduct,
   Consumer,
+  EntrepreneurPaymentData,
   PaymentMethod,
   PaymentType,
 } from "../../../types";
@@ -39,6 +40,8 @@ interface Props {
   onPaymentTypeChange: (type: PaymentType) => void;
   onPaymentMethodChange: (method: PaymentMethod) => void;
   onConfirm: () => void;
+  paymentDisplayData: EntrepreneurPaymentData[];
+  paymentDataLoading: boolean;
 }
 
 export default function CheckoutModal(props: Props) {
@@ -207,7 +210,73 @@ export default function CheckoutModal(props: Props) {
                     </div>
                   </div>
                 )}
-              </div>
+
+                {props.paymentMethod && (
+                  <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-yellow-700 mb-2 uppercase tracking-wider">
+                      Datos de pago del emprendedor
+                    </p>
+                    {props.paymentDataLoading ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 size={20} className="animate-spin text-yellow-600" />
+                      </div>
+                    ) : props.paymentDisplayData.length === 0 ? (
+                      <p className="text-xs text-yellow-600">
+                        Este emprendedor aún no ha configurado datos de pago para
+                        este método.
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {props.paymentDisplayData.map((pd) => (
+                          <div key={pd.id} className="bg-yellow-50">
+                            {pd.entrepreneurship_names && (
+                              <p className="text-xs font-semibold text-gray-600 mb-1">
+                                {pd.entrepreneurship_names}
+                              </p>
+                            )}
+                            {pd.payment_method === "efectivo" ? (
+                              <p className="text-sm text-gray-700">
+                                Pago en efectivo al recibir el producto.
+                              </p>
+                            ) : pd.payment_method === "binance" ? (
+                              <div className="text-sm text-gray-700 space-y-0.5">
+                                <p>
+                                  <span className="font-medium">Binance ID:</span>{" "}
+                                  {(pd.data as { binance_id: string }).binance_id}
+                                </p>
+                                <p>
+                                  <span className="font-medium">Correo:</span>{" "}
+                                  {
+                                    (pd.data as { correo_electronico: string })
+                                      .correo_electronico
+                                  }
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-gray-700 space-y-0.5">
+                                <p>
+                                  <span className="font-medium">Banco:</span>{" "}
+                                  {(pd.data as { banco: string }).banco}
+                                </p>
+                                <p>
+                                  <span className="font-medium">Teléfono:</span>{" "}
+                                  {
+                                    (pd.data as { numero_telefonico: string })
+                                      .numero_telefonico
+                                  }
+                                </p>
+                                <p>
+                                  <span className="font-medium">Cédula:</span>{" "}
+                                  {(pd.data as { cedula: string }).cedula}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
                 <p className="text-xs font-semibold text-primary mb-2.5 uppercase tracking-wider">

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { createSale } from "../services/saleService";
 import type { CatalogProduct, Consumer } from "../types";
 import { getConsumersList } from "../services/usersService";
+import { usePaymentDataCheckout } from "./usePaymentDataCheckout";
 
 export type ModalStatus = "idle" | "loading" | "success" | "error";
 
@@ -113,6 +114,11 @@ export function useCheckout({
 
   const selectedConsumer = consumers.find((c) => c.id === selectedConsumerId);
 
+  const { paymentDisplayData, paymentDataLoading } = usePaymentDataCheckout({
+    productIds: cartEntries.map((e) => e.product.id),
+    paymentMethod: paymentType === "immediate" ? paymentMethod : null,
+  });
+
   const selectOptions = consumers.map((c) => ({
     value: c.id,
     label: `${c.name} - ${c.email}`,
@@ -130,6 +136,8 @@ export function useCheckout({
     setPaymentType,
     paymentMethod,
     setPaymentMethod,
+    paymentDisplayData,
+    paymentDataLoading,
     onConsumerChange: setSelectedConsumerId,
     handleOpenCheckout,
     handleCloseModal,
