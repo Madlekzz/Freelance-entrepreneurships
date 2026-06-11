@@ -1,10 +1,11 @@
-// Añadimos el icono User o LayoutDashboard para el estado loggeado
-import { LogIn, ShoppingCart, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Bell, LogIn, ShoppingCart, User } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import FreelanceLogo from "../../../assets/Isologo Freelance Latin America.png";
 import FreelanceIsotipo from "../../../assets/Isotipo FLA-Blanco.png";
 import { supabase } from "../../../config/supabaseClient";
+import { useSoftwareUpdates } from "../../../hooks/useSoftwareUpdates";
+import SoftwareUpdatesWidget from "../../layout/SoftwareUpdatesWidget";
 
 interface Props {
   cartCount: number;
@@ -21,6 +22,9 @@ export default function CatalogHeader({
 }: Props) {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const { updates, loading, unreadCount, markAsRead } = useSoftwareUpdates();
 
   useEffect(() => {
     const checkUser = async () => {
@@ -38,6 +42,18 @@ export default function CatalogHeader({
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Click outside to close popover
+  useEffect(() => {
+    if (!popoverOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setPopoverOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [popoverOpen]);
 
   const handleAuthAction = () => {
     if (isLoggedIn) {
@@ -67,13 +83,42 @@ export default function CatalogHeader({
             className="flex items-center gap-2 p-3 cursor-pointer border border-gray-200 rounded-full text-sm text-gray-600 hover:border-primary hover:text-primary transition-all hover:bg-gray-50 active:scale-95"
           >
             {isLoggedIn ? (
-              // Icono cuando hay sesión (puedes usar LayoutDashboard si prefieres)
               <User size={20} />
             ) : (
-              // Icono por defecto
               <LogIn size={20} />
             )}
           </button>
+
+          {/* Software Updates Bell */}
+          <div className="relative" ref={popoverRef}>
+            <button
+              type="button"
+              onClick={() => setPopoverOpen((prev) => !prev)}
+              className="relative flex items-center gap-2 p-3 cursor-pointer text-gray-600 border-gray-200 hover:text-primary hover:border-primary border rounded-full text-sm font-medium transition-all hover:bg-gray-50 active:scale-95"
+              title="Novedades"
+            >
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[10px] font-bold min-w-5 h-5 px-1 flex items-center justify-center rounded-full border-2 border-white shadow-sm z-10 animate-in zoom-in duration-200">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {popoverOpen && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-1">
+                <div className="p-3">
+                  <SoftwareUpdatesWidget
+                    updates={updates}
+                    loading={loading}
+                    unreadCount={unreadCount}
+                    onMarkAsRead={markAsRead}
+                    variant="popover"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
           <button
             type="button"
