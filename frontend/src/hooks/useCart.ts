@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { CatalogProduct } from "../types";
 
 type Cart = Record<string, number>;
@@ -32,13 +32,17 @@ export function useCart(allProducts: CatalogProduct[]) {
 
   const clearCart = () => setCart({});
 
-  const cartEntries = Object.entries(cart)
-    .map(([id, qty]) => {
-      const product = allProducts.find((p) => p.id === id);
-      if (!product) return null;
-      return { product, qty };
-    })
-    .filter((e): e is { product: CatalogProduct; qty: number } => e !== null);
+  const cartEntries = useMemo(
+    () =>
+      Object.entries(cart)
+        .map(([id, qty]) => {
+          const product = allProducts.find((p) => p.id === id);
+          if (!product) return null;
+          return { product, qty };
+        })
+        .filter((e): e is { product: CatalogProduct; qty: number } => e !== null),
+    [cart, allProducts],
+  );
 
   const cartCount = Object.values(cart).reduce((s, q) => s + q, 0);
   const cartTotal = cartEntries.reduce(
