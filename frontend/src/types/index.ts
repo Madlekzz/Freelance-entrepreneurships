@@ -392,16 +392,6 @@ export interface SheetOption {
   label: string;
 }
 
-// ── Software Updates ──────────────────────────────────────────────────────
-export interface SoftwareUpdate {
-  id: string;
-  title: string;
-  description: string | null;
-  category: "new_feature" | "improvement" | "bugfix" | "style";
-  created_at: string;
-  version?: string;
-}
-
 // ── Payment Data ──────────────────────────────────────────────────────────
 export interface BinanceData {
   binance_id: string;
