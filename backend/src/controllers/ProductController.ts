@@ -59,7 +59,7 @@ export async function getProductsByEntrepreneurship(
       return res.status(404).json({ error: "Emprendimiento no encontrado" });
     }
 
-    if (entrepreneurship.owner_id !== requestingUser.id) {
+    if (entrepreneurship.owner_id !== requestingUser?.id) {
       return res.status(403).json({
         error:
           "No tienes permiso para ver los productos de este emprendimiento",
@@ -213,8 +213,9 @@ export async function updateProduct(req: Request, res: Response) {
     }
 
     // El PROVEEDOR solo puede editar sus propios productos
-    if (requestingUser?.user_metadata.roles.includes("PROVEEDOR")) {
-      if (product.entrepreneurships.owner_id !== requestingUser.id) {
+    const roles: string[] = requestingUser?.user_metadata?.roles ?? [];
+    if (roles.includes("PROVEEDOR")) {
+      if (product.entrepreneurships.owner_id !== requestingUser?.id) {
         return res
           .status(403)
           .json({ error: "No tienes permiso para editar este producto" });
