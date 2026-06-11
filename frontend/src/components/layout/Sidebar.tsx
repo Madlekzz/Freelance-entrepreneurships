@@ -1,10 +1,14 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Loader2, Megaphone } from "lucide-react";
 import { Link } from "react-router-dom";
 import freelanceLogo from "../../assets/Isotipo FLA-Blanco.png";
-import { useSidebar } from "../../hooks/useSidebar"; // <-- Importamos el nuevo hook
+import { useSidebar } from "../../hooks/useSidebar";
 import type { MenuItem } from "../../types";
 import { getRoleLabel, getUserInitials } from "../../utils/userUtils";
 import { useAuth } from "../features/login/hooks/useAuth";
+import { useSoftwareUpdates } from "../../hooks/useSoftwareUpdates";
+import { getCategoryIcon } from "../../utils/softwareUpdatesUtils";
+import { useState } from "react";
+import UpdatesModal from "../shared/UpdatesModal";
 
 interface SidebarProps {
   navConfig: MenuItem[];
@@ -19,6 +23,8 @@ export default function Sidebar({
 }: SidebarProps) {
   const { user, roles } = useAuth();
   const { isOpenMobile, closeMobile, openMobile } = useSidebar();
+  const { updates, loading, unreadCount, markAsRead } = useSoftwareUpdates();
+  const [updatesModalOpen, setUpdatesModalOpen] = useState(false);
 
   if (!user) return null;
 
@@ -123,6 +129,76 @@ export default function Sidebar({
           })}
         </nav>
 
+        {/* Software Updates Widget - Circle + Bubble side by side */}
+        <div className="relative px-3 py-3 shrink-0 w-60">
+          <div className="flex items-start gap-3">
+            {/* Circle - always visible on the left */}
+            <button
+              type="button"
+              onClick={() => setUpdatesModalOpen(true)}
+              className="w-11 h-10 flex items-center justify-center shrink-0"
+              title="Novedades"
+            >
+              <div className="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center relative">
+                <Megaphone size={14} className="text-primary" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </div>
+            </button>
+
+            {/* Bubble - to the right of the circle */}
+            <div className="min-w-0 flex-1 mt-1">
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    Novedades
+                  </h4>
+                  {unreadCount > 0 && (
+                    <span className="bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
+                {loading ? (
+                  <div className="flex items-center justify-center py-3">
+                    <Loader2 size={14} className="animate-spin text-gray-400" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-1.5 max-h-28 overflow-y-auto mb-2">
+                      {updates.slice(0, 3).map((update) => (
+                        <div key={update.id} className="flex gap-2 items-start">
+                          <div className="mt-0.5">{getCategoryIcon(update.category)}</div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-bold text-gray-900 truncate">
+                              {update.title}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {updates.length === 0 && (
+                        <p className="text-[11px] text-gray-400 italic">
+                          Sin novedades
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setUpdatesModalOpen(true)}
+                      className="w-full py-2 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary-dark transition-colors cursor-pointer"
+                    >
+                      Ver novedades
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* User Info Section */}
         <div className="relative p-3 border-t border-white/10 bg-black/10 backdrop-blur-md shrink-0 w-60">
           <div className="flex items-center gap-3 h-10">
@@ -142,6 +218,15 @@ export default function Sidebar({
           </div>
         </div>
       </aside>
+
+      {/* Updates Modal — outside <aside> to avoid fixed-position containing block issues */}
+      <UpdatesModal
+        isOpen={updatesModalOpen}
+        onClose={() => setUpdatesModalOpen(false)}
+        updates={updates}
+        loading={loading}
+        onMarkAsRead={markAsRead}
+      />
     </>
   );
 }
