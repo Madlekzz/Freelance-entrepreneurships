@@ -26,27 +26,22 @@ export function usePaymentDataCheckout({
     return Array.from(ids);
   }, [cartEntries]);
 
-  // Fetch payment data when payment method changes or product IDs change
-  useEffect(() => {
-    if (paymentType !== "immediate" || !paymentMethod || productIds.length === 0) {
-      setPaymentData([]);
-      return;
-    }
+  // Determine if we should fetch payment data
+  const shouldFetch =
+    paymentType === "immediate" &&
+    !!paymentMethod &&
+    paymentMethod !== "efectivo" &&
+    productIds.length > 0;
 
-    // Efectivo no tiene datos configurables
-    if (paymentMethod === "efectivo") {
-      setPaymentData([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+  // Fetch payment data when conditions are met
+  useEffect(() => {
+    if (!shouldFetch) return;
 
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
         const data = await getPaymentDataByProducts(productIds);
-        // Filter by selected payment method (server also filters by is_active)
         const filtered = data.filter((d) => d.payment_method === paymentMethod);
         setPaymentData(filtered);
       } catch (err) {
@@ -58,7 +53,16 @@ export function usePaymentDataCheckout({
       }
     };
     fetchData();
-  }, [paymentMethod, paymentType, productIds]);
+  }, [shouldFetch, paymentMethod, productIds]);
 
-  return { paymentDisplayData: paymentData, loading, error };
+  // Derive display data: empty when conditions aren't met, fetched data otherwise
+  const paymentDisplayData = useMemo(() => {
+    if (!shouldFetch) return [];
+    return paymentData;
+  }, [shouldFetch, paymentData]);
+
+  // Only show loading indicator when we're actually fetching
+  const displayLoading = shouldFetch && loading;
+
+  return { paymentDisplayData, loading: displayLoading, error };
 }

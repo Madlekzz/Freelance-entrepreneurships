@@ -3,10 +3,10 @@ import { useState } from "react";
 import { useAuth } from "../login/hooks/useAuth";
 import { useSettings } from "./hooks/useSettings";
 import { PasswordChangeForm } from "./PasswordChangeForm";
-import { PaymentDataForm } from "./PaymentDataForm";
 import { SettingsForm } from "./SettingsForm";
 import { SettingsHelper } from "./SettingsHelper";
 import { SettingsSkeleton } from "./SettingsSkeleton";
+import PaymentDataForm from "./PaymentDataForm";
 
 export default function Settings() {
   const { hasRole } = useAuth();

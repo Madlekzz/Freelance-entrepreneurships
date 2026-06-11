@@ -35,7 +35,7 @@ function MethodForm({ method, existingData, saving, onSave }: MethodFormProps) {
       {method === "binance" && (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="binance_id" className="block text-sm font-medium text-gray-700 mb-2">
               Binance ID
             </label>
             <input
@@ -47,7 +47,7 @@ function MethodForm({ method, existingData, saving, onSave }: MethodFormProps) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="correo_electronico" className="block text-sm font-medium text-gray-700 mb-2">
               Correo Electrónico
             </label>
             <input
@@ -64,7 +64,7 @@ function MethodForm({ method, existingData, saving, onSave }: MethodFormProps) {
       {method === "pago_movil" && (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="banco" className="block text-sm font-medium text-gray-700 mb-2">
               Banco
             </label>
             <input
@@ -76,7 +76,7 @@ function MethodForm({ method, existingData, saving, onSave }: MethodFormProps) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="numero_telefonico" className="block text-sm font-medium text-gray-700 mb-2">
               Número Telefónico
             </label>
             <input
@@ -88,7 +88,7 @@ function MethodForm({ method, existingData, saving, onSave }: MethodFormProps) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="cedula" className="block text-sm font-medium text-gray-700 mb-2">
               Cédula
             </label>
             <input

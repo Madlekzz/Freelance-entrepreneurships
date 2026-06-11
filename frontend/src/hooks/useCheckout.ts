@@ -115,8 +115,9 @@ export function useCheckout({
   const selectedConsumer = consumers.find((c) => c.id === selectedConsumerId);
 
   const { paymentDisplayData, paymentDataLoading } = usePaymentDataCheckout({
-    productIds: cartEntries.map((e) => e.product.id),
+    cartEntries,
     paymentMethod: paymentType === "immediate" ? paymentMethod : null,
+    paymentType,
   });
 
   const selectOptions = consumers.map((c) => ({

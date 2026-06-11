@@ -211,7 +211,9 @@ export default function CheckoutModal(props: Props) {
                   </div>
                 )}
 
-                {props.paymentMethod && (
+              </div>
+
+              {props.paymentMethod && (
                   <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4">
                     <p className="text-xs font-semibold text-yellow-700 mb-2 uppercase tracking-wider">
                       Datos de pago del emprendedor
