@@ -1,4 +1,4 @@
-import { Loader2, Megaphone } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import type { SoftwareUpdate } from "../../types";
 import { getCategoryIcon, getCategoryLabel } from "../../utils/softwareUpdatesUtils";
 
@@ -9,7 +9,6 @@ interface Props {
   loading: boolean;
   unreadCount: number;
   onMarkAsRead: () => void;
-  variant: "sidebar" | "popover";
 }
 
 function timeAgo(dateString: string): string {
@@ -31,10 +30,7 @@ function timeAgo(dateString: string): string {
 
 export default function SoftwareUpdatesWidget({
   updates,
-  loading,
-  unreadCount,
-  onMarkAsRead,
-  variant,
+  loading
 }: Props) {
   const lastReadAt = typeof window !== "undefined"
     ? localStorage.getItem(LAST_READ_KEY)
@@ -44,70 +40,6 @@ export default function SoftwareUpdatesWidget({
     if (!lastReadAt) return true;
     return new Date(created_at) > new Date(lastReadAt);
   };
-  if (variant === "sidebar") {
-    return (
-      <div className="w-full">
-        <div className="px-3 py-3">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Megaphone size={14} className="text-white/60" />
-              <h4 className="text-xs font-semibold text-white/70 uppercase tracking-wider">
-                Novedades
-              </h4>
-              {unreadCount > 0 && (
-                <span className="bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  {unreadCount}
-                </span>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={onMarkAsRead}
-              className="text-[10px] text-white/40 hover:text-white/70 transition-colors cursor-pointer"
-              title="Marcar como leído"
-            >
-              Leído
-            </button>
-          </div>
-          {loading ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 size={16} className="animate-spin text-white/40" />
-            </div>
-          ) : updates.length === 0 ? (
-            <p className="text-[11px] text-white/40 italic">
-              Sin novedades este mes
-            </p>
-          ) : (
-            <div className="space-y-1.5 max-h-48 overflow-y-auto">
-              {updates.slice(0, 5).map((update) => (
-                <div
-                  key={update.id}
-                  className="flex gap-2 items-start bg-white/5 rounded-lg px-2.5 py-2"
-                >
-                  <div className="mt-0.5">
-                    {getCategoryIcon(update.category)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-medium text-white/90 truncate">
-                      {update.title}
-                    </p>
-                    <p className="text-[10px] text-white/50 leading-tight line-clamp-2">
-                      {update.description}
-                    </p>
-                    <p className="text-[9px] text-white/30 mt-0.5">
-                      {timeAgo(update.created_at)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Variant: popover
   return (
     <div className="w-full">
       {loading ? (
