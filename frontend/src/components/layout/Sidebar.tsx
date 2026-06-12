@@ -1,4 +1,4 @@
-import { ChevronRight, Loader2, Megaphone } from "lucide-react";
+import { ChevronRight, Megaphone } from "lucide-react";
 import { Link } from "react-router-dom";
 import freelanceLogo from "../../assets/Isotipo FLA-Blanco.png";
 import { useSidebar } from "../../hooks/useSidebar";
@@ -6,7 +6,6 @@ import type { MenuItem } from "../../types";
 import { getRoleLabel, getUserInitials } from "../../utils/userUtils";
 import { useAuth } from "../features/login/hooks/useAuth";
 import { useSoftwareUpdates } from "../../hooks/useSoftwareUpdates";
-import { getCategoryIcon } from "../../utils/softwareUpdatesUtils";
 import { useState } from "react";
 import UpdatesModal from "../shared/UpdatesModal";
 
@@ -133,9 +132,7 @@ export default function Sidebar({
         <div className="relative px-3 py-3 shrink-0 w-60">
           <div className="flex items-start gap-3">
             {/* Circle - always visible on the left */}
-            <button
-              type="button"
-              onClick={() => setUpdatesModalOpen(true)}
+            <div
               className="w-11 h-10 flex items-center justify-center shrink-0"
               title="Novedades"
             >
@@ -147,53 +144,21 @@ export default function Sidebar({
                   </span>
                 )}
               </div>
-            </button>
+            </div>
 
             {/* Bubble - to the right of the circle */}
-            <div className="min-w-0 flex-1 mt-1">
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Novedades
-                  </h4>
-                  {unreadCount > 0 && (
-                    <span className="bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                      {unreadCount}
-                    </span>
-                  )}
-                </div>
-                {loading ? (
-                  <div className="flex items-center justify-center py-3">
-                    <Loader2 size={14} className="animate-spin text-gray-400" />
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-1.5 max-h-28 overflow-y-auto mb-2">
-                      {updates.slice(0, 3).map((update) => (
-                        <div key={update.id} className="flex gap-2 items-start">
-                          <div className="mt-0.5">{getCategoryIcon(update.category)}</div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-bold text-gray-900 truncate">
-                              {update.title}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                      {updates.length === 0 && (
-                        <p className="text-[11px] text-gray-400 italic">
-                          Sin novedades
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setUpdatesModalOpen(true)}
-                      className="w-full py-2 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary-dark transition-colors cursor-pointer"
-                    >
-                      Ver novedades
-                    </button>
-                  </>
-                )}
+            <div className="min-w-0 flex-1">
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-2.5">
+                <p className="text-[11px] font-semibold text-gray-600 mb-1.5 leading-relaxed">
+                  ¿Quieres enterarte de las novedades de la aplicación?
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setUpdatesModalOpen(true)}
+                  className="w-full py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary-dark transition-colors cursor-pointer"
+                >
+                  Ver novedades
+                </button>
               </div>
             </div>
           </div>

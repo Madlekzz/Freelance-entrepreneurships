@@ -55,6 +55,13 @@ export default function CatalogHeader({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [popoverOpen]);
 
+  // Mark updates as read when opening the dropdown
+  useEffect(() => {
+    if (popoverOpen) {
+      markAsRead();
+    }
+  }, [popoverOpen, markAsRead]);
+
   const handleAuthAction = () => {
     if (isLoggedIn) {
       navigate("/dashboard");
@@ -113,7 +120,6 @@ export default function CatalogHeader({
                     loading={loading}
                     unreadCount={unreadCount}
                     onMarkAsRead={markAsRead}
-                    variant="popover"
                   />
                 </div>
               </div>
