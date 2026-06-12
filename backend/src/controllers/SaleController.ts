@@ -70,7 +70,8 @@ export async function getAllSales(_req: Request, res: Response) {
         refunded,
         payment_type,
         payment_method,
-        users!consumer_id(id, name, email), 
+        note,
+        users!consumer_id(id, name, email),
         sale_items(
             id,
             quantity,
@@ -129,6 +130,7 @@ export async function getSalesByEntrepreneurship(req: Request, res: Response) {
             refunded,
             payment_type,
             payment_method,
+            note,
             users!consumer_id(id, name, email),
             sale_items!inner(
                 id,
@@ -172,6 +174,7 @@ export async function getSalesByConsumer(req: Request, res: Response) {
             refunded,
             payment_type,
             payment_method,
+            note,
             users!consumer_id(name),
             sale_items(
                 id,
@@ -243,7 +246,7 @@ export async function getSaleById(req: Request, res: Response) {
 
 // [PÚBLICO] Crear una venta — Flujo de Carrito
 export async function createSale(req: Request, res: Response) {
-  const { consumer_id, items, payment_type, payment_method } = req.body;
+  const { consumer_id, items, payment_type, payment_method, note } = req.body;
 
   if (!consumer_id || !items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: "Datos de compra inválidos" });
@@ -402,6 +405,7 @@ export async function createSale(req: Request, res: Response) {
         payment_type: normalizedPaymentType,
         payment_method:
           normalizedPaymentType === "immediate" ? payment_method : null,
+        note: note && typeof note === "string" && note.trim() ? note.trim() : null,
       })
       .select(
         `

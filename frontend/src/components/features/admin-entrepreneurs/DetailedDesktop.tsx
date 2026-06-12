@@ -138,6 +138,9 @@ export const DetailedDesktop = (props: Props) => {
                     <p className="text-[10px] text-gray-400">
                       {sale.users.email}
                     </p>
+                    {sale.note && (
+                      <p className="text-[10px] text-gray-500 italic mt-0.5">"{sale.note}"</p>
+                    )}
                   </div>
                 </div>
               </td>
