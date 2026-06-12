@@ -39,9 +39,12 @@ interface Props {
   onConsumerChange: (email: string) => void;
   onPaymentTypeChange: (type: PaymentType) => void;
   onPaymentMethodChange: (method: PaymentMethod) => void;
+  note: string;
+  onNoteChange: (note: string) => void;
   onConfirm: () => void;
   paymentDisplayData: EntrepreneurPaymentData[];
   paymentDataLoading: boolean;
+  paymentDataError?: string | null;
 }
 
 export default function CheckoutModal(props: Props) {
@@ -222,6 +225,10 @@ export default function CheckoutModal(props: Props) {
                       <div className="flex items-center justify-center py-4">
                         <Loader2 size={20} className="animate-spin text-yellow-600" />
                       </div>
+                    ) : props.paymentDataError ? (
+                      <p className="text-xs text-red-600">
+                        {props.paymentDataError}
+                      </p>
                     ) : props.paymentDisplayData.length === 0 ? (
                       <p className="text-xs text-yellow-600">
                         Este emprendedor aún no ha configurado datos de pago para
@@ -279,6 +286,23 @@ export default function CheckoutModal(props: Props) {
                     )}
                   </div>
                 )}
+
+              <div>
+                <label
+                  htmlFor="purchase-note"
+                  className="block text-sm font-medium text-gray-600 mb-1.5"
+                >
+                  Nota <span className="text-gray-400 font-normal">(opcional)</span>
+                </label>
+                <textarea
+                  id="purchase-note"
+                  rows={2}
+                  value={props.note}
+                  onChange={(e) => props.onNoteChange(e.target.value)}
+                  placeholder="Ej: Para el evento de la oficina del viernes..."
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 placeholder-gray-300 resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition"
+                />
+              </div>
 
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
                 <p className="text-xs font-semibold text-primary mb-2.5 uppercase tracking-wider">

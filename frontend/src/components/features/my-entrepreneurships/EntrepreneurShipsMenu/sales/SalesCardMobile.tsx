@@ -81,11 +81,14 @@ export default function SalesCardsMobile({
                   <User size={18} />
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1">
-                    <p className="text-sm font-bold text-gray-900 truncate uppercase tracking-tight">{sale.users.name}</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-sm font-bold text-gray-900 truncate uppercase tracking-tight">{sale.users.name}</span>
                     <PaymentTypeLabel paymentType={sale.payment_type} paymentMethod={sale.payment_method} />
                   </div>
                   <p className="text-[10px] text-gray-400 font-mono">#{sale.id.slice(0, 8).toUpperCase()}</p>
+                  {sale.note && (
+                    <p className="text-[10px] text-gray-500 italic mt-0.5 truncate">"{sale.note}"</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">

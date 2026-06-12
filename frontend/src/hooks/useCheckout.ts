@@ -35,6 +35,7 @@ export function useCheckout({
   const [paymentMethod, setPaymentMethod] = useState<
     "efectivo" | "binance" | "pago_movil" | null
   >(null);
+  const [note, setNote] = useState<string>("");
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -68,6 +69,7 @@ export function useCheckout({
       setSelectedConsumerId(undefined);
       setPaymentType("credit");
       setPaymentMethod(null);
+      setNote("");
       setError(null);
     }, 300);
   };
@@ -95,6 +97,7 @@ export function useCheckout({
         items: items,
         payment_type: paymentType,
         payment_method: paymentType === "immediate" ? paymentMethod : undefined,
+        note: note.trim() || undefined,
       });
 
       // 3. Post-compra
@@ -114,7 +117,7 @@ export function useCheckout({
 
   const selectedConsumer = consumers.find((c) => c.id === selectedConsumerId);
 
-  const { paymentDisplayData, paymentDataLoading } = usePaymentDataCheckout({
+  const { paymentDisplayData, loading: paymentDataLoading, error: paymentDataError } = usePaymentDataCheckout({
     cartEntries,
     paymentMethod: paymentType === "immediate" ? paymentMethod : null,
     paymentType,
@@ -137,8 +140,11 @@ export function useCheckout({
     setPaymentType,
     paymentMethod,
     setPaymentMethod,
+    note,
+    setNote,
     paymentDisplayData,
     paymentDataLoading,
+    paymentDataError,
     onConsumerChange: setSelectedConsumerId,
     handleOpenCheckout,
     handleCloseModal,
