@@ -107,6 +107,9 @@ export const ConsumerDetailedDesktop = ({
               </td>
               <td className="px-6 py-4">
                 <div className="space-y-1.5 min-w-55">
+                  {sale.note && (
+                    <p className="text-[10px] text-gray-500 italic mb-1">"{sale.note}"</p>
+                  )}
                   {sale.sale_items.map((item: SaleItemDetail) => (
                     <div
                       key={item.products.id}

@@ -45,6 +45,7 @@ export interface ConsumerSale {
   refunded?: boolean;
   payment_type?: PaymentType;
   payment_method?: PaymentMethod | null;
+  note?: string | null;
   users: UserInfo;
   sale_items: SaleItem[];
 }
@@ -237,6 +238,7 @@ export interface CreateSalePayload {
   items: SaleItemPayload[];
   payment_type?: PaymentType;
   payment_method?: PaymentMethod;
+  note?: string;
 }
 
 export interface SaleItemPayload {
@@ -286,6 +288,7 @@ export interface EntrepreneurshipSale {
   refunded?: boolean;
   payment_type: PaymentType;
   payment_method?: PaymentMethod | null;
+  note?: string | null;
   users: {
     id: string;
     name: string;
@@ -335,6 +338,7 @@ export interface GlobalSale {
   refunded?: boolean;
   payment_type: PaymentType;
   payment_method?: PaymentMethod | null;
+  note?: string | null;
   users: {
     id: string;
     name: string;

@@ -133,9 +133,12 @@ export default function CatalogPage() {
         onConsumerChange={checkout.onConsumerChange}
         onPaymentTypeChange={checkout.setPaymentType}
         onPaymentMethodChange={checkout.setPaymentMethod}
+        note={checkout.note}
+        onNoteChange={checkout.setNote}
         onConfirm={checkout.handleConfirmPurchase}
         paymentDisplayData={checkout.paymentDisplayData}
         paymentDataLoading={checkout.paymentDataLoading}
+        paymentDataError={checkout.paymentDataError}
       />
     </div>
   );

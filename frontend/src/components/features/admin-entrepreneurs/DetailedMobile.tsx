@@ -70,6 +70,9 @@ export const DetailedMobile = ({ sales, selectedSales, toggleSelection, onProces
                   <PaymentTypeLabel paymentType={sale.payment_type} paymentMethod={sale.payment_method} />
                 </div>
                 <p className="text-[10px] text-gray-400 font-mono">#{sale.id.slice(0, 8).toUpperCase()}</p>
+                {sale.note && (
+                  <p className="text-[10px] text-gray-500 italic mt-0.5 truncate">"{sale.note}"</p>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">

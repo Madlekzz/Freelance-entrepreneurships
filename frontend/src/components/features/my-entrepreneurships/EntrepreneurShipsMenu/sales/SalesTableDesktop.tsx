@@ -119,11 +119,14 @@ export default function SalesTableDesktop({
                       <User size={16} />
                     </div>
                     <div>
-                      <div className="flex items-center gap-1">
-                        <p className="text-sm font-bold text-gray-900">{sale.users.name}</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-sm font-bold text-gray-900">{sale.users.name}</span>
                         <PaymentTypeLabel paymentType={sale.payment_type} paymentMethod={sale.payment_method} />
                       </div>
                       <p className="text-[11px] text-gray-400">{sale.users.email}</p>
+                      {sale.note && (
+                        <p className="text-[11px] text-gray-500 italic mt-0.5">"{sale.note}"</p>
+                      )}
                     </div>
                   </div>
                 </td>
