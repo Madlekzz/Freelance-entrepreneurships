@@ -13,11 +13,15 @@ import saleRouter from "./routes/saleRoutes.js";
 import softwareUpdatesRouter from "./routes/softwareUpdatesRoutes.js";
 import userRouter from "./routes/userRoutes.js";
 import { loadAppConfig } from "./services/appConfigStore.js";
+import { ipAllowlist } from "./middleware/ipAllowlist.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Trust Render's reverse proxy so req.ip reflects the real client IP
+app.set("trust proxy", 1);
 
 // Middleware
 const allowedOrigins = process.env.CORS_ORIGIN
@@ -31,6 +35,9 @@ app.use(
   }),
 );
 app.use(express.json());
+
+// IP allowlist — rejects requests from non-whitelisted IPs when ALLOWED_IPS is set
+app.use("/api", ipAllowlist);
 
 // Rate limiting
 const limiter = rateLimit({
