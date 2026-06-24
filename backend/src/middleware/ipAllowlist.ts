@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
 export function ipAllowlist(req: Request, res: Response, next: NextFunction) {
+	console.log("[ipAllowlist] req.ip:", req.ip, "| x-forwarded-for:", req.headers["x-forwarded-for"]);
 	const raw = process.env.ALLOWED_IPS;
 	if (!raw || raw.trim() === "") return next();
 
